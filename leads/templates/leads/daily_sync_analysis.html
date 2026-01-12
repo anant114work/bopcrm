@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Daily Lead Sync Analysis</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center; }
+        .stat-number { font-size: 24px; font-weight: bold; color: #007bff; }
+        .stat-label { font-size: 14px; color: #666; margin-top: 5px; }
+        .table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .table th, .table td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        .table th { background: #f8f9fa; font-weight: 600; }
+        .alert { padding: 15px; margin: 20px 0; border-radius: 4px; }
+        .alert-warning { background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; }
+        .alert-info { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Daily Lead Sync Analysis</h1>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="totalLeads">Loading...</div>
+                <div class="stat-label">Total Leads in CRM</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="todayLeads">Loading...</div>
+                <div class="stat-label">Today's Leads</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="yesterdayLeads">Loading...</div>
+                <div class="stat-label">Yesterday's Leads</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="avgDaily">Loading...</div>
+                <div class="stat-label">7-Day Average</div>
+            </div>
+        </div>
+
+        <div class="alert alert-info">
+            <strong>Meta Ads Manager vs CRM Comparison:</strong><br>
+            • Meta shows campaign-level results (may include multiple forms)<br>
+            • CRM shows individual lead records from API sync<br>
+            • Discrepancy usually indicates sync issues or API limitations
+        </div>
+
+        <h3>📅 Last 7 Days Breakdown</h3>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Meta Leads</th>
+                    <th>Google Leads</th>
+                    <th>Total</th>
+                    <th>Top Forms</th>
+                </tr>
+            </thead>
+            <tbody id="dailyBreakdown">
+                <tr><td colspan="5">Loading...</td></tr>
+            </tbody>
+        </table>
+
+        <div class="alert alert-warning" id="syncIssues" style="display: none;">
+            <strong>⚠️ Potential Sync Issues Detected:</strong>
+            <ul id="issuesList"></ul>
+        </div>
+    </div>
+
+    <script>
+        async function loadAnalysis() {
+            try {
+                const response = await fetch('/daily-sync-analysis-api/');
+                const data = await response.json();
+                
+                document.getElementById('totalLeads').textContent = data.total_leads;
+                document.getElementById('todayLeads').textContent = data.today_leads;
+                document.getElementById('yesterdayLeads').textContent = data.yesterday_leads;
+                document.getElementById('avgDaily').textContent = Math.round(data.avg_daily);
+                
+                const tbody = document.getElementById('dailyBreakdown');
+                tbody.innerHTML = '';
+                
+                data.daily_breakdown.forEach(day => {
+                    const row = tbody.insertRow();
+                    row.innerHTML = `
+                        <td>${day.date}</td>
+                        <td>${day.meta_leads}</td>
+                        <td>${day.google_leads}</td>
+                        <td><strong>${day.total}</strong></td>
+                        <td>${day.top_forms.join(', ')}</td>
+                    `;
+                });
+                
+                // Check for sync issues
+                if (data.sync_issues.length > 0) {
+                    const issuesDiv = document.getElementById('syncIssues');
+                    const issuesList = document.getElementById('issuesList');
+                    issuesList.innerHTML = '';
+                    
+                    data.sync_issues.forEach(issue => {
+                        const li = document.createElement('li');
+                        li.textContent = issue;
+                        issuesList.appendChild(li);
+                    });
+                    
+                    issuesDiv.style.display = 'block';
+                }
+                
+            } catch (error) {
+                console.error('Error loading analysis:', error);
+            }
+        }
+        
+        loadAnalysis();
+    </script>
+</body>
+</html>

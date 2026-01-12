@@ -1,0 +1,290 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}Auto Call Dashboard{% endblock %}
+{% block page_title %}🤖 Auto Call Dashboard{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-robot"></i> Auto Call New Leads</h2>
+        <div>
+            <button onclick="checkNewLeads()" class="btn btn-primary">
+                <i class="fas fa-sync"></i> Check New Leads
+            </button>
+            <button onclick="callNewLeads()" class="btn btn-success" id="callBtn">
+                <i class="fas fa-phone"></i> Call New Leads
+            </button>
+        </div>
+    </div>
+    <div class="card-content">
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-number" id="newLeadsCount">-</div>
+                <div class="stat-label">New Leads (Last Hour)</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="successfulCalls">0</div>
+                <div class="stat-label">Successful Calls</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="failedCalls">0</div>
+                <div class="stat-label">Failed Calls</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="totalCalls">0</div>
+                <div class="stat-label">Total Calls Made</div>
+            </div>
+        </div>
+
+        <div style="margin: 24px 0;">
+            <label for="timeRange">Check leads from last:</label>
+            <select id="timeRange" style="margin-left: 8px; padding: 4px;">
+                <option value="30">30 minutes</option>
+                <option value="60" selected>1 hour</option>
+                <option value="120">2 hours</option>
+                <option value="360">6 hours</option>
+                <option value="1440">24 hours</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-list"></i> New Leads to Call</h2>
+    </div>
+    <div class="card-content">
+        <div id="leadsTable">
+            <p style="color: #6b7280;">Click "Check New Leads" to see available leads</p>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-history"></i> Call Results</h2>
+    </div>
+    <div class="card-content">
+        <div id="callResults">
+            <p style="color: #6b7280;">No calls made yet</p>
+        </div>
+    </div>
+</div>
+
+<script>
+function checkNewLeads() {
+    const timeRange = document.getElementById('timeRange').value;
+    
+    fetch(`/auto-call/count/?since_minutes=${timeRange}`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('newLeadsCount').textContent = data.count;
+            
+            if (data.count > 0) {
+                let tableHtml = `
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #f9fafb;">
+                                <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Name</th>
+                                <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Phone</th>
+                                <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Form</th>
+                                <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Created</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                
+                data.leads.forEach(lead => {
+                    tableHtml += `
+                        <tr>
+                            <td style="padding: 12px; border-bottom: 1px solid #f3f4f6;">${lead.name}</td>
+                            <td style="padding: 12px; border-bottom: 1px solid #f3f4f6;">${lead.phone}</td>
+                            <td style="padding: 12px; border-bottom: 1px solid #f3f4f6;">${lead.form}</td>
+                            <td style="padding: 12px; border-bottom: 1px solid #f3f4f6;">${lead.created}</td>
+                        </tr>
+                    `;
+                });
+                
+                tableHtml += '</tbody></table>';
+                document.getElementById('leadsTable').innerHTML = tableHtml;
+                
+                document.getElementById('callBtn').disabled = false;
+            } else {
+                document.getElementById('leadsTable').innerHTML = '<p style="color: #10b981;">✅ No new leads to call</p>';
+                document.getElementById('callBtn').disabled = true;
+            }
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error checking new leads');
+    });
+}
+
+function callNewLeads() {
+    const timeRange = document.getElementById('timeRange').value;
+    
+    document.getElementById('callBtn').disabled = true;
+    document.getElementById('callBtn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Calling...';
+    
+    fetch('/auto-call/new-leads/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            since_minutes: parseInt(timeRange)
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update stats
+            document.getElementById('successfulCalls').textContent = data.results.successful_calls;
+            document.getElementById('failedCalls').textContent = data.results.failed_calls;
+            document.getElementById('totalCalls').textContent = data.results.total_leads;
+            
+            // Show results
+            let resultsHtml = `
+                <div style="background: #f0f9ff; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+                    <h3 style="margin: 0 0 8px 0; color: #0369a1;">Call Results</h3>
+                    <p style="margin: 0; color: #0369a1;">${data.message}</p>
+                </div>
+            `;
+            
+            if (data.results.call_logs.length > 0) {
+                resultsHtml += `
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #f9fafb;">
+                                <th style="padding: 8px; text-align: left; border-bottom: 1px solid #e5e7eb;">Name</th>
+                                <th style="padding: 8px; text-align: left; border-bottom: 1px solid #e5e7eb;">Phone</th>
+                                <th style="padding: 8px; text-align: left; border-bottom: 1px solid #e5e7eb;">Status</th>
+                                <th style="padding: 8px; text-align: left; border-bottom: 1px solid #e5e7eb;">Call ID</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                
+                data.results.call_logs.forEach(log => {
+                    const statusColor = log.success ? '#10b981' : '#ef4444';
+                    const statusText = log.success ? '✅ Success' : '❌ Failed';
+                    
+                    resultsHtml += `
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #f3f4f6;">${log.lead_name}</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #f3f4f6;">${log.phone}</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #f3f4f6; color: ${statusColor};">${statusText}</td>
+                            <td class="small">${log.call_id || log.error || '-'}</td>
+                        </tr>
+                    `;
+                });
+                
+                resultsHtml += '</tbody></table>';
+            }
+            
+            document.getElementById('callResults').innerHTML = resultsHtml;
+            
+            // Refresh leads list
+            checkNewLeads();
+            
+        } else {
+            alert('Error: ' + data.error);
+        }
+        
+        document.getElementById('callBtn').disabled = false;
+        document.getElementById('callBtn').innerHTML = '<i class="fas fa-phone"></i> Call New Leads';
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error calling leads');
+        document.getElementById('callBtn').disabled = false;
+        document.getElementById('callBtn').innerHTML = '<i class="fas fa-phone"></i> Call New Leads';
+    });
+}
+
+// Auto-refresh every 2 minutes
+setInterval(checkNewLeads, 120000);
+
+// Initial load
+checkNewLeads();
+</script>
+
+<style>
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+.stat-item {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    text-align: center;
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #1f2937;
+    margin-bottom: 8px;
+}
+
+.stat-label {
+    color: #6b7280;
+    font-size: 0.875rem;
+}
+
+.card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin-bottom: 24px;
+}
+
+.card-header {
+    padding: 20px;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card-content {
+    padding: 20px;
+}
+
+.btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-primary {
+    background: #3b82f6;
+    color: white;
+}
+
+.btn-success {
+    background: #10b981;
+    color: white;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+</style>
+{% endblock %}

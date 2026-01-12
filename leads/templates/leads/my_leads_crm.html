@@ -1,0 +1,190 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}My Leads - Meta Leads CRM{% endblock %}
+{% block page_title %}My Leads{% endblock %}
+
+
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-user-circle"></i> My Performance</h2>
+    </div>
+    <div class="card-content">
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-number">{{ my_leads.count }}</div>
+                <div class="stat-label">My Leads</div>
+            </div>
+            {% if team_leads %}
+            <div class="stat-item">
+                <div class="stat-number">{{ team_leads.count }}</div>
+                <div class="stat-label">Team Leads</div>
+            </div>
+            {% endif %}
+            <div class="stat-item">
+                <div class="stat-number">{{ my_leads.count }}</div>
+                <div class="stat-label">Total Assigned</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- My Leads Section -->
+{% if my_leads %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-user-circle"></i> My Assigned Leads ({{ my_leads.count }})</h2>
+    </div>
+    <div class="card-content">
+        {% for lead in my_leads %}
+        <div class="lead-card">
+            <div class="lead-header">
+                <div>
+                    <div class="lead-name">{{ lead.full_name|default:"Unnamed Lead" }}</div>
+                    {% if lead.budget %}
+                    <span class="lead-budget">Budget: {{ lead.budget }}</span>
+                    {% endif %}
+                </div>
+                <div class="lead-actions">
+                    {% if lead.email %}
+                    <a href="mailto:{{ lead.email }}" class="btn btn-secondary" class="small">
+                        <i class="fas fa-envelope"></i>
+                    </a>
+                    {% endif %}
+                    {% if lead.phone_number %}
+                    <a href="tel:{{ lead.phone_number }}" class="btn btn-primary" class="small">
+                        <i class="fas fa-phone"></i>
+                    </a>
+                    {% endif %}
+                    <a href="/leads/{{ lead.id }}/" class="btn btn-primary" class="small">
+                        <i class="fas fa-eye"></i> View
+                    </a>
+                </div>
+            </div>
+            
+            <div class="lead-info">
+                {% if lead.email %}
+                <div class="info-item">
+                    <i class="fas fa-envelope info-icon"></i>
+                    <span>{{ lead.email }}</span>
+                </div>
+                {% endif %}
+                {% if lead.phone_number %}
+                <div class="info-item">
+                    <i class="fas fa-phone info-icon"></i>
+                    <span>{{ lead.phone_number }}</span>
+                </div>
+                {% endif %}
+                {% if lead.city %}
+                <div class="info-item">
+                    <i class="fas fa-map-marker-alt info-icon"></i>
+                    <span>{{ lead.city }}</span>
+                </div>
+                {% endif %}
+                {% if lead.configuration %}
+                <div class="info-item">
+                    <i class="fas fa-home info-icon"></i>
+                    <span>{{ lead.configuration }}</span>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="lead-meta">
+                <div>
+                    <strong>{{ lead.form_name|truncatechars:40 }}</strong><br>
+                    <span>{{ lead.created_time|date:"M d, Y H:i" }}</span>
+                </div>
+                <span class="stage-badge stage-{{ lead.stage|default:'new' }}">
+                    {{ lead.get_stage_display|default:"New" }}
+                </span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% else %}
+<div class="card">
+    <div class="card-content">
+        <div class="empty-state">
+            <div class="empty-icon"><i class="fas fa-inbox"></i></div>
+            <h3>No leads assigned to you</h3>
+            <p>You don't have any leads assigned yet. Check back later or contact your manager.</p>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Team Leads Section -->
+{% if team_leads %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-users"></i> Team Leads ({{ team_leads.count }})</h2>
+    </div>
+    <div class="card-content">
+        {% for lead in team_leads %}
+        <div class="lead-card">
+            <div class="lead-header">
+                <div>
+                    <div class="lead-name">{{ lead.full_name|default:"Unnamed Lead" }}</div>
+                    {% if lead.budget %}
+                    <span class="lead-budget">Budget: {{ lead.budget }}</span>
+                    {% endif %}
+                </div>
+                <div class="lead-actions">
+                    {% if lead.email %}
+                    <a href="mailto:{{ lead.email }}" class="btn btn-secondary" class="small">
+                        <i class="fas fa-envelope"></i>
+                    </a>
+                    {% endif %}
+                    {% if lead.phone_number %}
+                    <a href="tel:{{ lead.phone_number }}" class="btn btn-primary" class="small">
+                        <i class="fas fa-phone"></i>
+                    </a>
+                    {% endif %}
+                    <a href="/leads/{{ lead.id }}/" class="btn btn-primary" class="small">
+                        <i class="fas fa-eye"></i> View
+                    </a>
+                </div>
+            </div>
+            
+            <div class="lead-info">
+                {% if lead.email %}
+                <div class="info-item">
+                    <i class="fas fa-envelope info-icon"></i>
+                    <span>{{ lead.email }}</span>
+                </div>
+                {% endif %}
+                {% if lead.phone_number %}
+                <div class="info-item">
+                    <i class="fas fa-phone info-icon"></i>
+                    <span>{{ lead.phone_number }}</span>
+                </div>
+                {% endif %}
+                <div class="info-item">
+                    <i class="fas fa-user info-icon"></i>
+                    <span>{{ lead.assignment.assigned_to.name }}</span>
+                </div>
+                {% if lead.configuration %}
+                <div class="info-item">
+                    <i class="fas fa-home info-icon"></i>
+                    <span>{{ lead.configuration }}</span>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="lead-meta">
+                <div>
+                    <strong>{{ lead.form_name|truncatechars:40 }}</strong><br>
+                    <span>{{ lead.created_time|date:"M d, Y H:i" }}</span>
+                </div>
+                <span class="stage-badge stage-{{ lead.stage|default:'new' }}">
+                    {{ lead.get_stage_display|default:"New" }}
+                </span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

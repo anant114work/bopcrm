@@ -1,0 +1,760 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}Click-to-Call Dialer - CRM{% endblock %}
+
+{% block page_title %}Click-to-Call Dialer{% endblock %}
+
+{% block content %}
+<!-- Stats Grid -->
+<div class="stats-grid">
+    <div class="stat-item">
+        <div class="stat-number" id="activeCallsCount">0</div>
+        <div class="stat-label">Active Calls</div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-number" id="todayCallsCount">0</div>
+        <div class="stat-label">Today's Calls</div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-number" id="completedCallsCount">0</div>
+        <div class="stat-label">Completed</div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-number" id="missedCallsCount">0</div>
+        <div class="stat-label">Missed</div>
+    </div>
+</div>
+
+<div class="gap-2">
+    <!-- Left Column -->
+    <div>
+        <!-- Click-to-Call Dialer -->
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fas fa-phone"></i> Click-to-Call Dialer</h2>
+                <div id="connectionStatus" class="small">● Connected</div>
+            </div>
+            <div class="card-content">
+                <!-- Call Provider Selection -->
+                <div class="form-group">
+                    <label><i class="fas fa-cog"></i> Call Provider</label>
+                    <select id="callProvider" class="form-control" onchange="updateCallProvider()">
+                        <option value="acefone">Acefone (Traditional)</option>
+                        <option value="callkaro">Call Karo AI (AI Agent)</option>
+                    </select>
+                    <div id="providerInfo" class="provider-info">
+                        <small>Traditional click-to-call via Acefone</small>
+                    </div>
+                </div>
+                
+                <!-- AI Agent Selection (for Call Karo) -->
+                <div class="form-group" id="agentSelection" style="display: none;">
+                    <label><i class="fas fa-robot"></i> AI Agent</label>
+                    <select id="aiAgent" class="form-control">
+                        <option value="">Loading agents...</option>
+                    </select>
+                </div>
+                
+                <!-- Lead Search -->
+                <div class="form-group">
+                    <label><i class="fas fa-search"></i> Search Leads</label>
+                    <input type="text" id="leadSearch" class="form-control" placeholder="Type lead name or phone...">
+                    <div id="searchResults" class="search-results"></div>
+                </div>
+                
+                <!-- Manual Dialer -->
+                <div class="form-group">
+                    <label><i class="fas fa-keyboard"></i> Manual Dialer</label>
+                    <div class="d-flex">
+                        <input type="text" id="manualNumber" class="form-control" placeholder="+91XXXXXXXXXX">
+                        <button class="btn btn-success" onclick="dialManual()" id="callBtn">
+                            <i class="fas fa-phone"></i> Call
+                        </button>
+                    </div>
+                    <input type="text" id="manualName" class="form-control" placeholder="Contact name (optional)" style="margin-top: 8px;">
+                </div>
+                
+                <!-- Live Mode Notice -->
+                <div class="form-group">
+                    <label><i class="fas fa-check-circle"></i> Live Mode</label>
+                    <div id="liveModeInfo" style="padding: 8px; background: #dcfce7; border: 1px solid #16a34a; border-radius: 4px;">
+                        <strong>✅ Live Click-to-Call Active</strong><br>
+                        <small>Real calls are being placed via Acefone API</small>
+                    </div>
+                </div>
+                
+                <!-- Agent Info -->
+                <div class="form-group" id="agentInfo">
+                    <label><i class="fas fa-user"></i> Target Agent</label>
+                    <div id="agentInfoContent" style="padding: 8px; background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 4px; font-family: monospace;">
+                        918062451617 (Anant Sharma)
+                    </div>
+                    <small id="agentInfoDesc" style="color: #6b7280;">Your agent will receive the call first, then customer</small>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Call Log -->
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fas fa-list"></i> Call Log</h2>
+            </div>
+            <div class="card-content">
+                <div id="callLog">
+                    <div class="text-center">
+                        <i class="fas fa-phone" style="font-size: 24px; margin-bottom: 8px; opacity: 0.5;"></i>
+                        <div>No calls made yet</div>
+                        <small>Calls will appear here after initiation</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Right Column -->
+    <div>
+        <!-- Lead Queue -->
+        <div class="card">
+            <div class="card-header" class="d-flex">
+                <h2><i class="fas fa-list"></i> Lead Queue</h2>
+                <select id="queueFilter" class="form-control" class="small" onchange="filterQueue()">
+                    <option value="all">All Leads</option>
+                    <option value="new">New</option>
+                    <option value="interested">Interested</option>
+                    <option value="hot">Hot</option>
+                    <option value="overdue">Overdue</option>
+                </select>
+            </div>
+            <div class="card-content">
+                <div id="leadQueue">
+                    <div class="text-center">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 8px;"></i>
+                        <div>Loading leads...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Call Analytics -->
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fas fa-chart-bar"></i> Today's Performance</h2>
+            </div>
+            <div class="card-content">
+                <div class="performance-grid">
+                    <div class="perf-item">
+                        <div class="perf-number" id="callsToday">0</div>
+                        <div class="perf-label">Calls Made</div>
+                    </div>
+                    <div class="perf-item">
+                        <div class="perf-number" id="avgDuration">0m</div>
+                        <div class="perf-label">Avg Duration</div>
+                    </div>
+                    <div class="perf-item">
+                        <div class="perf-number" id="successRate">0%</div>
+                        <div class="perf-label">Success Rate</div>
+                    </div>
+                    <div class="perf-item">
+                        <div class="perf-number" id="leadsContacted">0</div>
+                        <div class="perf-label">Leads Contacted</div>
+                    </div>
+                </div>
+                
+                <div id="callHistory" style="margin-top: 16px; max-height: 200px; overflow-y: auto;">
+                    <div class="text-center">
+                        <i class="fas fa-clock" style="font-size: 24px; margin-bottom: 8px; opacity: 0.5;"></i>
+                        <div>No calls today</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let searchTimeout;
+let currentCallId = null;
+let callTimer = null;
+let callStartTime = null;
+
+// Initialize dialer on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadLeadQueue();
+    loadTodayStats();
+    loadCallKaroAgents();
+    updateConnectionStatus('Ready', 'success');
+});
+
+// Lead search functionality
+document.getElementById('leadSearch').addEventListener('input', function() {
+    clearTimeout(searchTimeout);
+    const query = this.value;
+    
+    if (query.length < 2) {
+        document.getElementById('searchResults').innerHTML = '';
+        return;
+    }
+    
+    searchTimeout = setTimeout(() => {
+        searchLeads(query);
+    }, 300);
+});
+
+function searchLeads(query) {
+    fetch(`/dialer-search/?q=${encodeURIComponent(query)}`)
+        .then(response => response.json())
+        .then(data => {
+            const resultsDiv = document.getElementById('searchResults');
+            resultsDiv.innerHTML = '';
+            
+            if (data.results && data.results.length > 0) {
+                data.results.forEach(lead => {
+                    const div = document.createElement('div');
+                    div.className = 'search-result';
+                    div.innerHTML = `
+                        <div class="lead-item">
+                            <div class="lead-info">
+                                <strong>${lead.name}</strong>
+                                <small>${lead.phone} - ${lead.stage}</small>
+                            </div>
+                            <button class="btn btn-success btn-sm" onclick="callLead(${lead.id}, '${lead.name}', '${lead.phone}')">
+                                <i class="fas fa-phone"></i>
+                            </button>
+                        </div>
+                    `;
+                    resultsDiv.appendChild(div);
+                });
+            } else {
+                resultsDiv.innerHTML = '<div class="no-results">No leads found</div>';
+            }
+        })
+        .catch(err => {
+            console.error('Search error:', err);
+            document.getElementById('searchResults').innerHTML = '<div class="error">Search failed</div>';
+        });
+}
+
+function callLead(leadId, leadName, leadPhone) {
+    if (currentCallId) {
+        alert('Please end current call first');
+        return;
+    }
+    
+    const provider = document.getElementById('callProvider').value;
+    if (provider === 'callkaro') {
+        startCallKaroCall(leadName, leadPhone, {lead_id: leadId});
+    } else {
+        startCall(leadName, leadPhone, {lead_id: leadId});
+    }
+}
+
+function startCall(name, phone, extraData = {}) {
+    const callBtn = document.getElementById('callBtn');
+    callBtn.disabled = true;
+    callBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Calling...';
+    
+    const payload = {
+        phone: phone,
+        lead_name: name,
+        ...extraData
+    };
+    
+    fetch('/initiate-click-call/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`✅ Live Call Initiated!\n\n📞 Agent phone will ring first\n📞 Then customer: ${phone}\n\n✨ Real call placed via Acefone API`);
+            addToCallLog(name, phone, 'initiated');
+            updateConnectionStatus('Call Initiated', 'success');
+        } else {
+            alert('Call failed: ' + (data.error || 'Unknown error'));
+            updateConnectionStatus('Call Failed', 'error');
+        }
+    })
+    .catch(err => {
+        console.error('Call error:', err);
+        alert('Call failed: Network error');
+        updateConnectionStatus('Connection Error', 'error');
+    })
+    .finally(() => {
+        callBtn.disabled = false;
+        callBtn.innerHTML = '<i class="fas fa-phone"></i> Call';
+    });
+}
+
+// Call Karo AI Functions
+function startCallKaroCall(name, phone, extraData = {}) {
+    const callBtn = document.getElementById('callBtn');
+    const agentId = document.getElementById('aiAgent').value;
+    
+    if (!agentId) {
+        alert('Please select an AI agent first');
+        return;
+    }
+    
+    callBtn.disabled = true;
+    callBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Initiating AI Call...';
+    
+    const payload = {
+        phone_number: phone,
+        agent_id: agentId,
+        ...extraData
+    };
+    
+    fetch('/initiate-callkaro-call/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`🤖 AI Call Initiated!\n\n📞 AI Agent will call: ${phone}\n🎯 Agent: ${agentId}\n\n✨ AI-powered conversation starting...`);
+            addToCallLog(name, phone, 'ai-initiated');
+            updateConnectionStatus('AI Call Initiated', 'success');
+        } else {
+            alert('AI Call failed: ' + (data.error || 'Unknown error'));
+            updateConnectionStatus('AI Call Failed', 'error');
+        }
+    })
+    .catch(err => {
+        console.error('Call Karo error:', err);
+        alert('AI Call failed: Network error');
+        updateConnectionStatus('Connection Error', 'error');
+    })
+    .finally(() => {
+        callBtn.disabled = false;
+        callBtn.innerHTML = '<i class="fas fa-phone"></i> Call';
+    });
+}
+
+function loadCallKaroAgents() {
+    fetch('/callkaro-agents-api/')
+        .then(response => response.json())
+        .then(data => {
+            const agentSelect = document.getElementById('aiAgent');
+            agentSelect.innerHTML = '<option value="">Select AI Agent</option>';
+            
+            if (data.agents && data.agents.length > 0) {
+                data.agents.forEach(agent => {
+                    const option = document.createElement('option');
+                    option.value = agent.agent_id;
+                    option.textContent = `${agent.name} (${agent.agent_id})`;
+                    agentSelect.appendChild(option);
+                });
+            } else {
+                agentSelect.innerHTML = '<option value="">No agents configured</option>';
+            }
+        })
+        .catch(err => {
+            console.error('Failed to load agents:', err);
+            document.getElementById('aiAgent').innerHTML = '<option value="">Failed to load agents</option>';
+        });
+}
+
+function updateCallProvider() {
+    const provider = document.getElementById('callProvider').value;
+    const agentSelection = document.getElementById('agentSelection');
+    const providerInfo = document.getElementById('providerInfo');
+    const liveModeInfo = document.getElementById('liveModeInfo');
+    const agentInfoContent = document.getElementById('agentInfoContent');
+    const agentInfoDesc = document.getElementById('agentInfoDesc');
+    
+    if (provider === 'callkaro') {
+        agentSelection.style.display = 'block';
+        providerInfo.innerHTML = '<small><i class="fas fa-robot"></i> AI-powered calls with intelligent conversation</small>';
+        liveModeInfo.innerHTML = '<strong>🤖 AI Agent Mode Active</strong><br><small>Calls will be handled by AI agents</small>';
+        liveModeInfo.style.background = '#e0f2fe';
+        liveModeInfo.style.borderColor = '#0ea5e9';
+        agentInfoContent.innerHTML = 'AI Agent (Selected Above)';
+        agentInfoDesc.innerHTML = 'AI agent will handle the entire conversation automatically';
+    } else {
+        agentSelection.style.display = 'none';
+        providerInfo.innerHTML = '<small><i class="fas fa-phone"></i> Traditional click-to-call via Acefone</small>';
+        liveModeInfo.innerHTML = '<strong>✅ Live Click-to-Call Active</strong><br><small>Real calls are being placed via Acefone API</small>';
+        liveModeInfo.style.background = '#dcfce7';
+        liveModeInfo.style.borderColor = '#16a34a';
+        agentInfoContent.innerHTML = '918062451617 (Anant Sharma)';
+        agentInfoDesc.innerHTML = 'Your agent will receive the call first, then customer';
+    }
+}
+
+// Removed call tracking functions - Click-to-Call Support API doesn't provide real-time status
+
+function dialManual() {
+    const number = document.getElementById('manualNumber').value.trim();
+    const name = document.getElementById('manualName').value.trim() || 'Manual Call';
+    
+    if (!number) {
+        alert('Please enter a phone number');
+        return;
+    }
+    
+    if (currentCallId) {
+        alert('Please end current call first');
+        return;
+    }
+    
+    const provider = document.getElementById('callProvider').value;
+    if (provider === 'callkaro') {
+        startCallKaroCall(name, number);
+    } else {
+        startCall(name, number);
+    }
+    
+    // Clear inputs
+    document.getElementById('manualNumber').value = '';
+    document.getElementById('manualName').value = '';
+}
+
+function loadLeadQueue() {
+    fetch('/lead-queue-api/')
+        .then(response => response.json())
+        .then(data => {
+            const queueDiv = document.getElementById('leadQueue');
+            queueDiv.innerHTML = '';
+            
+            if (data.leads && data.leads.length > 0) {
+                data.leads.forEach(lead => {
+                    const div = document.createElement('div');
+                    div.className = 'queue-item';
+                    div.innerHTML = `
+                        <div class="lead-queue-item">
+                            <div class="lead-info">
+                                <strong>${lead.name}</strong>
+                                <div class="lead-meta">
+                                    <span class="stage-${lead.stage}">${lead.stage}</span>
+                                    <span class="time">${lead.time_ago}</span>
+                                </div>
+                            </div>
+                            <button class="btn btn-success btn-sm" onclick="callLead(${lead.id}, '${lead.name}', '${lead.phone}')">
+                                <i class="fas fa-phone"></i>
+                            </button>
+                        </div>
+                    `;
+                    queueDiv.appendChild(div);
+                });
+            } else {
+                queueDiv.innerHTML = '<div class="no-leads">No leads in queue</div>';
+            }
+        })
+        .catch(err => {
+            console.error('Queue load error:', err);
+            document.getElementById('leadQueue').innerHTML = '<div class="error">Failed to load leads</div>';
+        });
+}
+
+function addToCallLog(name, phone, status) {
+    const logDiv = document.getElementById('callLog');
+    
+    // Create new call entry
+    const callEntry = document.createElement('div');
+    callEntry.className = 'call-log-item';
+    callEntry.innerHTML = `
+        <div class="call-item">
+            <div class="call-info">
+                <strong>${name}</strong><br>
+                <small>${phone}</small>
+            </div>
+            <div class="call-status">
+                <span class="status-${status}">${status}</span><br>
+                <small>${new Date().toLocaleTimeString()}</small>
+            </div>
+        </div>
+    `;
+    
+    // Remove "no calls" message if present
+    if (logDiv.innerHTML.includes('No calls made yet')) {
+        logDiv.innerHTML = '';
+    }
+    
+    // Add to top of log
+    logDiv.insertBefore(callEntry, logDiv.firstChild);
+    
+    // Keep only last 10 calls
+    while (logDiv.children.length > 10) {
+        logDiv.removeChild(logDiv.lastChild);
+    }
+}
+
+function loadTodayStats() {
+    fetch('/call-stats-api/')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('callsToday').textContent = data.calls_today || 0;
+            document.getElementById('avgDuration').textContent = data.avg_duration || '0m';
+            document.getElementById('successRate').textContent = data.success_rate || '0%';
+            document.getElementById('leadsContacted').textContent = data.leads_contacted || 0;
+            
+            // Update main stats
+            document.getElementById('todayCallsCount').textContent = data.calls_today || 0;
+            document.getElementById('completedCallsCount').textContent = data.completed_calls || 0;
+            document.getElementById('missedCallsCount').textContent = data.missed_calls || 0;
+        })
+        .catch(err => console.error('Stats load error:', err));
+}
+
+function loadRecentLeads() {
+    document.getElementById('queueFilter').value = 'recent';
+    filterQueue();
+}
+
+function loadOverdueLeads() {
+    document.getElementById('queueFilter').value = 'overdue';
+    filterQueue();
+}
+
+function loadHotLeads() {
+    document.getElementById('queueFilter').value = 'hot';
+    filterQueue();
+}
+
+function filterQueue() {
+    const filter = document.getElementById('queueFilter').value;
+    fetch(`/lead-queue-api/?filter=${filter}`)
+        .then(response => response.json())
+        .then(data => {
+            const queueDiv = document.getElementById('leadQueue');
+            queueDiv.innerHTML = '';
+            
+            if (data.leads && data.leads.length > 0) {
+                data.leads.forEach(lead => {
+                    const div = document.createElement('div');
+                    div.className = 'queue-item';
+                    div.innerHTML = `
+                        <div class="lead-queue-item">
+                            <div class="lead-info">
+                                <strong>${lead.name}</strong>
+                                <div class="lead-meta">
+                                    <span class="stage-${lead.stage}">${lead.stage}</span>
+                                    <span class="time">${lead.time_ago}</span>
+                                </div>
+                            </div>
+                            <button class="btn btn-success btn-sm" onclick="callLead(${lead.id}, '${lead.name}', '${lead.phone}')">
+                                <i class="fas fa-phone"></i>
+                            </button>
+                        </div>
+                    `;
+                    queueDiv.appendChild(div);
+                });
+            } else {
+                queueDiv.innerHTML = `<div class="no-leads">No ${filter} leads</div>`;
+            }
+        });
+}
+
+function updateConnectionStatus(message, type) {
+    const statusDiv = document.getElementById('connectionStatus');
+    statusDiv.textContent = `● ${message}`;
+    
+    // Remove existing classes
+    statusDiv.className = '';
+    
+    // Add new class based on type
+    switch(type) {
+        case 'success':
+            statusDiv.style.color = '#10b981';
+            break;
+        case 'warning':
+            statusDiv.style.color = '#f59e0b';
+            break;
+        case 'error':
+            statusDiv.style.color = '#ef4444';
+            break;
+        default:
+            statusDiv.style.color = '#10b981';
+    }
+    
+    // Reset to connected after 3 seconds
+    if (type !== 'success') {
+        setTimeout(() => {
+            updateConnectionStatus('Connected', 'success');
+        }, 3000);
+    }
+}
+
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    // Ctrl/Cmd + Enter to call manual number
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        dialManual();
+    }
+    
+    // Escape to end call
+    if (e.key === 'Escape' && currentCallId) {
+        e.preventDefault();
+        endCall();
+    }
+});
+</script>
+
+{% csrf_token %}
+
+<style>
+/* Dialer Styles */
+.search-results {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    margin-top: 8px;
+    background: white;
+}
+
+.search-result {
+    padding: 8px 12px;
+    border-bottom: 1px solid #f3f4f6;
+    cursor: pointer;
+}
+
+.search-result:hover {
+    background-color: #f8f9fa;
+}
+
+.search-result:last-child {
+    border-bottom: none;
+}
+
+.lead-item, .lead-queue-item, .call-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    background: #f8fafc;
+}
+
+.lead-info, .call-info {
+    flex: 1;
+}
+
+.lead-meta, .call-meta {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+    font-size: 12px;
+}
+
+.stage-new { background: #3b82f6; color: white; padding: 2px 6px; border-radius: 4px; }
+.stage-interested { background: #10b981; color: white; padding: 2px 6px; border-radius: 4px; }
+.stage-hot { background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; }
+.stage-warm { background: #f59e0b; color: white; padding: 2px 6px; border-radius: 4px; }
+.stage-cold { background: #6b7280; color: white; padding: 2px 6px; border-radius: 4px; }
+
+.status-completed { background: #10b981; color: white; padding: 2px 6px; border-radius: 4px; }
+.status-failed { background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; }
+.status-missed { background: #f59e0b; color: white; padding: 2px 6px; border-radius: 4px; }
+.status-initiated { background: #3b82f6; color: white; padding: 2px 6px; border-radius: 4px; }
+.status-ai-initiated { background: #8b5cf6; color: white; padding: 2px 6px; border-radius: 4px; }
+
+.performance-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.perf-item {
+    text-align: center;
+    padding: 12px;
+    background: #f8fafc;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+}
+
+.perf-number {
+    font-size: 24px;
+    font-weight: bold;
+    color: #1f2937;
+}
+
+.perf-label {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 4px;
+}
+
+.no-results, .no-leads, .no-calls, .error {
+    text-align: center;
+    padding: 20px;
+    color: #6b7280;
+    font-style: italic;
+}
+
+.error {
+    color: #ef4444;
+}
+
+.queue-item {
+    margin-bottom: 8px;
+}
+
+.call-history-item {
+    margin-bottom: 8px;
+}
+
+.time {
+    color: #6b7280;
+}
+
+.duration {
+    color: #059669;
+    font-weight: 500;
+}
+
+#currentCall {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.8; }
+}
+
+.provider-info {
+    margin-top: 4px;
+    padding: 4px 8px;
+    background: #f8fafc;
+    border-radius: 4px;
+    border: 1px solid #e5e7eb;
+}
+
+.provider-info i {
+    margin-right: 4px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    div[style*="grid-template-columns: 1fr 1fr"] {
+        grid-template-columns: 1fr !important;
+    }
+    
+    .performance-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+</style>
+{% endblock %}

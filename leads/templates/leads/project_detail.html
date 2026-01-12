@@ -1,0 +1,127 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}{{ project.name }} - Meta Leads CRM{% endblock %}
+{% block page_title %}🏗️ {{ project.name }}{% endblock %}
+
+{% block content %}
+<!-- Header Section -->
+<div style="padding: 16px 0; margin-bottom: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <div>
+            <h3 style="margin: 0; font-size: 20px; font-weight: 700; color: #1e293b;">{{ project.name }}</h3>
+            <p style="margin: 4px 0 0 0; font-size: 13px; color: #64748b;">{{ project.developer }} • {{ project.location }} • {{ project.lead_count }} leads</p>
+        </div>
+        <a href="/projects/" style="padding: 8px 14px; background: #f1f5f9; color: #475569; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 13px; text-decoration: none; transition: all 0.2s;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">← Back</a>
+    </div>
+    
+    <!-- Quick Actions -->
+    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <a href="/projects/{{ project.id }}/leads/" style="padding: 8px 12px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 12px; text-decoration: none; transition: all 0.2s; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 8px rgba(59, 130, 246, 0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(59, 130, 246, 0.2)'">
+            <i class="fas fa-list"></i> Leads
+        </a>
+        <a href="/projects/{{ project.id }}/team-members/" style="padding: 8px 12px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 12px; text-decoration: none; transition: all 0.2s; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 8px rgba(16, 185, 129, 0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(16, 185, 129, 0.2)'">
+            <i class="fas fa-users"></i> Team
+        </a>
+        <a href="/projects/{{ project.id }}/edit/" style="padding: 8px 12px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 12px; text-decoration: none; transition: all 0.2s; box-shadow: 0 2px 4px rgba(245, 158, 11, 0.2);" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 8px rgba(245, 158, 11, 0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(245, 158, 11, 0.2)'">
+            <i class="fas fa-edit"></i> Edit
+        </a>
+        <a href="{% url 'project_whatsapp_test' project.id %}" style="padding: 8px 12px; background: linear-gradient(135deg, #25d366 0%, #128c7e 100%); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 12px; text-decoration: none; transition: all 0.2s; box-shadow: 0 2px 4px rgba(37, 211, 102, 0.2);" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 8px rgba(37, 211, 102, 0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(37, 211, 102, 0.2)'">
+            <i class="fab fa-whatsapp"></i> WhatsApp
+        </a>
+        <a href="/projects/{{ project.id }}/bulk-whatsapp/" style="padding: 8px 12px; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 12px; text-decoration: none; transition: all 0.2s; box-shadow: 0 2px 4px rgba(139, 92, 246, 0.2);" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 8px rgba(139, 92, 246, 0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(139, 92, 246, 0.2)'">
+            <i class="fas fa-paper-plane"></i> Bulk
+        </a>
+    </div>
+</div>
+
+<!-- Description Section -->
+{% if project.description %}
+<div style="background: white; border-radius: 6px; padding: 12px; margin-bottom: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); border-left: 3px solid #3b82f6;">
+    <p style="margin: 0; font-size: 13px; color: #475569; line-height: 1.5;">{{ project.description }}</p>
+</div>
+{% endif %}
+
+<!-- Amenities Section -->
+{% if project.amenities %}
+<div style="background: white; border-radius: 6px; padding: 12px; margin-bottom: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+    <h4 style="margin: 0 0 8px 0; font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px;">Amenities</h4>
+    <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        {% for amenity in project.amenities %}
+        <span style="background: #e0f2fe; color: #0277bd; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 500;">{{ amenity }}</span>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Images Section -->
+<div style="background: white; border-radius: 6px; padding: 12px; margin-bottom: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h4 style="margin: 0; font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px;">📷 Images ({{ images.count }}/5)</h4>
+        {% if can_add_image %}
+        <button onclick="document.getElementById('imageUpload').style.display='block'" style="padding: 4px 8px; background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 500; transition: all 0.2s;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">+ Add</button>
+        {% endif %}
+    </div>
+    
+    {% if images %}
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px;">
+        {% for image in images %}
+        <div style="position: relative; border-radius: 6px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <img src="{{ image.image.url }}" alt="{{ image.caption }}" style="width: 100%; height: 80px; object-fit: cover;">
+            <form method="post" action="/projects/{{ project.id }}/delete-image/{{ image.id }}/" style="position: absolute; top: 0; right: 0; margin: 2px;">
+                <button type="submit" style="padding: 2px 4px; background: rgba(239, 68, 68, 0.9); color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 10px;" onclick="return confirm('Delete?')">✕</button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p style="margin: 0; font-size: 12px; color: #9ca3af; text-align: center; padding: 16px 0;">No images yet</p>
+    {% endif %}
+    
+    <!-- Image Upload Form -->
+    <div id="imageUpload" style="display: none; margin-top: 10px; padding: 10px; background: #f8fafc; border-radius: 6px; border: 1px dashed #cbd5e1;">
+        <form method="post" action="/projects/{{ project.id }}/upload-image/" enctype="multipart/form-data" style="display: flex; gap: 6px; flex-wrap: wrap;">
+            <input type="file" name="image" accept="image/*" required style="flex: 1; min-width: 120px; padding: 6px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 11px;">
+            <input type="text" name="caption" placeholder="Caption" style="flex: 1; min-width: 120px; padding: 6px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 11px;">
+            <button type="submit" style="padding: 6px 10px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 500;">Upload</button>
+            <button type="button" onclick="document.getElementById('imageUpload').style.display='none'" style="padding: 6px 10px; background: #e5e7eb; color: #475569; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 500;">Cancel</button>
+        </form>
+    </div>
+</div>
+
+<!-- Brochure Section -->
+<div style="background: white; border-radius: 6px; padding: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h4 style="margin: 0; font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px;">📄 Brochure</h4>
+        <button onclick="document.getElementById('brochureUpload').style.display='block'" style="padding: 4px 8px; background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 500; transition: all 0.2s;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">{% if project.brochure %}Update{% else %}+ Add{% endif %}</button>
+    </div>
+    
+    {% if project.brochure %}
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #f8fafc; border-radius: 4px;">
+        <div>
+            <p style="margin: 0; font-size: 12px; font-weight: 500; color: #1e293b;">📄 {{ project.brochure.name|slice:"17:" }}</p>
+            <p style="margin: 2px 0 0 0; font-size: 11px; color: #9ca3af;">Uploaded brochure</p>
+        </div>
+        <a href="{{ project.brochure.url }}" target="_blank" style="padding: 4px 8px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 500; text-decoration: none;">Download</a>
+    </div>
+    {% else %}
+    <p style="margin: 0; font-size: 12px; color: #9ca3af; text-align: center; padding: 12px 0;">No brochure uploaded</p>
+    {% endif %}
+    
+    <!-- Brochure Upload Form -->
+    <div id="brochureUpload" style="display: none; margin-top: 10px; padding: 10px; background: #f8fafc; border-radius: 6px; border: 1px dashed #cbd5e1;">
+        <form method="post" action="/projects/{{ project.id }}/upload-brochure/" enctype="multipart/form-data" style="display: flex; gap: 6px; flex-wrap: wrap;">
+            <input type="file" name="brochure" accept=".pdf,.doc,.docx" required style="flex: 1; min-width: 120px; padding: 6px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 11px;">
+            <button type="submit" style="padding: 6px 10px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 500;">Upload</button>
+            <button type="button" onclick="document.getElementById('brochureUpload').style.display='none'" style="padding: 6px 10px; background: #e5e7eb; color: #475569; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 500;">Cancel</button>
+        </form>
+    </div>
+</div>
+
+{% if messages %}
+<script>
+{% for message in messages %}
+    alert('{{ message }}');
+{% endfor %}
+</script>
+{% endif %}
+{% endblock %}

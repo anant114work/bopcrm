@@ -1,0 +1,79 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}Add Campaign{% endblock %}
+{% block page_title %}➕ Add WhatsApp Campaign{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h3>Add New WhatsApp Campaign</h3>
+    <p style="color: #6b7280; margin-bottom: 2rem;">Create a new campaign with custom payload structure</p>
+    
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label>Select Project *</label>
+            <select name="project_id" class="form-control" required>
+                <option value="">Choose a project...</option>
+                {% for project in projects %}
+                <option value="{{ project.id }}">{{ project.name }} ({{ project.lead_count }} leads)</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label>Campaign Name *</label>
+            <input type="text" name="campaign_name" class="form-control" required placeholder="e.g., Gaura Spire Campaign">
+        </div>
+        
+        <div class="form-group">
+            <label>Template Name *</label>
+            <input type="text" name="template_name" class="form-control" required placeholder="e.g., gauraspireleisure1">
+        </div>
+        
+        <div class="form-group">
+            <label>API Payload Structure</label>
+            <textarea name="payload_structure" class="form-control" rows="15" placeholder='Enter JSON payload structure...'>{
+  "apiKey": "your_api_key",
+  "campaignName": "template_name",
+  "destination": "91XXXXXXXXXX",
+  "userName": "CRM System",
+  "templateParams": ["{{name}}"],
+  "source": "CRM System",
+  "media": {
+    "url": "{{image_url}}",
+    "filename": "project_image"
+  },
+  "buttons": [],
+  "carouselCards": [],
+  "location": {},
+  "attributes": {},
+  "paramsFallbackValue": {
+    "FirstName": "{{name}}"
+  }
+}</textarea>
+        </div>
+        
+        <div class="form-group">
+            <label>Test Phone Number</label>
+            <input type="tel" name="test_phone" class="form-control" placeholder="8882443789">
+        </div>
+        
+        <div class="d-flex">
+            <button type="submit" name="action" value="save" class="btn btn-primary">💾 Save Campaign</button>
+            <button type="submit" name="action" value="test" class="btn btn-success">📱 Save & Test</button>
+            <a href="/aisensy-sync/" class="btn btn-secondary">← Back</a>
+        </div>
+    </form>
+</div>
+
+{% if campaign %}
+<div class="card">
+    <h3>✅ Campaign Created: {{ campaign.name }}</h3>
+    <div style="background: #f0f9ff; padding: 1rem; border-radius: 6px; margin-top: 1rem;">
+        <h4>Payload Preview:</h4>
+        <pre style="background: #1f2937; color: #e5e7eb; padding: 1rem; border-radius: 4px; overflow-x: auto;">{{ payload_preview }}</pre>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

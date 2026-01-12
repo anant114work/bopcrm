@@ -1,0 +1,248 @@
+{% extends 'leads/base_sidebar.html' %}
+
+{% block title %}Call Analytics{% endblock %}
+{% block page_title %}📊 Call Analytics{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    .analytics-container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    .filters-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .filters {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        align-items: end;
+    }
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        min-width: 150px;
+    }
+    .filter-group label {
+        font-size: 0.75rem;
+        color: #64748b;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+    }
+    .filter-group select {
+        padding: 0.5rem;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        font-size: 0.875rem;
+    }
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    .stat-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+    .stat-number {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #3b82f6;
+    }
+    .stat-label {
+        color: #6b7280;
+        font-size: 0.875rem;
+        margin-top: 0.5rem;
+    }
+    .charts-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+    }
+    .chart-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .chart-container {
+        position: relative;
+        height: 300px;
+        margin-top: 1rem;
+    }
+    @media (max-width: 768px) {
+        .charts-grid {
+            grid-template-columns: 1fr;
+        }
+        .filters {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="analytics-container">
+    <div class="filters-card">
+        <div class="filters">
+            <div class="filter-group">
+                <label>Agent</label>
+                <select id="agentFilter">
+                    <option value="">All Agents</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Project</label>
+                <select id="projectFilter">
+                    <option value="">All Projects</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Date Range</label>
+                <select id="dateFilter">
+                    <option value="7">Last 7 days</option>
+                    <option value="30">Last 30 days</option>
+                    <option value="90">Last 90 days</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" onclick="applyFilters()">Apply Filters</button>
+        </div>
+    </div>
+    
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-number" id="totalCalls">0</div>
+            <div class="stat-label">Total Calls</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="answeredCalls">0</div>
+            <div class="stat-label">Answered</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="missedCalls">0</div>
+            <div class="stat-label">Missed</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="avgDuration">0s</div>
+            <div class="stat-label">Avg Duration</div>
+        </div>
+    </div>
+    
+    <div class="charts-grid">
+        <div class="chart-card">
+            <h3>Call Status Distribution</h3>
+            <div class="chart-container">
+                <canvas id="statusChart"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h3>Calls by Agent</h3>
+            <div class="chart-container">
+                <canvas id="agentChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let statusChart, agentChart;
+
+function loadAnalytics() {
+    const params = new URLSearchParams({
+        agent: document.getElementById('agentFilter').value,
+        project: document.getElementById('projectFilter').value,
+        days: document.getElementById('dateFilter').value
+    });
+    
+    fetch(`/ivr-webhooks/api/analytics-filtered/?${params}`)
+    .then(response => response.json())
+    .then(data => {
+        updateStats(data);
+        updateCharts(data);
+        updateFilters(data);
+    });
+}
+
+function updateStats(data) {
+    document.getElementById('totalCalls').textContent = data.total || 0;
+    document.getElementById('answeredCalls').textContent = data.answered || 0;
+    document.getElementById('missedCalls').textContent = data.missed || 0;
+    document.getElementById('avgDuration').textContent = (data.avgDuration || 0) + 's';
+}
+
+function updateCharts(data) {
+    // Status Chart
+    const statusCtx = document.getElementById('statusChart').getContext('2d');
+    if (statusChart) statusChart.destroy();
+    statusChart = new Chart(statusCtx, {
+        type: 'pie',
+        data: {
+            labels: ['Answered', 'Missed'],
+            datasets: [{
+                data: [data.answered || 0, data.missed || 0],
+                backgroundColor: ['#10b981', '#ef4444']
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
+    
+    // Agent Chart
+    const agentCtx = document.getElementById('agentChart').getContext('2d');
+    if (agentChart) agentChart.destroy();
+    agentChart = new Chart(agentCtx, {
+        type: 'bar',
+        data: {
+            labels: Object.keys(data.agentData || {}),
+            datasets: [{
+                label: 'Calls',
+                data: Object.values(data.agentData || {}),
+                backgroundColor: '#3b82f6'
+            }]
+        },
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+}
+
+function updateFilters(data) {
+    const agentSelect = document.getElementById('agentFilter');
+    const projectSelect = document.getElementById('projectFilter');
+    
+    // Update agent filter
+    if (data.agents) {
+        agentSelect.innerHTML = '<option value="">All Agents</option>';
+        data.agents.forEach(agent => {
+            agentSelect.innerHTML += `<option value="${agent}">${agent}</option>`;
+        });
+    }
+    
+    // Update project filter
+    if (data.projects) {
+        projectSelect.innerHTML = '<option value="">All Projects</option>';
+        data.projects.forEach(project => {
+            projectSelect.innerHTML += `<option value="${project}">${project}</option>`;
+        });
+    }
+}
+
+function applyFilters() {
+    loadAnalytics();
+}
+
+loadAnalytics();
+</script>
+{% endblock %}

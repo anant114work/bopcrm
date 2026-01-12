@@ -1,0 +1,98 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}Property Location Mapping - Meta Leads CRM{% endblock %}
+
+{% block page_title %}🗺️ Location Mapping{% endblock %}
+
+{% block content %}
+<div class="card" style="margin-bottom: 30px;">
+    <h2 style="margin-bottom: 20px; color: #1e293b;">Property Location Mapping</h2>
+    
+    <div style="background: #f0f9ff; padding: 16px; border-radius: 8px; border-left: 4px solid #3b82f6; margin-bottom: 20px;">
+        <h4 style="color: #1e40af; margin-bottom: 8px;">Location Intelligence</h4>
+        <p class="small">
+            Map your properties to specific locations for better lead targeting and automated WhatsApp messaging based on geographic preferences.
+        </p>
+    </div>
+    
+    <div class="gap-2">
+        <!-- Property Locations Map -->
+        <div style="background: #f8fafc; padding: 20px; border-radius: 8px;">
+            <h4 style="margin-bottom: 16px; color: #1f2937;">Property Locations</h4>
+            {% for property in properties %}
+            <div style="background: white; padding: 12px; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #10b981;">
+                <div style="font-weight: 600; color: #1f2937;">{{ property.name }}</div>
+                <div class="text-muted">📍 {{ property.location }}</div>
+            </div>
+            {% empty %}
+            <div class="text-center">
+                <div style="font-size: 16px; margin-bottom: 4px;">No properties found</div>
+                <div class="small">Add properties first to create location mappings</div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Location Analytics -->
+        <div style="background: #f8fafc; padding: 20px; border-radius: 8px;">
+            <h4 style="margin-bottom: 16px; color: #1f2937;">Location Analytics</h4>
+            
+            <div style="background: white; padding: 12px; border-radius: 6px; margin-bottom: 8px;">
+                <div class="d-flex">
+                    <span class="text-muted">Gurgaon</span>
+                    <span style="font-weight: 600; color: #1f2937;">45 leads</span>
+                </div>
+                <div style="background: #e5e7eb; height: 4px; border-radius: 2px; margin-top: 4px;">
+                    <div style="background: #10b981; height: 4px; border-radius: 2px; width: 75%;"></div>
+                </div>
+            </div>
+            
+            <div style="background: white; padding: 12px; border-radius: 6px; margin-bottom: 8px;">
+                <div class="d-flex">
+                    <span class="text-muted">Noida</span>
+                    <span style="font-weight: 600; color: #1f2937;">32 leads</span>
+                </div>
+                <div style="background: #e5e7eb; height: 4px; border-radius: 2px; margin-top: 4px;">
+                    <div style="background: #3b82f6; height: 4px; border-radius: 2px; width: 53%;"></div>
+                </div>
+            </div>
+            
+            <div style="background: white; padding: 12px; border-radius: 6px; margin-bottom: 8px;">
+                <div class="d-flex">
+                    <span class="text-muted">Delhi</span>
+                    <span style="font-weight: 600; color: #1f2937;">18 leads</span>
+                </div>
+                <div style="background: #e5e7eb; height: 4px; border-radius: 2px; margin-top: 4px;">
+                    <div style="background: #f59e0b; height: 4px; border-radius: 2px; width: 30%;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h3 style="margin-bottom: 16px; color: #1f2937;">Location-Based Messaging</h3>
+    
+    <div class="gap-2">
+        <div style="background: #fef3c7; padding: 16px; border-radius: 8px; border-left: 4px solid #f59e0b;">
+            <h4 style="color: #92400e; margin-bottom: 8px;">🎯 Smart Targeting</h4>
+            <p class="small">
+                Automatically send location-specific WhatsApp messages based on lead preferences and property locations.
+            </p>
+        </div>
+        
+        <div style="background: #dcfce7; padding: 16px; border-radius: 8px; border-left: 4px solid #10b981;">
+            <h4 style="color: #166534; margin-bottom: 8px;">📊 Lead Distribution</h4>
+            <p class="small">
+                Track lead distribution across different locations to optimize your marketing efforts and property focus.
+            </p>
+        </div>
+        
+        <div style="background: #f0f9ff; padding: 16px; border-radius: 8px; border-left: 4px solid #3b82f6;">
+            <h4 style="color: #1e40af; margin-bottom: 8px;">🚀 Automated Campaigns</h4>
+            <p class="small">
+                Set up location-based automated campaigns in Zoho Marketing Automation for better lead nurturing.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

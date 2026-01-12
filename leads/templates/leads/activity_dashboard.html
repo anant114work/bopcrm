@@ -1,0 +1,158 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}Activity Dashboard - CRM{% endblock %}
+{% block page_title %}Activity Dashboard{% endblock %}
+
+
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-filter"></i> Filters</h5>
+            </div>
+            <div class="card-content">
+                <form method="get" class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">From Date</label>
+                        <input type="date" name="date_from" class="form-control" value="{{ date_from|date:'Y-m-d' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">To Date</label>
+                        <input type="date" name="date_to" class="form-control" value="{{ date_to|date:'Y-m-d' }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Search Lead</label>
+                        <input type="text" name="lead_search" class="form-control" placeholder="Name, email, or phone" value="{{ lead_search }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Team Member</label>
+                        <select name="team_member_filter" class="form-control">
+                            <option value="">All Members</option>
+                            {% for member in all_team_members %}
+                            <option value="{{ member.id }}" {% if team_member_filter == member.id|stringformat:'s' %}selected{% endif %}>
+                                {{ member.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Activity Type</label>
+                        <select name="activity_type" class="form-control">
+                            <option value="">All Activities</option>
+                            <option value="reassignments" {% if activity_type == 'reassignments' %}selected{% endif %}>Reassignments Only</option>
+                            <option value="views" {% if activity_type == 'views' %}selected{% endif %}>Views Only</option>
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label">&nbsp;</label>
+                        <button type="submit" class="btn btn-primary d-block w-100">Filter</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card activity-card">
+            <div class="card-header">
+                <h5><i class="fas fa-exchange-alt"></i> Lead Reassignments</h5>
+            </div>
+            <div class="card-content">
+                {% for reassignment in reassignments %}
+                <div class="d-flex justify-content-between align-items-start mb-3 p-3" style="background: #f8fafc; border-radius: 6px;">
+                    <div>
+                        <strong>{{ reassignment.lead.full_name }}</strong>
+                        <div class="small text-muted">
+                            {{ reassignment.previous_assignee.name }} → {{ reassignment.new_assignee.name }}
+                        </div>
+                        {% if reassignment.reason %}
+                        <div class="small text-secondary mt-1">{{ reassignment.reason }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="text-end">
+                        <span class="reassignment-badge">🔄 Reassigned</span>
+                        <div class="small text-muted">{{ reassignment.timestamp|date:"M d, H:i" }}</div>
+                        {% if reassignment.reassigned_by %}
+                        <div class="small text-muted">by {{ reassignment.reassigned_by.name }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center text-muted py-4">No reassignments found</div>
+                {% endfor %}
+                
+                {% if reassignments.has_other_pages %}
+                <nav>
+                    <ul class="pagination pagination-sm justify-content-center">
+                        {% if reassignments.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?r_page={{ reassignments.previous_page_number }}{% if date_from %}&date_from={{ date_from|date:'Y-m-d' }}{% endif %}{% if date_to %}&date_to={{ date_to|date:'Y-m-d' }}{% endif %}{% if lead_search %}&lead_search={{ lead_search }}{% endif %}{% if team_member_filter %}&team_member_filter={{ team_member_filter }}{% endif %}{% if activity_type %}&activity_type={{ activity_type }}{% endif %}">Previous</a>
+                        </li>
+                        {% endif %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ reassignments.number }} of {{ reassignments.paginator.num_pages }}</span>
+                        </li>
+                        {% if reassignments.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?r_page={{ reassignments.next_page_number }}{% if date_from %}&date_from={{ date_from|date:'Y-m-d' }}{% endif %}{% if date_to %}&date_to={{ date_to|date:'Y-m-d' }}{% endif %}{% if lead_search %}&lead_search={{ lead_search }}{% endif %}{% if team_member_filter %}&team_member_filter={{ team_member_filter }}{% endif %}{% if activity_type %}&activity_type={{ activity_type }}{% endif %}">Next</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card activity-card">
+            <div class="card-header">
+                <h5><i class="fas fa-eye"></i> Lead Views</h5>
+            </div>
+            <div class="card-content">
+                {% for view in views %}
+                <div class="d-flex justify-content-between align-items-start mb-3 p-3" style="background: #f8fafc; border-radius: 6px;">
+                    <div>
+                        <strong>{{ view.lead.full_name }}</strong>
+                        <div class="small text-muted">Viewed by {{ view.viewed_by.name }}</div>
+                        {% if view.ip_address %}
+                        <div class="small text-secondary">IP: {{ view.ip_address }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="text-end">
+                        <span class="view-badge">👁️ Viewed</span>
+                        <div class="small text-muted">{{ view.timestamp|date:"M d, H:i" }}</div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center text-muted py-4">No views found</div>
+                {% endfor %}
+                
+                {% if views.has_other_pages %}
+                <nav>
+                    <ul class="pagination pagination-sm justify-content-center">
+                        {% if views.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?v_page={{ views.previous_page_number }}{% if date_from %}&date_from={{ date_from|date:'Y-m-d' }}{% endif %}{% if date_to %}&date_to={{ date_to|date:'Y-m-d' }}{% endif %}{% if lead_search %}&lead_search={{ lead_search }}{% endif %}{% if team_member_filter %}&team_member_filter={{ team_member_filter }}{% endif %}{% if activity_type %}&activity_type={{ activity_type }}{% endif %}">Previous</a>
+                        </li>
+                        {% endif %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ views.number }} of {{ views.paginator.num_pages }}</span>
+                        </li>
+                        {% if views.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?v_page={{ views.next_page_number }}{% if date_from %}&date_from={{ date_from|date:'Y-m-d' }}{% endif %}{% if date_to %}&date_to={{ date_to|date:'Y-m-d' }}{% endif %}{% if lead_search %}&lead_search={{ lead_search }}{% endif %}{% if team_member_filter %}&team_member_filter={{ team_member_filter }}{% endif %}{% if activity_type %}&activity_type={{ activity_type }}{% endif %}">Next</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

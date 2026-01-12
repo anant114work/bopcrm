@@ -1,0 +1,198 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}{{ project.name }} Team Members - Meta Leads CRM{% endblock %}
+{% block page_title %}{{ project.name }} Team Members{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-users"></i> {{ project.name }} - Team Members</h2>
+    </div>
+    <div class="card-content">
+        <div style="margin-bottom: 20px;">
+            <a href="/projects/{{ project.id }}/" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Project
+            </a>
+        </div>
+
+        <!-- Upload Section -->
+        <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <h3 style="color: #1e40af; margin-bottom: 15px;">📤 Upload Team Members from Excel</h3>
+            <p style="color: #666; margin-bottom: 15px;">Upload an Excel file with team member name and phone number</p>
+            
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <input type="file" id="excelFile" accept=".xlsx,.xls" style="flex: 1;">
+                <button onclick="uploadExcel()" class="btn btn-primary">
+                    <i class="fas fa-upload"></i> Upload
+                </button>
+                <a href="/static/templates/team_members_template.xlsx" class="btn btn-info">
+                    <i class="fas fa-download"></i> Download Template
+                </a>
+            </div>
+            
+            <div id="uploadStatus" style="margin-top: 10px; display: none;"></div>
+        </div>
+
+        <!-- Current Team Members -->
+        <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <h3 style="color: #374151; margin-bottom: 15px;">👥 Current Team Members ({{ team_members.count }})</h3>
+            
+            {% if team_members %}
+            <div style="overflow-x: auto;">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Phone</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ptm in team_members %}
+                        <tr>
+                            <td><strong>{{ ptm.team_member.name }}</strong></td>
+                            <td>{{ ptm.team_member.phone }}</td>
+                            <td>
+                                <button onclick="removeTeamMember({{ ptm.team_member.id }})" class="btn btn-danger" style="font-size: 10px; padding: 2px 6px;">
+                                    Remove
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p style="color: #999; text-align: center; padding: 20px;">No team members assigned yet</p>
+            {% endif %}
+        </div>
+
+        <!-- Add Individual Member -->
+        <div style="background: #fef3c7; padding: 20px; border-radius: 8px;">
+            <h3 style="color: #92400e; margin-bottom: 15px;">➕ Add Individual Team Member</h3>
+            
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <select id="teamMemberSelect" class="form-control" style="flex: 1; max-width: 400px;">
+                    <option value="">Select a team member...</option>
+                    {% for tm in all_team_members %}
+                    {% if not tm in team_members|dictsort:"team_member.id" %}
+                    <option value="{{ tm.id }}">{{ tm.name }} ({{ tm.phone }})</option>
+                    {% endif %}
+                    {% endfor %}
+                </select>
+                <button onclick="addTeamMember()" class="btn btn-success">
+                    <i class="fas fa-plus"></i> Add
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function uploadExcel() {
+    const fileInput = document.getElementById('excelFile');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        alert('Please select a file');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const statusDiv = document.getElementById('uploadStatus');
+    statusDiv.style.display = 'block';
+    statusDiv.innerHTML = '<p style="color: #0ea5e9;"><i class="fas fa-spinner fa-spin"></i> Uploading...</p>';
+    
+    fetch('/projects/{{ project.id }}/upload-team-members/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            statusDiv.innerHTML = `
+                <div style="background: #dcfce7; padding: 15px; border-radius: 8px; border-left: 4px solid #22c55e;">
+                    <h4 style="color: #166534; margin-bottom: 10px;">✅ Upload Complete</h4>
+                    <p><strong>Added:</strong> ${data.added}</p>
+                    <p><strong>Skipped:</strong> ${data.skipped}</p>
+                    ${data.errors.length > 0 ? `<p style="color: #dc2626;"><strong>Errors:</strong><br>${data.errors.join('<br>')}</p>` : ''}
+                </div>
+            `;
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            statusDiv.innerHTML = `<div style="background: #fee2e2; padding: 15px; border-radius: 8px; color: #dc2626;">Error: ${data.error}</div>`;
+        }
+    })
+    .catch(error => {
+        statusDiv.innerHTML = `<div style="background: #fee2e2; padding: 15px; border-radius: 8px; color: #dc2626;">Error: ${error.message}</div>`;
+    });
+}
+
+function addTeamMember() {
+    const select = document.getElementById('teamMemberSelect');
+    const teamMemberId = select.value;
+    
+    if (!teamMemberId) {
+        alert('Please select a team member');
+        return;
+    }
+    
+    fetch('/projects/{{ project.id }}/add-team-member/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: `team_member_id=${teamMemberId}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+}
+
+function removeTeamMember(teamMemberId) {
+    if (!confirm('Remove this team member from the project?')) return;
+    
+    fetch(`/projects/{{ project.id }}/remove-team-member/${teamMemberId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

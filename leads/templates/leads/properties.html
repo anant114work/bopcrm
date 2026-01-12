@@ -1,0 +1,107 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}Properties - Meta Leads CRM{% endblock %}
+
+{% block page_title %}🏢 Properties Management{% endblock %}
+
+{% block content %}
+<div class="card" style="margin-bottom: 30px;">
+    <h2 style="margin-bottom: 20px; color: #1e293b;">Property Portfolio</h2>
+    
+    <form id="propertyForm" class="gap-2">
+        <div>
+            <label style="display: block; font-weight: 500; margin-bottom: 8px;">Property Name:</label>
+            <input type="text" id="propertyName" class="form-input" style="width: 100%;" placeholder="e.g., SPJ Vedatam" required>
+        </div>
+        
+        <div>
+            <label style="display: block; font-weight: 500; margin-bottom: 8px;">Location:</label>
+            <input type="text" id="propertyLocation" class="form-input" style="width: 100%;" placeholder="e.g., Gurgaon" required>
+        </div>
+        
+        <button type="submit" class="btn btn-primary" style="padding: 10px 20px;">
+            Add Property
+        </button>
+    </form>
+    
+    <div style="background: #f0f9ff; padding: 16px; border-radius: 8px; border-left: 4px solid #3b82f6;">
+        <h4 style="color: #1e40af; margin-bottom: 8px;">Property Management</h4>
+        <p class="small">
+            Manage your real estate properties and their locations for better lead organization and WhatsApp messaging.
+        </p>
+    </div>
+</div>
+
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>Property Name</th>
+                <th>Location</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for property in properties %}
+            <tr>
+                <td style="font-weight: 600;">{{ property.name }}</td>
+                <td class="text-muted">{{ property.location }}</td>
+                <td>
+                    <span class="small">
+                        {% if property.is_active %}Active{% else %}Inactive{% endif %}
+                    </span>
+                </td>
+                <td class="text-muted">
+                    {{ property.created_at|date:"M d, Y" }}
+                </td>
+                <td>
+                    <button class="btn btn-secondary" class="small" onclick="editProperty('{{ property.name }}', '{{ property.location }}')">
+                        Edit
+                    </button>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" class="text-center">
+                    <div style="font-size: 18px; margin-bottom: 8px;">No properties added yet</div>
+                    <div class="small">Add your first property above to get started</div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('propertyForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const propertyName = document.getElementById('propertyName').value;
+    const propertyLocation = document.getElementById('propertyLocation').value;
+    
+    if (!propertyName || !propertyLocation) {
+        alert('Please fill all fields');
+        return;
+    }
+    
+    // For now, just show success message
+    // In production, you would send this to a backend endpoint
+    alert('✅ Property added successfully!\\n\\nName: ' + propertyName + '\\nLocation: ' + propertyLocation);
+    
+    // Reset form
+    document.getElementById('propertyForm').reset();
+});
+
+function editProperty(name, location) {
+    document.getElementById('propertyName').value = name;
+    document.getElementById('propertyLocation').value = location;
+    
+    // Scroll to form
+    document.getElementById('propertyForm').scrollIntoView({ behavior: 'smooth' });
+}
+</script>
+{% endblock %}

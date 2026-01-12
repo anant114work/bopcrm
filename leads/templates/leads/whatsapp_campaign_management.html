@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Campaign Management - {{ project.name }}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; }
+        
+        .layout { display: flex; min-height: 100vh; }
+        .sidebar { width: 250px; background: #1e293b; color: white; position: fixed; height: 100vh; overflow-y: auto; }
+        .main-content { flex: 1; margin-left: 250px; }
+        .header { background: white; padding: 1rem 2rem; border-bottom: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .container { padding: 2rem; }
+        
+        .card { background: white; border-radius: 8px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 1.5rem; }
+        .btn { padding: 0.75rem 1.5rem; border: none; border-radius: 6px; font-weight: 500; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block; }
+        .btn-primary { background: #3b82f6; color: white; }
+        .btn-success { background: #10b981; color: white; }
+        .btn-warning { background: #f59e0b; color: white; }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        
+        .form-group { margin-bottom: 1rem; }
+        .form-label { display: block; margin-bottom: 0.5rem; font-weight: 500; color: #374151; }
+        .form-control { width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; }
+        .form-control:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+        
+        .tabs { display: flex; border-bottom: 1px solid #e5e7eb; margin-bottom: 2rem; }
+        .tab { padding: 1rem 2rem; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
+        .tab.active { border-bottom-color: #3b82f6; color: #3b82f6; font-weight: 600; }
+        .tab:hover { background: #f9fafb; }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        .template-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
+        .template-card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem; background: white; }
+        .template-header { display: flex; justify-content: between; align-items: center; margin-bottom: 0.5rem; }
+        .template-name { font-weight: 600; color: #1f2937; }
+        .template-type { font-size: 12px; padding: 2px 8px; border-radius: 12px; background: #e5e7eb; color: #6b7280; }
+        .template-stats { display: flex; gap: 1rem; margin-top: 0.5rem; font-size: 12px; color: #6b7280; }
+        
+        .test-section { background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+        .test-section h4 { color: #92400e; margin-bottom: 0.5rem; }
+        
+        .analytics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .stat-card { background: white; padding: 1.5rem; border-radius: 8px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .stat-number { font-size: 2rem; font-weight: bold; color: #1f2937; }
+        .stat-label { color: #6b7280; font-size: 14px; }
+        
+        .message-preview { background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 8px; padding: 1rem; margin-top: 1rem; }
+        .phone-input { display: flex; gap: 0.5rem; align-items: center; }
+        .country-code { background: #f3f4f6; border: 1px solid #d1d5db; padding: 0.75rem; border-radius: 6px 0 0 6px; }
+    </style>
+</head>
+<body>
+    <div class="layout">
+        {% include 'leads/base_sidebar.html' %}
+        
+        <div class="main-content">
+            <div class="header">
+                <h1>WhatsApp Campaign Management - {{ project.name }}</h1>
+            </div>
+            
+            <div class="container">
+                <!-- Analytics Overview -->
+                <div class="analytics-grid">
+                    <div class="stat-card">
+                        <div class="stat-number">{{ templates.count }}</div>
+                        <div class="stat-label">Templates</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{{ campaigns.count }}</div>
+                        <div class="stat-label">Campaigns</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{{ analytics.total_sent|default:0 }}</div>
+                        <div class="stat-label">Messages Sent</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{{ analytics.delivery_rate|floatformat:1 }}%</div>
+                        <div class="stat-label">Delivery Rate</div>
+                    </div>
+                </div>
+                
+                <!-- Tabs -->
+                <div class="tabs">
+                    <div class="tab active" onclick="showTab('templates')">Templates</div>
+                    <div class="tab" onclick="showTab('campaigns')">Campaigns</div>
+                    <div class="tab" onclick="showTab('testing')">Testing</div>
+                    <div class="tab" onclick="showTab('analytics')">Analytics</div>
+                </div>
+                
+                <!-- Templates Tab -->
+                <div id="templates" class="tab-content active">
+                    <div class="card">
+                        <div class="d-flex">
+                            <h3>WhatsApp Templates</h3>
+                            <button class="btn btn-primary" onclick="showCreateTemplate()">+ Create Template</button>
+                        </div>
+                        
+                        <div class="template-grid">
+                            {% for template in templates %}
+                            <div class="template-card">
+                                <div class="template-header">
+                                    <div class="template-name">{{ template.name }}</div>
+                                    <div class="template-type">{{ template.get_template_type_display }}</div>
+                                </div>
+                                <div class="mb-0">{{ template.get_category_display }}</div>
+                                <div class="small">{{ template.message_text|truncatechars:100 }}</div>
+                                <div class="template-stats">
+                                    <span>Sent: {{ template.sent_count }}</span>
+                                    <span>Delivered: {{ template.delivered_count }}</span>
+                                    <span>Read: {{ template.read_count }}</span>
+                                </div>
+                                <div class="d-flex">
+                                    <button class="btn btn-primary" class="small" onclick="testTemplate({{ template.id }})">Test</button>
+                                    <button class="btn btn-success" class="small" onclick="createCampaign({{ template.id }})">Campaign</button>
+                                </div>
+                            </div>
+                            {% empty %}
+                            <div class="text-center">
+                                No templates found. Create your first template to get started.
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Campaigns Tab -->
+                <div id="campaigns" class="tab-content">
+                    <div class="card">
+                        <div class="d-flex">
+                            <h3>Active Campaigns</h3>
+                            <button class="btn btn-primary" onclick="showCreateCampaign()">+ Create Campaign</button>
+                        </div>
+                        
+                        {% for campaign in campaigns %}
+                        <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+                            <div class="d-flex">
+                                <div>
+                                    <h4>{{ campaign.name }}</h4>
+                                    <p class="small">{{ campaign.description }}</p>
+                                    <div class="small">
+                                        Template: {{ campaign.template.name }} | Status: {{ campaign.get_status_display }}
+                                    </div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div class="small">{{ campaign.messages_sent }} sent</div>
+                                    <div class="small">{{ campaign.success_rate|floatformat:1 }}% success</div>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="text-center">
+                            No campaigns found. Create your first campaign to get started.
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <!-- Testing Tab -->
+                <div id="testing" class="tab-content">
+                    <div class="card">
+                        <h3>Template Testing</h3>
+                        <div class="test-section">
+                            <h4>🧪 Test WhatsApp Templates</h4>
+                            <p>Send test messages to verify your templates before launching campaigns.</p>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Select Template</label>
+                            <select id="testTemplateSelect" class="form-control">
+                                <option value="">Choose a template...</option>
+                                {% for template in templates %}
+                                <option value="{{ template.id }}">{{ template.name }} ({{ template.get_category_display }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Test Phone Number</label>
+                            <div class="phone-input">
+                                <span class="country-code">+91</span>
+                                <input type="tel" id="testPhoneNumber" class="form-control" placeholder="Enter phone number" style="border-radius: 0 6px 6px 0;">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Test Name</label>
+                            <input type="text" id="testName" class="form-control" placeholder="Test User" value="Test User">
+                        </div>
+                        
+                        <div id="messagePreview" class="message-preview" style="display: none;">
+                            <h4>Message Preview:</h4>
+                            <div id="previewContent"></div>
+                        </div>
+                        
+                        <button class="btn btn-warning" onclick="sendTestMessage()">📱 Send Test Message</button>
+                        
+                        <div id="testResults" style="margin-top: 1rem;"></div>
+                    </div>
+                </div>
+                
+                <!-- Analytics Tab -->
+                <div id="analytics" class="tab-content">
+                    <div class="card">
+                        <h3>Campaign Analytics</h3>
+                        <p>Detailed performance metrics for your WhatsApp campaigns.</p>
+                        
+                        <div style="margin-top: 2rem;">
+                            <h4>Template Performance</h4>
+                            <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
+                                <thead>
+                                    <tr style="background: #f9fafb;">
+                                        <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #e5e7eb;">Template</th>
+                                        <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #e5e7eb;">Sent</th>
+                                        <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #e5e7eb;">Delivered</th>
+                                        <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #e5e7eb;">Read</th>
+                                        <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #e5e7eb;">Delivery Rate</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for template in templates %}
+                                    <tr>
+                                        <td style="padding: 0.75rem; border-bottom: 1px solid #e5e7eb;">{{ template.name }}</td>
+                                        <td style="padding: 0.75rem; border-bottom: 1px solid #e5e7eb;">{{ template.sent_count }}</td>
+                                        <td style="padding: 0.75rem; border-bottom: 1px solid #e5e7eb;">{{ template.delivered_count }}</td>
+                                        <td style="padding: 0.75rem; border-bottom: 1px solid #e5e7eb;">{{ template.read_count }}</td>
+                                        <td style="padding: 0.75rem; border-bottom: 1px solid #e5e7eb;">{{ template.delivery_rate|floatformat:1 }}%</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function showTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            document.getElementById(tabName).classList.add('active');
+            
+            // Add active class to clicked tab
+            event.target.classList.add('active');
+        }
+        
+        function testTemplate(templateId) {
+            document.getElementById('testTemplateSelect').value = templateId;
+            showTab('testing');
+            updateMessagePreview();
+        }
+        
+        function updateMessagePreview() {
+            const templateSelect = document.getElementById('testTemplateSelect');
+            const testName = document.getElementById('testName').value;
+            const preview = document.getElementById('messagePreview');
+            const previewContent = document.getElementById('previewContent');
+            
+            if (templateSelect.value) {
+                // This would typically fetch template content via AJAX
+                preview.style.display = 'block';
+                previewContent.innerHTML = `<strong>To:</strong> ${testName}<br><strong>Message:</strong> Template preview will be shown here...`;
+            } else {
+                preview.style.display = 'none';
+            }
+        }
+        
+        function sendTestMessage() {
+            const templateId = document.getElementById('testTemplateSelect').value;
+            const phoneNumber = document.getElementById('testPhoneNumber').value;
+            const testName = document.getElementById('testName').value;
+            
+            if (!templateId || !phoneNumber) {
+                alert('Please select a template and enter a phone number');
+                return;
+            }
+            
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = '<div style="color: #3b82f6;">Sending test message...</div>';
+            
+            fetch('/whatsapp/test-template/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    template_id: templateId,
+                    test_phone: phoneNumber,
+                    test_name: testName
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    resultsDiv.innerHTML = `<div style="color: #10b981; padding: 0.5rem; background: #ecfdf5; border-radius: 4px;">✅ ${data.message}</div>`;
+                } else {
+                    resultsDiv.innerHTML = `<div style="color: #ef4444; padding: 0.5rem; background: #fef2f2; border-radius: 4px;">❌ ${data.message}</div>`;
+                }
+            })
+            .catch(error => {
+                resultsDiv.innerHTML = `<div style="color: #ef4444; padding: 0.5rem; background: #fef2f2; border-radius: 4px;">❌ Error: ${error.message}</div>`;
+            });
+        }
+        
+        // Update preview when inputs change
+        document.getElementById('testTemplateSelect').addEventListener('change', updateMessagePreview);
+        document.getElementById('testName').addEventListener('input', updateMessagePreview);
+    </script>
+</body>
+</html>

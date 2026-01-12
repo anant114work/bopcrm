@@ -1,0 +1,232 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}AI Analytics Dashboard - Lead Intelligence{% endblock %}
+{% block page_title %}AI Analytics Dashboard{% endblock %}
+
+
+
+{% block content %}
+
+<!-- Bulk Lead Analysis -->
+<div class="ai-section">
+    <div class="section-header">
+        <span><i class="fas fa-users"></i> Bulk Lead Analysis (Quality Groups)</span>
+        <span class="small">Click to expand groups</span>
+    </div>
+    <div class="section-content">
+        <!-- High Quality Leads -->
+        <div class="quality-group">
+            <div class="group-header high-quality" onclick="toggleGroup('high-quality')">
+                <span><i class="fas fa-star"></i> High Quality Leads ({{ high_quality_leads|length }})</span>
+                <button class="expand-btn"><i class="fas fa-chevron-down"></i></button>
+            </div>
+            <div class="group-content" id="high-quality">
+                {% for item in high_quality_leads %}
+                <div class="lead-item high">
+                    <div>
+                        <strong>{{ item.lead.full_name }}</strong>
+                        <div class="small">
+                            {{ item.lead.phone_number }} • {{ item.lead.budget|default:"No budget" }}
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <span class="quality-badge badge-high">{{ item.analysis.quality_score }}/10</span>
+                        <div style="font-size: 10px; color: #6b7280;">{{ item.analysis.next_action }}</div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center">No high quality leads found</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Medium Quality Leads -->
+        <div class="quality-group">
+            <div class="group-header medium-quality" onclick="toggleGroup('medium-quality')">
+                <span><i class="fas fa-star-half-alt"></i> Medium Quality Leads ({{ medium_quality_leads|length }})</span>
+                <button class="expand-btn"><i class="fas fa-chevron-down"></i></button>
+            </div>
+            <div class="group-content" id="medium-quality">
+                {% for item in medium_quality_leads %}
+                <div class="lead-item medium">
+                    <div>
+                        <strong>{{ item.lead.full_name }}</strong>
+                        <div class="small">
+                            {{ item.lead.phone_number }} • {{ item.lead.budget|default:"No budget" }}
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <span class="quality-badge badge-medium">{{ item.analysis.quality_score }}/10</span>
+                        <div style="font-size: 10px; color: #6b7280;">{{ item.analysis.next_action }}</div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center">No medium quality leads found</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Low Quality Leads -->
+        <div class="quality-group">
+            <div class="group-header low-quality" onclick="toggleGroup('low-quality')">
+                <span><i class="fas fa-star"></i> Low Quality Leads ({{ low_quality_leads|length }})</span>
+                <button class="expand-btn"><i class="fas fa-chevron-down"></i></button>
+            </div>
+            <div class="group-content" id="low-quality">
+                {% for item in low_quality_leads %}
+                <div class="lead-item low">
+                    <div>
+                        <strong>{{ item.lead.full_name }}</strong>
+                        <div class="small">
+                            {{ item.lead.phone_number }} • {{ item.lead.budget|default:"No budget" }}
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <span class="quality-badge badge-low">{{ item.analysis.quality_score }}/10</span>
+                        <div style="font-size: 10px; color: #6b7280;">{{ item.analysis.next_action }}</div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center">No low quality leads found</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Notes Analysis -->
+<div class="ai-section">
+    <div class="section-header">
+        <span><i class="fas fa-comments"></i> Bulk Notes Analysis (Sentiment Groups)</span>
+    </div>
+    <div class="section-content">
+        <div class="gap-2">
+            <!-- Positive Notes -->
+            <div>
+                <h4 style="color: #10b981; margin-bottom: 12px;">
+                    <i class="fas fa-smile"></i> Positive ({{ notes_analysis.positive|length }})
+                </h4>
+                {% for item in notes_analysis.positive %}
+                <div class="note-item note-positive">
+                    <div class="small">
+                        {{ item.note.team_member.name }} • {{ item.note.created_at|date:"M d" }}
+                    </div>
+                    <div style="font-size: 13px;">{{ item.note.note|truncatechars:80 }}</div>
+                    <div style="font-size: 10px; color: #6b7280; margin-top: 4px;">
+                        Interest: {{ item.analysis.interest_level }}
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center">No positive notes</div>
+                {% endfor %}
+            </div>
+
+            <!-- Neutral Notes -->
+            <div>
+                <h4 style="color: #6b7280; margin-bottom: 12px;">
+                    <i class="fas fa-meh"></i> Neutral ({{ notes_analysis.neutral|length }})
+                </h4>
+                {% for item in notes_analysis.neutral %}
+                <div class="note-item note-neutral">
+                    <div class="small">
+                        {{ item.note.team_member.name }} • {{ item.note.created_at|date:"M d" }}
+                    </div>
+                    <div style="font-size: 13px;">{{ item.note.note|truncatechars:80 }}</div>
+                    <div style="font-size: 10px; color: #6b7280; margin-top: 4px;">
+                        Interest: {{ item.analysis.interest_level }}
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center">No neutral notes</div>
+                {% endfor %}
+            </div>
+
+            <!-- Negative Notes -->
+            <div>
+                <h4 style="color: #ef4444; margin-bottom: 12px;">
+                    <i class="fas fa-frown"></i> Negative ({{ notes_analysis.negative|length }})
+                </h4>
+                {% for item in notes_analysis.negative %}
+                <div class="note-item note-negative">
+                    <div class="small">
+                        {{ item.note.team_member.name }} • {{ item.note.created_at|date:"M d" }}
+                    </div>
+                    <div style="font-size: 13px;">{{ item.note.note|truncatechars:80 }}</div>
+                    <div style="font-size: 10px; color: #6b7280; margin-top: 4px;">
+                        Interest: {{ item.analysis.interest_level }}
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center">No negative notes</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Lead Flow Analysis -->
+<div class="ai-section">
+    <div class="section-header">
+        <span><i class="fas fa-chart-line"></i> Lead Flow Analysis (7 Days)</span>
+    </div>
+    <div class="section-content">
+        <div class="chart-container">
+            <div class="flow-chart">
+                {% for day in lead_flow %}
+                <div class="flow-bar" style="height: {% if day.count > 0 %}{{ day.count|add:10 }}{% else %}10{% endif %}px;">
+                    <div style="margin-bottom: 4px;">{{ day.count }}</div>
+                    <div>{{ day.date }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Source Quality Analysis -->
+<div class="ai-section">
+    <div class="section-header">
+        <span><i class="fas fa-source"></i> Quality by Source</span>
+    </div>
+    <div class="section-content">
+        <div class="gap-2">
+            {% for source, quality in source_quality.items %}
+            <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px;">
+                <h4 style="margin-bottom: 12px; color: var(--primary-dark);">{{ source }} Leads</h4>
+                <div class="d-flex">
+                    <div class="small">
+                        High: {{ quality.high }}
+                    </div>
+                    <div class="small">
+                        Medium: {{ quality.medium }}
+                    </div>
+                    <div class="small">
+                        Low: {{ quality.low }}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+function toggleGroup(groupId) {
+    const content = document.getElementById(groupId);
+    const icon = content.previousElementSibling.querySelector('.expand-btn i');
+    
+    if (content.classList.contains('active')) {
+        content.classList.remove('active');
+        icon.className = 'fas fa-chevron-down';
+    } else {
+        content.classList.add('active');
+        icon.className = 'fas fa-chevron-up';
+    }
+}
+
+// Auto-refresh every 5 minutes
+setTimeout(() => {
+    location.reload();
+}, 300000);
+{% endblock %}

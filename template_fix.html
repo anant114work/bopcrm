@@ -1,0 +1,83 @@
+<!-- Template fix for commercial_team_management.html -->
+<!-- The issue is around line 345 where there's an unclosed block tag -->
+
+<!-- BEFORE (causing error): -->
+<!--
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error submitting KPI score');
+    });
+}
+</script>
+
+</script>
+{% endblock %}
+
+ {% block extra_css %} 
+<style>
+.border-left-primary { border-left: 0.25rem solid #4e73df !important; }
+-->
+
+<!-- AFTER (fixed): -->
+<!--
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error submitting KPI score');
+    });
+}
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.border-left-primary { border-left: 0.25rem solid #4e73df !important; }
+.border-left-success { border-left: 0.25rem solid #1cc88a !important; }
+.border-left-info { border-left: 0.25rem solid #36b9cc !important; }
+.border-left-warning { border-left: 0.25rem solid #f6c23e !important; }
+</style>
+{% endblock %}
+-->
+
+<!-- FIXES NEEDED:
+1. Remove the duplicate </script> tag on line 342
+2. Remove the extra space in {% block extra_css %} on line 345
+3. Add proper {% endblock %} for the extra_css block
+-->
+
+<!-- Modal flickering fix for JavaScript: -->
+<script>
+// Fix modal flickering by preventing multiple rapid clicks
+let modalOpening = false;
+
+function openIssuesModal() {
+    if (modalOpening) return;
+    modalOpening = true;
+    
+    // Your existing modal opening code here
+    $('#issuesModal').modal('show');
+    
+    setTimeout(() => {
+        modalOpening = false;
+    }, 500);
+}
+
+// Fix edit modal not showing content
+function openEditModal(itemId) {
+    // Fetch data first, then show modal
+    fetch(`/api/get-item/${itemId}/`)
+        .then(response => response.json())
+        .then(data => {
+            // Populate modal fields
+            document.getElementById('editItemId').value = data.id;
+            document.getElementById('editItemName').value = data.name;
+            // Add other fields as needed
+            
+            // Show modal after data is loaded
+            $('#editModal').modal('show');
+        })
+        .catch(error => {
+            console.error('Error loading item data:', error);
+            alert('Error loading item data');
+        });
+}
+</script>

@@ -1,0 +1,223 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}Analytics Dashboard - CRM{% endblock %}
+{% block page_title %}📊 NEW Analytics Dashboard{% endblock %}
+
+
+
+{% block content %}
+<div class="analytics-container">
+    <!-- Overview Stats -->
+    <div class="stats-overview">
+        <div class="stat-card">
+            <div class="stat-number" id="totalLeads">{{ total_leads }}</div>
+            <div class="stat-label">Total Leads</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="metaLeads">{{ meta_leads }}</div>
+            <div class="stat-label">Meta Leads</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="googleLeads">{{ google_leads }}</div>
+            <div class="stat-label">Google Leads</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="conversionRate">{{ conversion_rate }}%</div>
+            <div class="stat-label">Conversion Rate</div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-grid">
+        <div class="chart-card">
+            <div class="chart-title">Leads by Project</div>
+            <div class="chart-container">
+                <canvas id="projectChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="chart-card">
+            <div class="chart-title">Lead Sources</div>
+            <div class="chart-container">
+                <canvas id="sourceChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="charts-grid">
+        <div class="chart-card">
+            <div class="chart-title">Leads by Stage</div>
+            <div class="chart-container">
+                <canvas id="stageChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="chart-card">
+            <div class="chart-title">Recent Activity (Last 7 Days)</div>
+            <div class="chart-container">
+                <canvas id="activityChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Real data from Django context
+const analyticsData = {
+    totalLeads: {{ total_leads }},
+    metaLeads: {{ meta_leads }},
+    googleLeads: {{ google_leads }},
+    conversionRate: {{ conversion_rate }},
+    projectData: {{ project_data|safe }},
+    stageData: {{ stage_data|safe }},
+    dailyData: {{ daily_data|safe }}
+};
+
+// Chart colors
+const colors = {
+    primary: 'rgb(96, 4, 93)',
+    secondary: 'rgba(96, 4, 93, 0.8)',
+    success: '#10b981',
+    warning: '#f59e0b',
+    danger: '#ef4444',
+    info: '#3b82f6'
+};
+
+// Initialize all charts
+document.addEventListener('DOMContentLoaded', function() {
+    createProjectChart();
+    createSourceChart();
+    createStageChart();
+    createActivityChart();
+});
+
+function createProjectChart() {
+    const ctx = document.getElementById('projectChart').getContext('2d');
+    
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: analyticsData.projectData.labels,
+            datasets: [{
+                label: 'Leads',
+                data: analyticsData.projectData.values,
+                backgroundColor: colors.primary,
+                borderColor: colors.primary,
+                borderWidth: 1,
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: { 
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return value + ' leads';
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function createSourceChart() {
+    const ctx = document.getElementById('sourceChart').getContext('2d');
+    
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Meta Ads', 'Google Forms'],
+            datasets: [{
+                data: [analyticsData.metaLeads, analyticsData.googleLeads],
+                backgroundColor: [colors.primary, colors.success]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+}
+
+function createStageChart() {
+    const ctx = document.getElementById('stageChart').getContext('2d');
+    
+    new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: analyticsData.stageData.labels,
+            datasets: [{
+                data: analyticsData.stageData.values,
+                backgroundColor: [
+                    colors.primary,
+                    colors.secondary,
+                    colors.success,
+                    colors.warning,
+                    colors.info
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+}
+
+function createActivityChart() {
+    const ctx = document.getElementById('activityChart').getContext('2d');
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: analyticsData.dailyData.labels,
+            datasets: [{
+                label: 'New Leads',
+                data: analyticsData.dailyData.values,
+                borderColor: colors.primary,
+                backgroundColor: 'rgba(96, 4, 93, 0.1)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: { 
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return value + ' leads';
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+</script>
+{% endblock %}

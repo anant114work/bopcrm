@@ -1,0 +1,351 @@
+{% extends 'leads/base_unified.html' %}
+{% load lead_filters %}
+
+{% block title %}Overdue Leads - CRM{% endblock %}
+
+{% block page_title %} Overdue Leads Management{% endblock %}
+
+{% block content %}
+<!-- Stats Overview -->
+<div class="card" style="margin-bottom: 20px;">
+    <div class="d-flex">
+        <h3 style="margin: 0;">Lead Assignment Overview</h3>
+        <div>
+            <button class="btn btn-secondary" onclick="initializeRoundRobin()" style="margin-right: 8px;">
+                 Initialize Queue
+            </button>
+            <button class="btn btn-primary" onclick="shuffleOverdueLeads()">
+                 Shuffle All Overdue
+            </button>
+        </div>
+    </div>
+    
+    <div class="gap-2">
+        <div class="text-center">
+            <div style="font-size: 24px; font-weight: 700; color: #1e40af;">{{ stats.total_leads }}</div>
+            <div class="text-muted">Total Leads</div>
+        </div>
+        <div class="text-center">
+            <div style="font-size: 24px; font-weight: 700; color: {% if stats.overdue_leads > 0 %}#92400e{% else %}#166534{% endif %};">{{ stats.overdue_leads }}</div>
+            <div class="text-muted">Overdue Leads</div>
+        </div>
+        <div class="text-center">
+            <div style="font-size: 24px; font-weight: 700; color: #1e293b;">{{ stats.reassigned_leads }}</div>
+            <div class="text-muted">Reassigned Leads</div>
+        </div>
+        <div class="text-center">
+            <div style="font-size: 24px; font-weight: 700; color: #dc2626;">{{ stats.overdue_percentage|floatformat:1 }}%</div>
+            <div class="text-muted">Overdue Rate</div>
+        </div>
+    </div>
+</div>
+
+<!-- Overdue Leads List -->
+{% if overdue_leads %}
+<div class="card">
+    <h3 style="margin-bottom: 20px;">Overdue Leads ({{ total_overdue }})</h3>
+    
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: #f8fafc;">
+                    <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Lead</th>
+                    <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Current Assignee</th>
+                    <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Overdue</th>
+                    <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">History</th>
+                    <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for overdue in overdue_leads %}
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 12px;">
+                        <div>
+                            <div style="font-weight: 600; color: #1e293b;">{{ overdue.lead.full_name }}</div>
+                            <div class="text-muted">{% maskable_number overdue.lead.phone_number "phone" %}</div>
+                            <div class="text-muted">{{ overdue.lead.email }}</div>
+                        </div>
+                    </td>
+                    <td style="padding: 12px;">
+                        <div>
+                            <div style="font-weight: 500; color: #1e293b;">{{ overdue.current_assignee.name }}</div>
+                            <div class="text-muted">{{ overdue.current_assignee.role }}</div>
+                            <div class="text-muted">Assigned: {{ overdue.assigned_at|date:"M d, H:i" }}</div>
+                            {% if overdue.previous_assignee %}
+                            <div style="font-size: 10px; color: #dc2626; margin-top: 2px;">
+                                <i class="fas fa-arrow-right"></i> From: {{ overdue.previous_assignee.name }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td style="padding: 12px;">
+                        <div class="small">
+                            {{ overdue.overdue_hours }}h overdue
+                        </div>
+                        <div class="text-muted">
+                            SLA: {{ overdue.sla_deadline|date:"M d, H:i" }}
+                        </div>
+                    </td>
+                    <td style="padding: 12px;">
+                        <div class="small">
+                            <span style="font-weight: 500;">{{ overdue.total_reassignments }}</span> reassignments
+                        </div>
+                        <button class="btn btn-secondary" style="padding: 2px 6px; font-size: 10px; margin-top: 4px;" onclick="showAssignmentHistory({{ overdue.lead.id }})">
+                            View Timeline
+                        </button>
+                    </td>
+                    <td style="padding: 12px;">
+                        <div class="d-flex">
+                            <button class="btn btn-primary" style="padding: 4px 8px; font-size: 11px;" onclick="showReassignModal({{ overdue.lead.id }}, '{{ overdue.lead.full_name }}')">
+                                Reassign
+                            </button>
+                            <a href="/leads/{{ overdue.lead.id }}/" class="btn btn-secondary" style="padding: 4px 8px; font-size: 11px;">
+                                View Lead
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="card" class="text-center">
+    <div style="font-size: 48px; margin-bottom: 16px;">✅</div>
+    <h3 style="color: #166534; margin-bottom: 8px;">No Overdue Leads!</h3>
+    <p class="text-muted">All leads are being handled within SLA timeframes.</p>
+</div>
+{% endif %}
+
+<!-- Reassign Modal -->
+<div id="reassignModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 24px; border-radius: 8px; width: 400px;">
+        <h4 style="margin-bottom: 16px;">Reassign Lead</h4>
+        
+        <div style="margin-bottom: 16px;">
+            <strong id="leadName"></strong>
+        </div>
+        
+        <div id="currentAssignment" style="margin-bottom: 16px; padding: 12px; background: #f8fafc; border-radius: 6px;">
+            <!-- Current assignment info will be loaded here -->
+        </div>
+        
+        <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 8px;">Assign to:</label>
+            <select id="newAssigneeSelect" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;">
+                <option value="">Select Team Member...</option>
+                {% for member in active_members %}
+                <option value="{{ member.id }}">{{ member.name }} - {{ member.role }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 8px;">Reason:</label>
+            <select id="reasonSelect" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;">
+                <option value="manual_reassignment">Manual Reassignment</option>
+                <option value="overdue_escalation">Overdue Escalation</option>
+                <option value="workload_balancing">Workload Balancing</option>
+                <option value="skill_match">Skill Match</option>
+            </select>
+        </div>
+        
+        <div class="d-flex">
+            <button class="btn btn-secondary" onclick="closeReassignModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="reassignLead()">Reassign</button>
+        </div>
+    </div>
+</div>
+
+<!-- Assignment History Modal -->
+<div id="historyModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 24px; border-radius: 8px; width: 600px; max-height: 80vh; overflow-y: auto;">
+        <h4 style="margin-bottom: 16px;">Assignment Timeline</h4>
+        
+        <div id="timelineContent">
+            <!-- Timeline will be loaded here -->
+        </div>
+        
+        <div style="text-align: right; margin-top: 16px;">
+            <button class="btn btn-secondary" onclick="closeHistoryModal()">Close</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentLeadId = null;
+
+function shuffleOverdueLeads() {
+    if (confirm('This will reassign all overdue leads using round-robin distribution. Continue?')) {
+        fetch('/leads/shuffle-overdue/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Error: ' + error);
+        });
+    }
+}
+
+function showReassignModal(leadId, leadName) {
+    currentLeadId = leadId;
+    document.getElementById('leadName').textContent = leadName;
+    
+    // Load current assignment info
+    fetch(`/leads/${leadId}/current-assignment/`)
+    .then(response => response.json())
+    .then(data => {
+        const currentAssignmentHtml = `
+            <div class="small">Current Assignment:</div>
+            <div class="d-flex">
+                <div>
+                    <div style="font-weight: 500;">${data.current_assignee.name}</div>
+                    <div class="text-muted">${data.current_assignee.role}</div>
+                    <div class="text-muted">Since: ${data.assigned_at}</div>
+                </div>
+                <div style="text-align: right;">
+                    <div class="small">${data.overdue_hours}h overdue</div>
+                    <div class="text-muted">${data.total_reassignments} reassignments</div>
+                </div>
+            </div>
+            ${data.previous_assignee ? `
+                <div class="text-muted">
+                    <i class="fas fa-history"></i> Previously: ${data.previous_assignee.name} (${data.previous_assignee.role})
+                </div>
+            ` : ''}
+        `;
+        document.getElementById('currentAssignment').innerHTML = currentAssignmentHtml;
+    })
+    .catch(error => {
+        document.getElementById('currentAssignment').innerHTML = '<div style="color: #dc2626;">Error loading assignment info</div>';
+    });
+    
+    document.getElementById('reassignModal').style.display = 'block';
+}
+
+function closeReassignModal() {
+    document.getElementById('reassignModal').style.display = 'none';
+    currentLeadId = null;
+}
+
+function reassignLead() {
+    const newAssigneeId = document.getElementById('newAssigneeSelect').value;
+    const reason = document.getElementById('reasonSelect').value;
+    
+    if (!newAssigneeId) {
+        alert('Please select a team member');
+        return;
+    }
+    
+    fetch('/leads/reassign-single/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            lead_id: currentLeadId,
+            new_assignee_id: newAssigneeId,
+            reason: reason
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success message with reassignment details
+            const message = `Lead reassigned successfully!\n\nFrom: ${data.previous_assignee}\nTo: ${data.new_assignee}\nReason: ${reason.replace(/_/g, ' ')}`;
+            alert(message);
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error);
+    });
+}
+
+function showAssignmentHistory(leadId) {
+    fetch(`/leads/${leadId}/assignment-timeline/`)
+    .then(response => response.json())
+    .then(data => {
+        let timelineHtml = `<div style="margin-bottom: 16px;"><strong>${data.lead.name}</strong> - ${data.total_assignments} assignments</div>`;
+        
+        data.timeline.forEach((item, index) => {
+            const isOverdue = item.is_overdue ? ' (OVERDUE)' : '';
+            const statusColor = item.is_current ? '#1e40af' : (item.is_overdue ? '#dc2626' : '#059669');
+            
+            timelineHtml += `
+                <div style="border-left: 3px solid ${statusColor}; padding-left: 12px; margin-bottom: 12px;">
+                    <div style="font-weight: 600; color: ${statusColor};">
+                        ${item.assigned_to} - ${item.assigned_to_role}
+                        ${item.is_current ? ' (CURRENT)' : ''}${isOverdue}
+                    </div>
+                    <div class="text-muted">
+                        Assigned: ${item.assigned_at} by ${item.assigned_by}
+                    </div>
+                    <div class="text-muted">
+                        SLA Deadline: ${item.sla_deadline}
+                    </div>
+                    ${item.duration_hours ? `<div class="text-muted">Duration: ${item.duration_hours.toFixed(1)} hours</div>` : ''}
+                    <div class="text-muted">
+                        Reason: ${item.reason.replace(/_/g, ' ')}
+                    </div>
+                </div>
+            `;
+        });
+        
+        document.getElementById('timelineContent').innerHTML = timelineHtml;
+        document.getElementById('historyModal').style.display = 'block';
+    })
+    .catch(error => {
+        alert('Error loading timeline: ' + error);
+    });
+}
+
+function closeHistoryModal() {
+    document.getElementById('historyModal').style.display = 'none';
+}
+
+function initializeRoundRobin() {
+    fetch('/leads/initialize-round-robin/')
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error);
+    });
+}
+
+// Close modals when clicking outside
+document.getElementById('reassignModal').addEventListener('click', function(e) {
+    if (e.target === this) closeReassignModal();
+});
+
+document.getElementById('historyModal').addEventListener('click', function(e) {
+    if (e.target === this) closeHistoryModal();
+});
+
+function toggleMask(element) {
+    const isCurrentlyMasked = element.textContent === element.dataset.masked;
+    element.textContent = isCurrentlyMasked ? element.dataset.original : element.dataset.masked;
+    element.style.color = isCurrentlyMasked ? '#10b981' : '#6b7280';
+}
+</script>
+{% endblock %}

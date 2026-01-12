@@ -1,0 +1,431 @@
+{% extends 'leads/base_unified.html' %}
+{% load static %}
+
+{% block title %}{{ campaign.name }} - Drip Campaign{% endblock %}
+{% block page_title %}{{ campaign.name }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-paper-plane"></i> {{ campaign.name }}</h2>
+        <div>
+            <a href="{% url 'drip_campaigns_dashboard' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back
+            </a>
+            <button class="btn btn-primary" onclick="processPendingMessages()">
+                <i class="fas fa-play"></i> Process Pending
+            </button>
+        </div>
+    </div>
+    <div class="card-content">
+        <p style="color: #6b7280; margin-bottom: 20px;">{{ campaign.description }}</p>
+
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-number">{{ analytics.total_subscribers }}</div>
+                <div class="stat-label">Total Subscribers</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">{{ analytics.active_subscribers }}</div>
+                <div class="stat-label">Active Subscribers</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">{{ analytics.total_sent }}</div>
+                <div class="stat-label">Messages Sent</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">{{ analytics.success_rate|floatformat:1 }}%</div>
+                <div class="stat-label">Success Rate</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-list-ol"></i> Message Sequence</h2>
+        <button class="btn btn-primary" onclick="editDelays()">
+            <i class="fas fa-edit"></i> Edit Delays
+        </button>
+    </div>
+    <div class="card-content">
+        {% for message in messages %}
+        <div style="padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 16px; background: #f8fafc;">
+            <div class="d-flex">
+                <div>
+                    <span class="small">Day {{ message.day_number }}</span>
+                    <strong style="margin-left: 8px;">{{ message.template_name }}</strong>
+                </div>
+                <button class="btn btn-sm" onclick="testMessage({{ message.id }})">
+                    <i class="fas fa-paper-plane"></i> Test
+                </button>
+            </div>
+            <p style="color: #6b7280; margin-bottom: 12px;">{{ message.message_text|truncatechars:150 }}</p>
+            <div class="text-center">
+                <div>
+                    <small style="color: #6b7280;">Sent</small>
+                    <div style="font-weight: bold; color: #10b981;">{{ message.sent_count }}</div>
+                </div>
+                <div>
+                    <small style="color: #6b7280;">Failed</small>
+                    <div style="font-weight: bold; color: #ef4444;">{{ message.failed_count }}</div>
+                </div>
+                <div>
+                    <small style="color: #6b7280;">Delay</small>
+                    <div style="font-weight: bold;">{{ message.delay_hours }}h {{ message.delay_minutes }}m</div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-users"></i> Subscribers</h2>
+        <div>
+            <button class="btn btn-success" onclick="showProjectModal()">
+                <i class="fas fa-building"></i> Add Project Leads
+            </button>
+            <button class="btn btn-warning" onclick="sendSpecificDay(2)" style="margin-left: 8px;">
+                <i class="fas fa-paper-plane"></i> Send Day 2 Messages
+            </button>
+            <button class="btn btn-info" onclick="sendSpecificDay(3)" style="margin-left: 8px;">
+                <i class="fas fa-paper-plane"></i> Send Day 3 Messages
+            </button>
+            <button class="btn btn-secondary" onclick="sendSpecificDay(4)" style="margin-left: 8px;">
+                <i class="fas fa-paper-plane"></i> Send Day 4 Messages
+            </button>
+            <button class="btn btn-danger" onclick="bulkUnsubscribe()" style="margin-left: 8px;">
+                <i class="fas fa-user-times"></i> Remove All Subscribers
+            </button>
+            <button class="btn btn-danger" onclick="deleteCampaign()" style="margin-left: 8px;">
+                <i class="fas fa-trash"></i> Delete Campaign
+            </button>
+        </div>
+    </div>
+    <div class="card-content">
+        {% if subscribers %}
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #f9fafb;">
+                            <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Name</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Phone</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Current Day</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Status</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Next Message</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for subscriber in subscribers %}
+                        <tr>
+                            <td style="padding: 12px; border-bottom: 1px solid #f3f4f6;">{{ subscriber.first_name }}</td>
+                            <td style="padding: 12px; border-bottom: 1px solid #f3f4f6;">{{ subscriber.phone_number }}</td>
+                            <td style="padding: 12px; border-bottom: 1px solid #f3f4f6;">
+                                <span class="small">Day {{ subscriber.current_day }}</span>
+                            </td>
+                            <td style="padding: 12px; border-bottom: 1px solid #f3f4f6;">
+                                {% if subscriber.status == 'active' %}
+                                    <span class="small">Active</span>
+                                {% elif subscriber.status == 'completed' %}
+                                    <span class="small">Completed</span>
+                                {% elif subscriber.status == 'paused' %}
+                                    <span class="small">Paused</span>
+                                {% else %}
+                                    <span class="small">Unsubscribed</span>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 12px; border-bottom: 1px solid #f3f4f6;">
+                                {% if subscriber.next_message_at %}
+                                    <small>{{ subscriber.next_message_at|date:"M d, H:i" }}</small>
+                                {% else %}
+                                    <small style="color: #6b7280;">None</small>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 12px; border-bottom: 1px solid #f3f4f6;">
+                                <button class="btn btn-sm btn-danger" onclick="unsubscribeLead({{ subscriber.id }})">
+                                    <i class="fas fa-times"></i> Remove
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center">
+                <i class="fas fa-user-plus" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+                <h6>No Subscribers Yet</h6>
+                <p>Subscribe leads to start the drip campaign.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+        </div>
+    </div>
+</div>
+
+<!-- Project Subscribe Modal -->
+<div id="projectModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 8px; padding: 24px; max-width: 500px; width: 90%;">
+        <h3 style="margin-bottom: 16px;">Subscribe Project Leads</h3>
+        <p style="color: #6b7280; margin-bottom: 16px;">Select a project to subscribe all its leads to this drip campaign.</p>
+        <div class="form-group">
+            <label>Select Project:</label>
+            <select class="form-control" id="projectSelect">
+                <option value="">Choose a project...</option>
+                {% for project in projects %}
+                <option value="{{ project.id }}">{{ project.name }} ({{ project.lead_count }} leads)</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="d-flex">
+            <button class="btn btn-secondary" onclick="document.getElementById('projectModal').style.display='none'">Cancel</button>
+            <button class="btn btn-success" onclick="subscribeProjectLeads()">Subscribe All Leads</button>
+        </div>
+    </div>
+</div>
+
+<!-- Test Message Modal -->
+<div id="testMessageModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 8px; padding: 24px; max-width: 400px; width: 90%;">
+        <h3 style="margin-bottom: 16px;">Test Drip Message</h3>
+        <div class="form-group">
+            <label>Test Phone Number:</label>
+            <input type="text" class="form-control" id="testPhone" placeholder="919999999999" required>
+        </div>
+        <div class="form-group">
+            <label>Test Name:</label>
+            <input type="text" class="form-control" id="testName" value="Test User" required>
+        </div>
+        <input type="hidden" id="messageId">
+        <div class="d-flex">
+            <button class="btn btn-secondary" onclick="document.getElementById('testMessageModal').style.display='none'">Cancel</button>
+            <button class="btn btn-primary" onclick="sendTestMessage()">Send Test</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function testMessage(messageId) {
+    document.getElementById('messageId').value = messageId;
+    document.getElementById('testMessageModal').style.display = 'flex';
+}
+
+function editDelays() {
+    window.location.href = '{% url "bulk_subscribe_view" %}';
+}
+
+function sendTestMessage() {
+    const messageId = document.getElementById('messageId').value;
+    const testPhone = document.getElementById('testPhone').value;
+    const testName = document.getElementById('testName').value;
+    
+    if (!testPhone || !testName) {
+        alert('Please fill in all fields');
+        return;
+    }
+    
+    fetch('{% url "test_drip_message" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            message_id: messageId,
+            test_phone: testPhone,
+            test_name: testName
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert(data.message);
+        if (data.success) {
+            document.getElementById('testMessageModal').style.display = 'none';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error sending test message');
+    });
+}
+
+function processPendingMessages() {
+    if (confirm('Process all pending messages for this campaign?')) {
+        fetch('{% url "process_pending_messages" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`Processed ${data.processed} messages. ${data.successful} successful, ${data.failed} failed.`);
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error processing messages');
+        });
+    }
+}
+
+function unsubscribeLead(subscriberId) {
+    if (confirm('Remove this lead from the drip campaign?')) {
+        fetch('{% url "unsubscribe_lead_from_drip" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                subscriber_id: subscriberId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message);
+            if (data.success) {
+                location.reload();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error removing subscriber');
+        });
+    }
+}
+
+function bulkUnsubscribe() {
+    if (confirm('Remove ALL subscribers from this campaign? This cannot be undone.')) {
+        fetch('{% url "bulk_unsubscribe_leads" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                campaign_id: {{ campaign.id }}
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message);
+            if (data.success) {
+                location.reload();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error removing subscribers');
+        });
+    }
+}
+
+function deleteCampaign() {
+    if (confirm('Delete this entire campaign? This will remove all messages, subscribers, and logs. This cannot be undone.')) {
+        fetch('{% url "delete_campaign" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                campaign_id: {{ campaign.id }}
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message);
+            if (data.success) {
+                window.location.href = '{% url "drip_campaigns_dashboard" %}';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting campaign');
+        });
+    }
+}
+
+function showProjectModal() {
+    document.getElementById('projectModal').style.display = 'flex';
+}
+
+function subscribeProjectLeads() {
+    const projectId = document.getElementById('projectSelect').value;
+    
+    if (!projectId) {
+        alert('Please select a project');
+        return;
+    }
+    
+    if (!confirm('Subscribe all leads from this project to the drip campaign?')) {
+        return;
+    }
+    
+    fetch('{% url "subscribe_project_leads" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            project_id: projectId,
+            campaign_id: {{ campaign.id }}
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Success! Subscribed ${data.subscribed} leads. ${data.already_subscribed} were already subscribed.`);
+            document.getElementById('projectModal').style.display = 'none';
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error subscribing project leads');
+    });
+}
+
+function sendSpecificDay(dayNumber) {
+    if (confirm(`Send Day ${dayNumber} messages to all subscribers who haven't received them yet?`)) {
+        fetch('{% url "send_specific_day_message" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                campaign_id: {{ campaign.id }},
+                target_day: dayNumber
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`Success! Scheduled Day ${data.target_day} messages for ${data.scheduled} subscribers. ${data.already_sent} already received Day ${data.target_day}. Auto-sender will process within 30 seconds.`);
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert(`Error sending Day ${dayNumber} messages`);
+        });
+    }
+}
+</script>
+{% endblock %}

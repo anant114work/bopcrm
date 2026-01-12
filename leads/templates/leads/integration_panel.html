@@ -1,0 +1,262 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}Integration Panel{% endblock %}
+{% block page_title %}Integration Panel{% endblock %}
+
+
+
+{% block content %}
+<div class="integration-card">
+    <div class="integration-header">
+        <i class="fab fa-facebook"></i> Meta Business Integration
+    </div>
+    <div class="integration-body">
+        <div id="metaConfigs">
+            {% for config in meta_configs %}
+            <div class="config-item {% if config.is_active %}config-active{% endif %}">
+                <h4>{{ config.name }}</h4>
+                <p><strong>Page ID:</strong> {{ config.page_id }}</p>
+                <p><strong>Status:</strong> {% if config.is_active %}Active{% else %}Inactive{% endif %}</p>
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-primary" onclick="testMeta('{{ config.id }}')">Test</button>
+                    <button class="btn btn-sm btn-warning" onclick="editMeta('{{ config.id }}')">Edit</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteMeta('{{ config.id }}')">Delete</button>
+                </div>
+            </div>
+            {% empty %}
+            <p>No Meta configurations found.</p>
+            {% endfor %}
+        </div>
+        
+        <button class="btn btn-success" onclick="showMetaForm()">Add Meta Config</button>
+        
+        <div id="metaForm" style="display: none; margin-top: 20px; border-top: 1px solid #e5e7eb; padding-top: 20px;">
+            <h4>Add Meta Configuration</h4>
+            <div class="form-row">
+                <div>
+                    <label>Configuration Name</label>
+                    <input type="text" id="metaName" class="form-control" placeholder="My Meta Page">
+                </div>
+                <div>
+                    <label>Page ID</label>
+                    <input type="text" id="metaPageId" class="form-control" placeholder="123456789">
+                </div>
+            </div>
+            <div class="form-row">
+                <div>
+                    <label>Access Token</label>
+                    <textarea id="metaAccessToken" class="form-control" rows="3" placeholder="EAAxxxxx..."></textarea>
+                </div>
+                <div>
+                    <label>App ID (Optional)</label>
+                    <input type="text" id="metaAppId" class="form-control" placeholder="App ID">
+                </div>
+            </div>
+            <div class="form-row">
+                <div>
+                    <label>App Secret (Optional)</label>
+                    <input type="text" id="metaAppSecret" class="form-control" placeholder="App Secret">
+                </div>
+                <div>
+                    <label>User Access Token (Optional)</label>
+                    <input type="text" id="metaUserToken" class="form-control" placeholder="User Token">
+                </div>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="saveMetaConfig()">Save Config</button>
+                <button class="btn btn-secondary" onclick="hideMetaForm()">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="integration-card">
+    <div class="integration-header">
+        <i class="fab fa-google"></i> Google Sheets Integration
+    </div>
+    <div class="integration-body">
+        <div id="googleConfigs">
+            {% for config in google_configs %}
+            <div class="config-item {% if config.is_active %}config-active{% endif %}">
+                <h4>{{ config.name }}</h4>
+                <p><strong>Sheet:</strong> {{ config.sheet_name }}</p>
+                <p><strong>Status:</strong> {% if config.is_active %}Active{% else %}Inactive{% endif %}</p>
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-primary" onclick="testGoogle('{{ config.id }}')">Test</button>
+                    <button class="btn btn-sm btn-warning" onclick="editGoogle('{{ config.id }}')">Edit</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteGoogle('{{ config.id }}')">Delete</button>
+                </div>
+            </div>
+            {% empty %}
+            <p>No Google Sheets configurations found.</p>
+            {% endfor %}
+        </div>
+        
+        <button class="btn btn-success" onclick="showGoogleForm()">Add Google Sheets Config</button>
+        
+        <div id="googleForm" style="display: none; margin-top: 20px; border-top: 1px solid #e5e7eb; padding-top: 20px;">
+            <h4>Add Google Sheets Configuration</h4>
+            <div class="form-row">
+                <div>
+                    <label>Configuration Name</label>
+                    <input type="text" id="googleName" class="form-control" placeholder="Lead Form Responses">
+                </div>
+                <div>
+                    <label>Sheet Name</label>
+                    <input type="text" id="googleSheetName" class="form-control" placeholder="Sheet1" value="Sheet1">
+                </div>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label>Google Sheets URL</label>
+                <input type="url" id="googleSheetUrl" class="form-control" placeholder="https://docs.google.com/spreadsheets/d/...">
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="saveGoogleConfig()">Save Config</button>
+                <button class="btn btn-secondary" onclick="hideGoogleForm()">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function showMetaForm() {
+    document.getElementById('metaForm').style.display = 'block';
+}
+
+function hideMetaForm() {
+    document.getElementById('metaForm').style.display = 'none';
+}
+
+function showGoogleForm() {
+    document.getElementById('googleForm').style.display = 'block';
+}
+
+function hideGoogleForm() {
+    document.getElementById('googleForm').style.display = 'none';
+}
+
+function saveMetaConfig() {
+    const data = {
+        name: document.getElementById('metaName').value,
+        page_id: document.getElementById('metaPageId').value,
+        access_token: document.getElementById('metaAccessToken').value,
+        app_id: document.getElementById('metaAppId').value,
+        app_secret: document.getElementById('metaAppSecret').value,
+        user_access_token: document.getElementById('metaUserToken').value
+    };
+    
+    fetch('/integrations/save-meta/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+}
+
+function saveGoogleConfig() {
+    const data = {
+        name: document.getElementById('googleName').value,
+        sheet_url: document.getElementById('googleSheetUrl').value,
+        sheet_name: document.getElementById('googleSheetName').value
+    };
+    
+    fetch('/integrations/save-google/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+}
+
+function testMeta(configId) {
+    // Get config data and test
+    alert('Testing Meta connection...');
+}
+
+function testGoogle(configId) {
+    // Get config data and test
+    alert('Testing Google Sheets connection...');
+}
+
+function deleteMeta(configId) {
+    if (confirm('Delete this Meta configuration?')) {
+        fetch('/integrations/delete-config/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({type: 'meta', id: configId})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        });
+    }
+}
+
+function deleteGoogle(configId) {
+    if (confirm('Delete this Google Sheets configuration?')) {
+        fetch('/integrations/delete-config/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({type: 'google', id: configId})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        });
+    }
+}
+</script>
+{% endblock %}

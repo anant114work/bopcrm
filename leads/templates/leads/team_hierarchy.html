@@ -1,0 +1,607 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}Team Management - CRM{% endblock %}
+
+{% block page_title %}Team Management{% endblock %}
+
+
+
+{% block content %}
+<div class="team-container">
+    <!-- Header -->
+    <div class="team-header">
+        <div class="header-top">
+            <div class="header-title">
+                <div class="title-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div>
+                    <h1>Team Management</h1>
+                    <p class="text-muted">Manage your team hierarchy and member assignments</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="autoAssignHierarchy()">
+                    <i class="fas fa-magic"></i> Auto-Assign
+                </button>
+                <a href="/team/create/" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Add Member
+                </a>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                </div>
+                <div class="stat-number">{{ stats.total_members }}</div>
+                <div class="stat-label">Total Members</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon">
+                        <i class="fas fa-crown"></i>
+                    </div>
+                </div>
+                <div class="stat-number">{{ stats.business_heads }}</div>
+                <div class="stat-label">Business Heads</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                </div>
+                <div class="stat-number">{{ stats.unmapped_members }}</div>
+                <div class="stat-label">Unmapped Members</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon">
+                        <i class="fas fa-chart-pie"></i>
+                    </div>
+                </div>
+                <div class="stat-number">{{ stats.mapped_percentage|floatformat:0 }}%</div>
+                <div class="stat-label">Mapped</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filters -->
+    {% if search or role_filter or status_filter %}
+    <div class="team-section">
+        <div class="section-header">
+            <h3><i class="fas fa-filter"></i> Active Filters</h3>
+            <div class="d-flex">
+                {% if search %}<span style="background: #667eea; color: white; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.8rem;">Search: {{ search }}</span>{% endif %}
+                {% if role_filter %}<span style="background: #667eea; color: white; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.8rem;">Role: {{ role_filter }}</span>{% endif %}
+                {% if status_filter %}<span style="background: #667eea; color: white; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.8rem;">Status: {{ status_filter }}</span>{% endif %}
+                <a href="/team/hierarchy/" style="color: #667eea; text-decoration: none; font-size: 0.9rem;">Clear All</a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Unmapped Members Alert -->
+    {% if unmapped_members %}
+    <div class="team-section" style="border-left: 4px solid #f59e0b;">
+        <div class="section-header">
+            <h3 style="color: #92400e;"><i class="fas fa-exclamation-triangle"></i> Unmapped Members ({{ total_unmapped }})</h3>
+            <p style="color: #92400e; margin-top: 0.5rem;">These members need to be assigned to a business head</p>
+        </div>
+        <div style="padding: 1.5rem;">
+            <div class="gap-2">
+                {% for member in unmapped_members %}
+                <div class="team-member-card" style="background: #fef3c7; border-left-color: #f59e0b;">
+                    <div class="member-info">
+                        <div class="member-details">
+                            <h4>{{ member.name }}</h4>
+                            <div style="color: #92400e;">{{ member.role }}</div>
+                        </div>
+                        <button class="btn btn-primary btn-sm" onclick="showAssignModal({{ member.id }}, '{{ member.name }}', '{{ member.role }}')">
+                            <i class="fas fa-link"></i> Assign
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Paginated Members View -->
+    {% if members %}
+    <div class="team-section">
+        <div class="section-header">
+            <h3><i class="fas fa-list"></i> All Team Members ({{ members.start_index }}-{{ members.end_index }} of {{ members.paginator.count }})</h3>
+            <div class="d-flex">
+                <form method="get" class="d-flex">
+                    <input type="text" name="search" placeholder="Search members..." value="{{ search }}" style="padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.9rem;">
+                    <select name="role" style="padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.9rem;">
+                        <option value="">All Roles</option>
+                        {% for role in all_roles %}
+                        <option value="{{ role }}" {% if role == role_filter %}selected{% endif %}>{{ role }}</option>
+                        {% endfor %}
+                    </select>
+                    <select name="status" style="padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.9rem;">
+                        <option value="">All Status</option>
+                        <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+                        <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
+                    </select>
+                    <button type="submit" class="btn btn-secondary btn-sm"><i class="fas fa-search"></i></button>
+                </form>
+                <a href="/team/" class="btn btn-secondary btn-sm"><i class="fas fa-th-large"></i> Card View</a>
+            </div>
+        </div>
+        <div style="padding: 1.5rem;">
+            <div class="gap-2">
+                {% for member in members %}
+                <div class="team-member-card">
+                    <div class="member-info">
+                        <div class="member-details">
+                            <h4>{{ member.name }}</h4>
+                            <div class="text-muted">{{ member.role }}</div>
+                            <div class="member-meta">
+                                <span><i class="fas fa-envelope"></i> {{ member.email }}</span>
+                                <span><i class="fas fa-clipboard-list"></i> {{ member.assigned_leads.count }} leads</span>
+                                {% if member.is_active %}
+                                <span class="status-badge status-active">Active</span>
+                                {% else %}
+                                <span class="status-badge status-inactive">Inactive</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="member-actions">
+                            <button class="btn btn-secondary btn-sm" onclick="editMember({{ member.id }}, '{{ member.name }}', '{{ member.role }}', '{{ member.email }}', '{{ member.phone }}', {{ member.is_active|yesno:'true,false' }})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Pagination -->
+            {% if members.paginator.num_pages > 1 %}
+            <div class="d-flex">
+                <div class="text-muted">
+                    Page {{ members.number }} of {{ members.paginator.num_pages }}
+                </div>
+                <div class="d-flex">
+                    {% if members.has_previous %}
+                    <a href="?page=1{% if search %}&search={{ search }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="text-muted">
+                        <i class="fas fa-angle-double-left"></i>
+                    </a>
+                    <a href="?page={{ members.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="text-muted">
+                        <i class="fas fa-angle-left"></i>
+                    </a>
+                    {% endif %}
+                    
+                    <span style="padding: 0.5rem 0.75rem; background: #667eea; border: 1px solid #667eea; border-radius: 6px; color: white;">{{ members.number }}</span>
+                    
+                    {% if members.has_next %}
+                    <a href="?page={{ members.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="text-muted">
+                        <i class="fas fa-angle-right"></i>
+                    </a>
+                    <a href="?page={{ members.paginator.num_pages }}{% if search %}&search={{ search }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="text-muted">
+                        <i class="fas fa-angle-double-right"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Team Hierarchy -->
+    {% for head_data in hierarchy %}
+    <div class="team-section">
+        <!-- Business Head -->
+        <div class="business-head-card">
+            <div class="head-info">
+                <div class="head-details">
+                    <h3>{{ head_data.member.name }}</h3>
+                    <div style="opacity: 0.9;">{{ head_data.member.role }}</div>
+                    <div class="head-meta">
+                        <span><i class="fas fa-envelope"></i> {{ head_data.member.email }}</span>
+                        <span><i class="fas fa-phone"></i> {{ head_data.member.phone }}</span>
+                        <span><i class="fas fa-users"></i> {{ head_data.member.team_members.count }} team members</span>
+                        <span><i class="fas fa-clipboard-list"></i> {{ head_data.member.assigned_leads.count }} leads</span>
+                    </div>
+                </div>
+                <div>
+                    <div style="text-align: right; margin-bottom: 1rem;">
+                        {% if head_data.member.is_active %}
+                        <span class="status-badge status-active">Active</span>
+                        {% else %}
+                        <span class="status-badge status-inactive">Inactive</span>
+                        {% endif %}
+                    </div>
+                    <div class="head-actions">
+                        <button class="btn btn-ghost btn-sm" onclick="editMember({{ head_data.member.id }}, '{{ head_data.member.name }}', '{{ head_data.member.role }}', '{{ head_data.member.email }}', '{{ head_data.member.phone }}', {{ head_data.member.is_active|yesno:'true,false' }})">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button class="btn btn-ghost btn-sm" onclick="unassignMember({{ head_data.member.id }}, '{{ head_data.member.name }}')">
+                            <i class="fas fa-unlink"></i> Unassign
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Team Members -->
+        {% if head_data.children %}
+        {% for child_data in head_data.children %}
+        <div class="team-member-card">
+            <div class="member-info">
+                <div class="member-details">
+                    <h4>{{ child_data.member.name }}</h4>
+                    <div class="text-muted">{{ child_data.member.role }}</div>
+                    <div class="member-meta">
+                        <span><i class="fas fa-envelope"></i> {{ child_data.member.email }}</span>
+                        <span><i class="fas fa-clipboard-list"></i> {{ child_data.member.assigned_leads.count }} leads</span>
+                        {% if child_data.member.is_active %}
+                        <span class="status-badge status-active">Active</span>
+                        {% else %}
+                        <span class="status-badge status-inactive">Inactive</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="member-actions">
+                    <button class="btn btn-secondary btn-sm" onclick="editMember({{ child_data.member.id }}, '{{ child_data.member.name }}', '{{ child_data.member.role }}', '{{ child_data.member.email }}', '{{ child_data.member.phone }}', {{ child_data.member.is_active|yesno:'true,false' }})">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="unassignMember({{ child_data.member.id }}, '{{ child_data.member.name }}')">
+                        <i class="fas fa-unlink"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="text-center">
+            <i class="fas fa-users" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+            <p>No team members assigned yet</p>
+        </div>
+        {% endif %}
+    </div>
+    {% empty %}
+    <div class="team-section">
+        <div class="text-center">
+            <i class="fas fa-users" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.3;"></i>
+            <h3>No Business Heads Found</h3>
+            <p>Add team members with business head roles to get started</p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Assignment Modal -->
+<div id="assignModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-icon">
+                <i class="fas fa-link"></i>
+            </div>
+            <div>
+                <h3>Assign Team Member</h3>
+                <p class="text-muted">Assign member to a business head</p>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <div style="padding: 1rem; background: #f8fafc; border-radius: 8px; margin-bottom: 1rem;">
+                <strong id="memberName"></strong> - <span id="memberRole"></span>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Assign to Business Head:</label>
+            <select id="parentSelect" class="form-input">
+                <option value="">Select Business Head...</option>
+                {% for head in business_heads %}
+                <option value="{{ head.id }}">{{ head.name }} - {{ head.role }} ({{ head.team_members.count }} members)</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="modal-actions">
+            <button class="btn btn-secondary" onclick="closeAssignModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="assignMember()">
+                <i class="fas fa-link"></i> Assign
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Member Modal -->
+<div id="editModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-icon">
+                <i class="fas fa-user-edit"></i>
+            </div>
+            <div>
+                <h3>Edit Team Member</h3>
+                <p class="text-muted">Update member information</p>
+            </div>
+        </div>
+        
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label">Name *</label>
+                <input type="text" id="editName" class="form-input" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Role *</label>
+                <input type="text" id="editRole" class="form-input" required>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Email *</label>
+            <input type="email" id="editEmail" class="form-input" required>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Phone</label>
+            <input type="text" id="editPhone" class="form-input">
+        </div>
+        
+        <div class="form-group">
+            <div class="checkbox-group">
+                <input type="checkbox" id="editActive">
+                <label for="editActive">Active Member</label>
+            </div>
+        </div>
+        
+        <div class="modal-actions">
+            <button class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="updateMember()">
+                <i class="fas fa-save"></i> Save Changes
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentMemberId = null;
+let editMemberId = null;
+
+// Show success/error messages
+function showMessage(message, type = 'success') {
+    const alertClass = type === 'success' ? 'alert-success' : 'alert-error';
+    const icon = type === 'success' ? 'check-circle' : 'exclamation-triangle';
+    
+    const alertDiv = document.createElement('div');
+    alertDiv.innerHTML = `
+        <div class="d-flex">
+            <i class="fas fa-${icon}"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    
+    document.body.appendChild(alertDiv);
+    
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 4000);
+}
+
+// Assignment Modal Functions
+function showAssignModal(memberId, memberName, memberRole) {
+    currentMemberId = memberId;
+    document.getElementById('memberName').textContent = memberName;
+    document.getElementById('memberRole').textContent = memberRole;
+    document.getElementById('assignModal').style.display = 'block';
+}
+
+function closeAssignModal() {
+    document.getElementById('assignModal').style.display = 'none';
+    currentMemberId = null;
+}
+
+function assignMember() {
+    const parentId = document.getElementById('parentSelect').value;
+    
+    if (!parentId) {
+        showMessage('Please select a business head', 'error');
+        return;
+    }
+    
+    const button = event.target;
+    button.innerHTML = '<span class="spinner"></span> Assigning...';
+    button.disabled = true;
+    
+    fetch('/team/assign/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+        },
+        body: JSON.stringify({
+            member_id: currentMemberId,
+            parent_id: parentId
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            showMessage('Team member assigned successfully!');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showMessage(data.error || 'Assignment failed', 'error');
+        }
+    })
+    .catch(error => {
+        showMessage('Error: Unable to assign member', 'error');
+        console.error('Error:', error);
+    })
+    .finally(() => {
+        button.innerHTML = '<i class="fas fa-link"></i> Assign';
+        button.disabled = false;
+    });
+}
+
+// Edit Modal Functions
+function editMember(memberId, name, role, email, phone, isActive) {
+    editMemberId = memberId;
+    document.getElementById('editName').value = name;
+    document.getElementById('editRole').value = role;
+    document.getElementById('editEmail').value = email;
+    document.getElementById('editPhone').value = phone || '';
+    document.getElementById('editActive').checked = isActive;
+    document.getElementById('editModal').style.display = 'block';
+}
+
+function closeEditModal() {
+    document.getElementById('editModal').style.display = 'none';
+    editMemberId = null;
+}
+
+function updateMember() {
+    const name = document.getElementById('editName').value.trim();
+    const role = document.getElementById('editRole').value.trim();
+    const email = document.getElementById('editEmail').value.trim();
+    const phone = document.getElementById('editPhone').value.trim();
+    const isActive = document.getElementById('editActive').checked;
+    
+    if (!name || !role || !email) {
+        showMessage('Please fill in all required fields', 'error');
+        return;
+    }
+    
+    const button = event.target;
+    button.innerHTML = '<span class="spinner"></span> Saving...';
+    button.disabled = true;
+    
+    fetch('/team/edit/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+        },
+        body: JSON.stringify({
+            member_id: editMemberId,
+            name: name,
+            role: role,
+            email: email,
+            phone: phone,
+            is_active: isActive
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            showMessage('Team member updated successfully!');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showMessage(data.error || 'Update failed', 'error');
+        }
+    })
+    .catch(error => {
+        showMessage('Error: Unable to update member', 'error');
+        console.error('Error:', error);
+    })
+    .finally(() => {
+        button.innerHTML = '<i class="fas fa-save"></i> Save Changes';
+        button.disabled = false;
+    });
+}
+
+function unassignMember(memberId, memberName) {
+    if (confirm(`Are you sure you want to unassign ${memberName}?\n\nThis will:\n• Remove them from their current team\n• Reassign their leads to other team members\n\nThis action cannot be undone.`)) {
+        fetch('/team/unassign/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+            },
+            body: JSON.stringify({
+                member_id: memberId
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                showMessage(`${memberName} unassigned successfully! ${data.reassigned_leads || 0} leads were reassigned.`);
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showMessage(data.error || 'Unassign failed', 'error');
+            }
+        })
+        .catch(error => {
+            showMessage('Error: Unable to unassign member', 'error');
+            console.error('Error:', error);
+        });
+    }
+}
+
+function autoAssignHierarchy() {
+    if (confirm('This will automatically assign team members based on their roles.\n\nContinue?')) {
+        fetch('/team/auto-assign/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                showMessage('Auto-assignment completed successfully!');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showMessage(data.error || 'Auto-assignment failed', 'error');
+            }
+        })
+        .catch(error => {
+            showMessage('Error: Auto-assignment failed', 'error');
+            console.error('Error:', error);
+        });
+    }
+}
+
+// Close modals when clicking outside
+document.getElementById('assignModal').addEventListener('click', function(e) {
+    if (e.target === this) closeAssignModal();
+});
+
+document.getElementById('editModal').addEventListener('click', function(e) {
+    if (e.target === this) closeEditModal();
+});
+
+// Close modals with Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeAssignModal();
+        closeEditModal();
+    }
+});
+</script>
+{% endblock %}

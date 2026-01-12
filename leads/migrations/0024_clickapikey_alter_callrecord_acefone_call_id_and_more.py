@@ -1,0 +1,71 @@
+# Generated manually for Click-to-Call integration
+
+from django.db import migrations, models
+import django.db.models.deletion
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ('leads', '0023_acefoneconfig_didnumber_callrecord'),
+    ]
+
+    operations = [
+        migrations.CreateModel(
+            name='ClickApiKey',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('name', models.CharField(max_length=100)),
+                ('api_token', models.TextField()),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('enabled', models.BooleanField(default=True)),
+                ('agent', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='leads.teammember')),
+            ],
+        ),
+        migrations.AlterField(
+            model_name='callrecord',
+            name='acefone_call_id',
+            field=models.CharField(blank=True, max_length=128, null=True),
+        ),
+        migrations.AlterField(
+            model_name='callrecord',
+            name='duration',
+            field=models.IntegerField(blank=True, null=True),
+        ),
+        migrations.AlterField(
+            model_name='callrecord',
+            name='ended_at',
+            field=models.DateTimeField(blank=True, null=True),
+        ),
+        migrations.AlterField(
+            model_name='callrecord',
+            name='from_number',
+            field=models.CharField(blank=True, max_length=20),
+        ),
+        migrations.AlterField(
+            model_name='callrecord',
+            name='lead',
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='calls', to='leads.lead'),
+        ),
+        migrations.AlterField(
+            model_name='callrecord',
+            name='started_at',
+            field=models.DateTimeField(blank=True, null=True),
+        ),
+        migrations.AlterField(
+            model_name='callrecord',
+            name='status',
+            field=models.CharField(choices=[('initiating', 'Initiating'), ('initiated', 'Initiated'), ('ringing', 'Ringing'), ('answered', 'Answered'), ('completed', 'Completed'), ('missed', 'Missed'), ('failed', 'Failed')], default='initiating', max_length=20),
+        ),
+        migrations.AddField(
+            model_name='callrecord',
+            name='lead_name',
+            field=models.CharField(blank=True, max_length=255),
+        ),
+        migrations.AddField(
+            model_name='callrecord',
+            name='lead_number',
+            field=models.CharField(default='', max_length=32),
+            preserve_default=False,
+        ),
+    ]

@@ -1,0 +1,237 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}Zoho Integration Status - Meta Leads CRM{% endblock %}
+
+{% block page_title %}🔗 Zoho Status{% endblock %}
+
+{% block content %}
+<div style="max-width: 1000px; margin: 0 auto;">
+    
+    <!-- Status Overview -->
+    <div class="card" style="margin-bottom: 30px;">
+        <h2 style="margin-bottom: 20px; color: #1e293b;">Zoho Marketing Automation Status</h2>
+        
+        {% if not config %}
+        <div style="background: #fee2e2; padding: 16px; border-radius: 8px; border-left: 4px solid #ef4444;">
+            <h4 style="margin: 0 0 8px 0; color: #dc2626;">❌ Not Configured</h4>
+            <p class="small">
+                Zoho Marketing Automation is not configured. Set up your API credentials first.
+            </p>
+            <a href="/zoho-config/" class="btn btn-primary">Configure Zoho</a>
+        </div>
+        {% elif not config.access_token %}
+        <div style="background: #fef3c7; padding: 16px; border-radius: 8px; border-left: 4px solid #f59e0b;">
+            <h4 style="margin: 0 0 8px 0; color: #92400e;">⚠️ Not Authorized</h4>
+            <p class="small">
+                Configuration exists but not authorized with Zoho. Complete the OAuth process.
+            </p>
+            <a href="/zoho-config/" class="btn btn-primary">Authorize Now</a>
+        </div>
+        {% else %}
+        <div style="background: #dcfce7; padding: 16px; border-radius: 8px; border-left: 4px solid #10b981;">
+            <h4 style="margin: 0 0 8px 0; color: #166534;">✅ Connected & Active</h4>
+            <p class="small">
+                Successfully connected to Zoho Marketing Automation. Ready to sync leads.
+            </p>
+            <div class="d-flex">
+                <button onclick="testConnection()" class="btn btn-primary">Test Connection</button>
+                <a href="/zoho-config/" class="btn btn-secondary">Manage Config</a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if config %}
+    <!-- Configuration Details -->
+    <div class="card" style="margin-bottom: 30px;">
+        <h3 style="margin-bottom: 16px; color: #1f2937;">Configuration Details</h3>
+        
+        <div class="gap-2">
+            <div style="background: #f8fafc; padding: 16px; border-radius: 8px;">
+                <h4 class="text-muted">Client ID</h4>
+                <p class="small">{{ config.client_id|truncatechars:20 }}...</p>
+            </div>
+            
+            <div style="background: #f8fafc; padding: 16px; border-radius: 8px;">
+                <h4 class="text-muted">API Domain</h4>
+                <p class="small">{{ config.api_domain|default:"Not set" }}</p>
+            </div>
+            
+            <div style="background: #f8fafc; padding: 16px; border-radius: 8px;">
+                <h4 class="text-muted">Status</h4>
+                <p class="small">
+                    <span class="small">
+                        {% if config.access_token %}Authorized{% else %}Pending Auth{% endif %}
+                    </span>
+                </p>
+            </div>
+            
+            <div style="background: #f8fafc; padding: 16px; border-radius: 8px;">
+                <h4 class="text-muted">Last Updated</h4>
+                <p class="small">{{ config.updated_at|date:"M d, Y H:i" }}</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Connection Test Results -->
+    <div class="card" style="margin-bottom: 30px;">
+        <h3 style="margin-bottom: 16px; color: #1f2937;">Connection Test</h3>
+        
+        <div id="testResults" class="small">
+            Click "Test Connection" to verify Zoho API connectivity...
+        </div>
+        
+        {% if config and config.access_token %}
+        <div style="margin-top: 16px;">
+            <button onclick="testConnection()" class="btn btn-primary">🔍 Test Connection</button>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Lead Sync Testing -->
+    {% if config and config.access_token %}
+    <div class="card">
+        <h3 style="margin-bottom: 16px; color: #1f2937;">Test Lead Sync</h3>
+        
+        <div style="background: #f0f9ff; padding: 16px; border-radius: 8px; border-left: 4px solid #3b82f6; margin-bottom: 16px;">
+            <h4 style="color: #1e40af; margin-bottom: 8px;">Manual Lead Sync</h4>
+            <p class="small">
+                Test syncing individual leads to Zoho Marketing Automation to verify the integration works correctly.
+            </p>
+        </div>
+        
+        <form id="leadSyncForm" class="d-flex">
+            <div style="flex: 1;">
+                <label style="display: block; font-weight: 500; margin-bottom: 8px;">Select Lead to Sync:</label>
+                <select id="leadSelect" class="form-input" style="width: 100%;" required>
+                    <option value="">Choose a lead...</option>
+                    {% for lead in recent_leads %}
+                    <option value="{{ lead.id }}">{{ lead.full_name|default:"No Name" }} - {{ lead.email|default:lead.phone_number|default:"No Contact" }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Sync to Zoho</button>
+        </form>
+        
+        <div id="syncResults" style="margin-top: 16px; display: none;"></div>
+    </div>
+    {% endif %}
+
+    <!-- Integration Guide -->
+    <div class="card" style="margin-top: 30px;">
+        <h3 style="margin-bottom: 16px; color: #1f2937;">Integration Features</h3>
+        
+        <div class="gap-2">
+            <div style="background: #fef3c7; padding: 16px; border-radius: 8px; border-left: 4px solid #f59e0b;">
+                <h4 style="color: #92400e; margin-bottom: 8px;">🔄 Auto Lead Sync</h4>
+                <p class="small">
+                    New leads from Meta and Google Sheets automatically sync to Zoho Marketing Automation.
+                </p>
+            </div>
+            
+            <div style="background: #dcfce7; padding: 16px; border-radius: 8px; border-left: 4px solid #10b981;">
+                <h4 style="color: #166534; margin-bottom: 8px;">📧 Email Campaigns</h4>
+                <p class="small">
+                    Create automated email campaigns in Zoho based on lead sources and properties.
+                </p>
+            </div>
+            
+            <div style="background: #f0f9ff; padding: 16px; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                <h4 style="color: #1e40af; margin-bottom: 8px;">📊 Lead Analytics</h4>
+                <p class="small">
+                    Track lead engagement, conversion rates, and campaign performance in Zoho dashboard.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function testConnection() {
+    const resultsDiv = document.getElementById('testResults');
+    resultsDiv.textContent = 'Testing connection to Zoho Marketing Automation...';
+    
+    fetch('/test-zoho-connection/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'}
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            resultsDiv.textContent = `✅ Connection Successful!
+
+API Domain: ${data.api_domain}
+Mailing Lists: ${data.lists_count || 'N/A'}
+Status: Ready for lead sync
+
+The integration is working correctly.`;
+        } else {
+            resultsDiv.textContent = `❌ Connection Failed!
+
+Error: ${data.error}
+Response Code: ${data.response_code || 'N/A'}
+
+Please check your Zoho configuration and try again.`;
+        }
+    })
+    .catch(error => {
+        resultsDiv.textContent = `❌ Test Failed!
+
+Network Error: ${error}
+
+Please check your internet connection and try again.`;
+    });
+}
+
+document.getElementById('leadSyncForm')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const leadId = document.getElementById('leadSelect').value;
+    if (!leadId) {
+        alert('Please select a lead to sync');
+        return;
+    }
+    
+    const resultsDiv = document.getElementById('syncResults');
+    resultsDiv.style.display = 'block';
+    resultsDiv.innerHTML = '<div style="background: #f3f4f6; padding: 12px; border-radius: 6px;">🔄 Syncing lead to Zoho...</div>';
+    
+    const formData = new FormData();
+    formData.append('lead_id', leadId);
+    
+    fetch('/sync-lead-to-zoho/', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            resultsDiv.innerHTML = `
+                <div style="background: #dcfce7; padding: 12px; border-radius: 6px; border-left: 4px solid #10b981; color: #166534;">
+                    <strong>✅ Sync Successful!</strong><br>
+                    ${data.message}
+                </div>
+            `;
+        } else {
+            resultsDiv.innerHTML = `
+                <div style="background: #fee2e2; padding: 12px; border-radius: 6px; border-left: 4px solid #ef4444; color: #dc2626;">
+                    <strong>❌ Sync Failed!</strong><br>
+                    ${data.error}
+                </div>
+            `;
+        }
+    })
+    .catch(error => {
+        resultsDiv.innerHTML = `
+            <div style="background: #fee2e2; padding: 12px; border-radius: 6px; border-left: 4px solid #ef4444; color: #dc2626;">
+                <strong>❌ Network Error!</strong><br>
+                ${error}
+            </div>
+        `;
+    });
+});
+</script>
+{% endblock %}

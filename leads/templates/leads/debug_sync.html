@@ -1,0 +1,222 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}Debug Sync{% endblock %}
+{% block page_title %}Debug Sync{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Debug Sync & Check Missing Leads</h3>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <button id="checkTodayLeads" class="btn btn-primary btn-lg w-100">
+                                <i class="fas fa-search"></i> Check Today's Leads
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <button id="syncTodayLeads" class="btn btn-success btn-lg w-100">
+                                <i class="fas fa-sync"></i> Sync Today's Leads
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <button id="checkMetaForms" class="btn btn-info btn-lg w-100">
+                                <i class="fas fa-list"></i> Check Meta Forms
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <button id="checkGaurLeads" class="btn btn-warning btn-lg w-100">
+                                <i class="fas fa-building"></i> Check Gaur Leads
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <button id="syncGaurAcp" class="btn btn-success btn-lg w-100">
+                                <i class="fas fa-download"></i> Sync All Leads (Check for Missing)
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="results" class="mt-4" style="display: none;">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Results</h5>
+                            </div>
+                            <div class="card-body">
+                                <pre id="resultsContent" style="background: #f8f9fa; padding: 15px; border-radius: 5px; max-height: 500px; overflow-y: auto;"></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function showResults(data) {
+    document.getElementById('results').style.display = 'block';
+    document.getElementById('resultsContent').textContent = JSON.stringify(data, null, 2);
+}
+
+document.getElementById('checkTodayLeads').addEventListener('click', function() {
+    this.disabled = true;
+    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
+    
+    fetch('/check-todays-leads/')
+    .then(response => response.json())
+    .then(data => {
+        showResults(data);
+        this.disabled = false;
+        this.innerHTML = '<i class="fas fa-search"></i> Check Today\'s Leads';
+    })
+    .catch(error => {
+        alert('Error: ' + error.message);
+        this.disabled = false;
+        this.innerHTML = '<i class="fas fa-search"></i> Check Today\'s Leads';
+    });
+});
+
+document.getElementById('syncTodayLeads').addEventListener('click', function() {
+    this.disabled = true;
+    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
+    
+    const today = new Date().toISOString().split('T')[0];
+    
+    fetch('/sync/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            since_date: today,
+            until_date: today
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        showResults(data);
+        this.disabled = false;
+        this.innerHTML = '<i class="fas fa-sync"></i> Sync Today\'s Leads';
+    })
+    .catch(error => {
+        alert('Error: ' + error.message);
+        this.disabled = false;
+        this.innerHTML = '<i class="fas fa-sync"></i> Sync Today\'s Leads';
+    });
+});
+
+document.getElementById('checkMetaForms').addEventListener('click', function() {
+    this.disabled = true;
+    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
+    
+    fetch('/check-meta-forms/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        showResults(data);
+        this.disabled = false;
+        this.innerHTML = '<i class="fas fa-list"></i> Check Meta Forms';
+    })
+    .catch(error => {
+        alert('Error: ' + error.message);
+        this.disabled = false;
+        this.innerHTML = '<i class="fas fa-list"></i> Check Meta Forms';
+    });
+});
+
+document.getElementById('checkGaurLeads').addEventListener('click', function() {
+    this.disabled = true;
+    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
+    
+    // Filter leads for Gaur forms
+    const url = new URL('/leads/', window.location.origin);
+    url.searchParams.set('search', 'gaur');
+    
+    fetch('/check-todays-leads/')
+    .then(response => response.json())
+    .then(data => {
+        // Focus on Gaur leads
+        const gaurData = {
+            gaur_leads_today: data.gaur_leads.filter(lead => 
+                lead.created_time.startsWith(data.today_date)
+            ),
+            all_gaur_leads: data.gaur_leads,
+            gaur_forms: data.form_breakdown.filter(form => 
+                form.form_name.toLowerCase().includes('gaur')
+            )
+        };
+        showResults(gaurData);
+        this.disabled = false;
+        this.innerHTML = '<i class="fas fa-building"></i> Check Gaur Leads';
+    })
+    .catch(error => {
+        alert('Error: ' + error.message);
+        this.disabled = false;
+        this.innerHTML = '<i class="fas fa-building"></i> Check Gaur Leads';
+    });
+});
+
+document.getElementById('syncGaurAcp').addEventListener('click', function() {
+    this.disabled = true;
+    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing All Leads...';
+    
+    // Use regular sync endpoint instead
+    fetch('/sync/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({})
+    })
+    .then(response => response.json())
+    .then(data => {
+        showResults(data);
+        this.disabled = false;
+        this.innerHTML = '<i class="fas fa-download"></i> Sync All Leads';
+        
+        if (data.success && data.total_synced > 0) {
+            alert(`Success! Synced ${data.total_synced} new leads. Check for Gaur ACP leads now.`);
+        } else if (data.success) {
+            alert('Sync completed. Check the results for details.');
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error.message);
+        this.disabled = false;
+        this.innerHTML = '<i class="fas fa-download"></i> Sync All Leads';
+    });
+});
+</script>
+{% endblock %}

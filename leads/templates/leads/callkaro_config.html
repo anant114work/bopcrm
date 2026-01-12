@@ -1,0 +1,249 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}Call Karo AI Configuration{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Call Karo AI Configuration</h3>
+                </div>
+                <div class="card-body">
+                    <!-- Configuration Form -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>API Configuration</h5>
+                                </div>
+                                <div class="card-body">
+                                    <form id="configForm">
+                                        <div class="mb-3">
+                                            <label for="apiKey" class="form-label">API Key</label>
+                                            <input type="text" class="form-control" id="apiKey" 
+                                                   value="{% if config %}{{ config.api_key }}{% endif %}" 
+                                                   placeholder="Enter Call Karo AI API Key">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="defaultAgent" class="form-label">Default Agent ID</label>
+                                            <input type="text" class="form-control" id="defaultAgent" 
+                                                   value="{% if config %}{{ config.default_agent_id }}{% endif %}" 
+                                                   placeholder="Enter default AI agent ID">
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">Save Configuration</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Add New Agent</h5>
+                                </div>
+                                <div class="card-body">
+                                    <form id="agentForm">
+                                        <div class="mb-3">
+                                            <label for="agentId" class="form-label">Agent ID</label>
+                                            <input type="text" class="form-control" id="agentId" 
+                                                   placeholder="Enter agent ID">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="agentName" class="form-label">Agent Name</label>
+                                            <input type="text" class="form-control" id="agentName" 
+                                                   placeholder="Enter agent name">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="agentDescription" class="form-label">Description</label>
+                                            <textarea class="form-control" id="agentDescription" rows="2" 
+                                                      placeholder="Agent description (optional)"></textarea>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="teamMember" class="form-label">Assign to Team Member</label>
+                                            <select class="form-control" id="teamMember">
+                                                <option value="">Select team member (optional)</option>
+                                                {% for member in team_members %}
+                                                <option value="{{ member.id }}">{{ member.name }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <button type="submit" class="btn btn-success">Add Agent</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Agents List -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Available AI Agents</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if agents %}
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Agent ID</th>
+                                            <th>Name</th>
+                                            <th>Description</th>
+                                            <th>Assigned To</th>
+                                            <th>Status</th>
+                                            <th>Created</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for agent in agents %}
+                                        <tr>
+                                            <td><code>{{ agent.agent_id }}</code></td>
+                                            <td>{{ agent.name }}</td>
+                                            <td>{{ agent.description|default:"No description" }}</td>
+                                            <td>
+                                                {% if agent.assigned_team_member %}
+                                                    {{ agent.assigned_team_member.name }}
+                                                {% else %}
+                                                    <span class="text-muted">Unassigned</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if agent.is_active %}
+                                                    <span class="badge bg-success">Active</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Inactive</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ agent.created_at|date:"M d, Y" }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="text-center py-4">
+                                <p class="text-muted">No AI agents configured yet.</p>
+                                <p class="small">Add your first agent using the form above.</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- API Documentation -->
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            <h5>Call Karo AI Integration Guide</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Features Available:</h6>
+                                    <ul>
+                                        <li>AI-powered outbound calls</li>
+                                        <li>Campaign management (batch calls)</li>
+                                        <li>Call scheduling and retries</li>
+                                        <li>Real-time call status updates</li>
+                                        <li>Lead metadata integration</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Setup Steps:</h6>
+                                    <ol>
+                                        <li>Get your API key from Call Karo AI dashboard</li>
+                                        <li>Create AI agents in Call Karo AI</li>
+                                        <li>Configure API key and default agent above</li>
+                                        <li>Add your agents to the system</li>
+                                        <li>Start making AI-powered calls!</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Configuration form
+    document.getElementById('configForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const apiKey = document.getElementById('apiKey').value;
+        const defaultAgent = document.getElementById('defaultAgent').value;
+        
+        if (!apiKey || !defaultAgent) {
+            alert('Please fill in all required fields');
+            return;
+        }
+        
+        fetch('/save-callkaro-config/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                api_key: apiKey,
+                default_agent_id: defaultAgent
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Configuration saved successfully!');
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while saving configuration');
+        });
+    });
+    
+    // Agent form
+    document.getElementById('agentForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const agentId = document.getElementById('agentId').value;
+        const agentName = document.getElementById('agentName').value;
+        const agentDescription = document.getElementById('agentDescription').value;
+        const teamMember = document.getElementById('teamMember').value;
+        
+        if (!agentId || !agentName) {
+            alert('Please fill in agent ID and name');
+            return;
+        }
+        
+        fetch('/add-callkaro-agent/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                agent_id: agentId,
+                name: agentName,
+                description: agentDescription,
+                team_member_id: teamMember || null
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Agent added successfully!');
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while adding agent');
+        });
+    });
+});
+</script>
+{% endblock %}

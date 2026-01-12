@@ -1,0 +1,15 @@
+{
+  "name": "meta-leads-crm",
+  "version": "1.0.0",
+  "description": "Meta leads integration with CRM",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "node app.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "sqlite3": "^5.1.6",
+    "axios": "^1.6.0"
+  }
+}

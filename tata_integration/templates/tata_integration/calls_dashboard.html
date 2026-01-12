@@ -1,0 +1,311 @@
+{% extends 'leads/base_sidebar.html' %}
+{% load lead_filters %}
+
+{% block title %}Calls Dashboard{% endblock %}
+{% block page_title %}📞 Calls Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    .stat-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+    .stat-number {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #3b82f6;
+    }
+    .stat-label {
+        color: #6b7280;
+        font-size: 0.875rem;
+        margin-top: 0.5rem;
+    }
+    .table-responsive {
+        overflow-x: auto;
+    }
+    .call-status {
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    .status-answered {
+        background: #dcfce7;
+        color: #166534;
+    }
+    .status-missed {
+        background: #fef2f2;
+        color: #dc2626;
+    }
+    .status-received {
+        background: #e0f2fe;
+        color: #0277bd;
+    }
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-number" id="totalCalls">-</div>
+        <div class="stat-label">Total Calls</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number" id="answeredCalls">-</div>
+        <div class="stat-label">Answered</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number" id="missedCalls">-</div>
+        <div class="stat-label">Missed</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number" id="avgDuration">-</div>
+        <div class="stat-label">Avg Duration</div>
+    </div>
+</div>
+
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h3>Call Records</h3>
+        <div>
+            <button class="btn btn-secondary" onclick="exportCalls()" style="margin-right: 0.5rem;">📊 Export</button>
+            <button class="btn btn-secondary" onclick="checkSyncStatus()" style="margin-right: 0.5rem;">🔍 Status</button>
+            <button class="btn btn-secondary" onclick="debugAPI()" style="margin-right: 0.5rem;">🔧 Debug API</button>
+            <button class="btn btn-success" onclick="fullSync()" style="margin-right: 0.5rem;">🔄 Full Sync</button>
+            <button class="btn btn-primary" onclick="syncCalls()">⚡ Quick Sync</button>
+        </div>
+    </div>
+    <div id="syncStatus" style="margin-bottom: 1rem; padding: 0.5rem; background: #f0f9ff; border-radius: 4px; display: none;"></div>
+    
+    <!-- Pagination Controls -->
+    <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 1rem;">
+        <div>
+            <button class="btn btn-sm btn-secondary" onclick="previousPage()" id="prevBtn">← Previous</button>
+            <span id="pageInfo" style="margin: 0 1rem;">Page 1</span>
+            <button class="btn btn-sm btn-secondary" onclick="nextPage()" id="nextBtn">Next →</button>
+        </div>
+        <div>
+            <select id="pageSize" onchange="changePageSize()" style="padding: 0.25rem;">
+                <option value="10">10 per page</option>
+                <option value="25" selected>25 per page</option>
+                <option value="50">50 per page</option>
+            </select>
+        </div>
+    </div>
+    
+    <!-- Calls Table -->
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Date & Time</th>
+                    <th>Customer</th>
+                    <th>Agent</th>
+                    <th>Department</th>
+                    <th>Duration</th>
+                    <th>Status</th>
+                    <th>Recording</th>
+                </tr>
+            </thead>
+            <tbody id="callsTableBody">
+                <tr><td colspan="7" class="text-center">Loading...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentPage = 1;
+let pageSize = 25;
+let totalCalls = 0;
+let allCalls = [];
+
+function loadCalls() {
+    fetch('/ivr-webhooks/api/recent-calls/?limit=1000')  // Load more for pagination
+    .then(response => response.json())
+    .then(data => {
+        if (data.calls) {
+            allCalls = data.calls;
+            totalCalls = data.total_in_db || data.calls.length;
+            
+            // Update stats
+            const answered = data.calls.filter(c => c.status === 'answered').length;
+            const missed = data.calls.filter(c => c.status === 'missed').length;
+            const avgDur = data.calls.length > 0 ? Math.round(data.calls.reduce((sum, c) => sum + c.duration, 0) / data.calls.length) : 0;
+            
+            document.getElementById('totalCalls').textContent = totalCalls;
+            document.getElementById('answeredCalls').textContent = answered;
+            document.getElementById('missedCalls').textContent = missed;
+            document.getElementById('avgDuration').textContent = avgDur + 's';
+            
+            renderTable();
+        } else {
+            document.getElementById('callsTableBody').innerHTML = '<tr><td colspan="7" class="text-center">No calls found</td></tr>';
+        }
+    });
+}
+
+function renderTable() {
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    const pageData = allCalls.slice(startIndex, endIndex);
+    const totalPages = Math.ceil(allCalls.length / pageSize);
+    
+    // Update table
+    document.getElementById('callsTableBody').innerHTML = pageData.map(call => {
+        const date = new Date(call.start_stamp || call.start_time);
+        const formattedDate = isNaN(date.getTime()) ? call.start_time : 
+            date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+        
+        return `
+            <tr>
+                <td><small>${formattedDate}</small></td>
+                <td><strong ${isAdmin ? `class="maskable-number" data-masked="${maskNumber(call.customer_number)}" data-original="${call.customer_number}" onclick="toggleMask(this)" style="cursor: pointer;"` : ''}>${isAdmin ? maskNumber(call.customer_number) : maskNumber(call.customer_number) || 'No Number'}</strong></td>
+                <td>${call.agent_name || 'Unknown'}</td>
+                <td>${call.department || 'General'}</td>
+                <td>${call.duration}s</td>
+                <td><span class="call-status status-${call.status}">${call.status}</span></td>
+                <td>${call.recording_url ? `<a href="${call.recording_url}" target="_blank" class="btn btn-sm btn-primary">🎧</a>` : '-'}</td>
+            </tr>
+        `;
+    }).join('');
+    
+    // Update pagination info
+    document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages} (${allCalls.length} total)`;
+    document.getElementById('prevBtn').disabled = currentPage === 1;
+    document.getElementById('nextBtn').disabled = currentPage === totalPages;
+}
+
+function previousPage() {
+    if (currentPage > 1) {
+        currentPage--;
+        renderTable();
+    }
+}
+
+function nextPage() {
+    const totalPages = Math.ceil(allCalls.length / pageSize);
+    if (currentPage < totalPages) {
+        currentPage++;
+        renderTable();
+    }
+}
+
+function changePageSize() {
+    pageSize = parseInt(document.getElementById('pageSize').value);
+    currentPage = 1;
+    renderTable();
+}
+
+function syncCalls() {
+    fetch('/ivr-webhooks/sync-calls/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({days_back: 2, limit: 300})
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert(data.message || 'Quick sync completed');
+        loadCalls();
+    });
+}
+
+function fullSync() {
+    if (confirm('This will sync all calls from the last 30 days. Continue?')) {
+        fetch('/ivr-webhooks/sync-calls/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({days_back: 30, limit: 1000})
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message || 'Full sync completed');
+            loadCalls();
+        });
+    }
+}
+
+function checkSyncStatus() {
+    fetch('/ivr-webhooks/sync-status/')
+    .then(response => response.json())
+    .then(data => {
+        const statusDiv = document.getElementById('syncStatus');
+        statusDiv.innerHTML = `
+            <strong>Auto Sync:</strong> ${data.auto_sync_enabled ? 'Enabled' : 'Disabled'} | 
+            <strong>Interval:</strong> ${data.sync_interval} minutes | 
+            <strong>Running:</strong> ${data.scheduler_running ? 'Yes' : 'No'}
+        `;
+        statusDiv.style.display = 'block';
+        setTimeout(() => statusDiv.style.display = 'none', 5000);
+    });
+}
+
+function exportCalls() {
+    window.open('/ivr-webhooks/export-calls/', '_blank');
+}
+
+function debugAPI() {
+    fetch('/ivr-webhooks/debug-api/')
+    .then(response => response.json())
+    .then(data => {
+        console.log('Tata API Debug:', data);
+        
+        // Show call records structure
+        if (data.call_records && data.call_records.length > 0) {
+            const firstCall = data.call_records[0];
+            const fields = Object.keys(firstCall);
+            alert(`Call Record Fields Available:\n${fields.join(', ')}\n\nFirst Call Sample:\n${JSON.stringify(firstCall, null, 2)}`);
+        } else {
+            alert(`API Test Results:\n\nActive Calls: ${JSON.stringify(data.active_calls)}\n\nCall Records: ${JSON.stringify(data.call_records)}\n\nCheck console for full details`);
+        }
+    })
+    .catch(error => {
+        console.error('API Debug Error:', error);
+        alert('API Debug failed - check console');
+    });
+}
+
+// Check if user is admin
+const isAdmin = {{ request.user.is_superuser|yesno:"true,false" }} || {{ request.session.is_admin|yesno:"true,false" }};
+
+// Mask number function - always mask for display, admin can click to unmask
+function maskNumber(value) {
+    if (!value) return value;
+    const clean = value.toString().replace(/\D/g, '');
+    if (clean.length >= 10) {
+        return clean.substring(0, 2) + 'xxxx' + clean.substring(clean.length - 2);
+    } else if (clean.length >= 6) {
+        return clean.substring(0, 2) + 'xxxx' + clean.substring(clean.length - 2);
+    } else if (clean.length >= 4) {
+        return clean.substring(0, 1) + 'xxxx' + clean.substring(clean.length - 1);
+    }
+    return 'xxxx';
+}
+
+// Toggle mask function
+function toggleMask(element) {
+    const isCurrentlyMasked = element.textContent === element.dataset.masked;
+    element.textContent = isCurrentlyMasked ? element.dataset.original : element.dataset.masked;
+    element.style.color = isCurrentlyMasked ? '#10b981' : '#6b7280';
+}
+
+loadCalls();
+// Auto-refresh every 2 minutes
+setInterval(loadCalls, 120000);
+</script>
+{% endblock %}

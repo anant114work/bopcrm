@@ -1,0 +1,126 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}{{ page_title }} - Meta Leads CRM{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2>{{ page_title }} ({{ total_leads }} total)</h2>
+        <div class="d-flex">
+            {% if source_type == 'Meta' %}
+                <span class="small">📘 Meta Source</span>
+            {% else %}
+                <span class="small">📗 Google Sheets Source</span>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card-content">
+        {% if leads %}
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #f9fafb;">
+                            <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Name</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Contact</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Budget</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Form</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Date</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Stage</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Assigned</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for lead in leads %}
+                        <tr>
+                            <td style="padding: 12px; border-bottom: 1px solid #f3f4f6;">
+                                <strong>{{ lead.full_name|default:"Unknown" }}</strong><br>
+                                <small style="color: #6b7280;">{{ source_type }}</small>
+                            </td>
+                            <td style="padding: 12px; border-bottom: 1px solid #f3f4f6;">
+                                {% if lead.email %}
+                                    <div>{{ lead.email }}</div>
+                                {% endif %}
+                                {% if lead.phone_number %}
+                                    <div style="font-weight: 500;">{{ lead.phone_number }}</div>
+                                {% endif %}
+                                {% if lead.city %}
+                                    <small style="color: #6b7280;">{{ lead.city }}</small>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 12px; border-bottom: 1px solid #f3f4f6;">
+                                {% if lead.budget %}
+                                    <span class="small">
+                                        ₹{{ lead.budget }}
+                                    </span>
+                                {% else %}
+                                    <span style="color: #9ca3af;">-</span>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 12px; border-bottom: 1px solid #f3f4f6;">
+                                <small style="color: #6b7280;">{{ lead.form_name|truncatechars:30 }}</small>
+                            </td>
+                            <td style="padding: 12px; border-bottom: 1px solid #f3f4f6;">
+                                <div>{{ lead.created_time|date:"M d" }}</div>
+                                <small style="color: #6b7280;">{{ lead.created_time|time:"H:i" }}</small>
+                            </td>
+                            <td style="padding: 12px; border-bottom: 1px solid #f3f4f6;">
+                                {% if lead.stage == 'new' %}
+                                    <span class="small">New</span>
+                                {% elif lead.stage == 'contacted' %}
+                                    <span class="small">Contacted</span>
+                                {% elif lead.stage == 'interested' %}
+                                    <span class="small">Interested</span>
+                                {% elif lead.stage == 'converted' %}
+                                    <span class="small">Converted</span>
+                                {% else %}
+                                    <span class="small">{{ lead.stage|title }}</span>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 12px; border-bottom: 1px solid #f3f4f6;">
+                                {% if lead.assigned_to %}
+                                    <small style="color: #059669;">{{ lead.assigned_to.name }}</small>
+                                {% else %}
+                                    <small style="color: #6b7280;">Unassigned</small>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 12px; border-bottom: 1px solid #f3f4f6;">
+                                <a href="/leads/{{ lead.id }}/" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if leads.has_other_pages %}
+                <div class="d-flex">
+                    {% if leads.has_previous %}
+                        <a href="?page=1" class="btn btn-sm btn-secondary">First</a>
+                        <a href="?page={{ leads.previous_page_number }}" class="btn btn-sm btn-secondary">Previous</a>
+                    {% endif %}
+                    
+                    <span style="padding: 8px 16px; background: #f3f4f6; border-radius: 4px;">
+                        Page {{ leads.number }} of {{ leads.paginator.num_pages }}
+                    </span>
+                    
+                    {% if leads.has_next %}
+                        <a href="?page={{ leads.next_page_number }}" class="btn btn-sm btn-secondary">Next</a>
+                        <a href="?page={{ leads.paginator.num_pages }}" class="btn btn-sm btn-secondary">Last</a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="text-center">
+                <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+                <h6>No {{ source_type }} Leads Found</h6>
+                <p>No leads from {{ source_type }} source are available.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

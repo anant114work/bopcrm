@@ -1,0 +1,62 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}Team Members - CRM{% endblock %}
+{% block page_title %}Team Members{% endblock %}
+
+{% block content %}
+<!-- Team Statistics -->
+<div class="team-stats">
+    <div class="team-stat-card">
+        <div class="team-stat-number">{{ members|length }}</div>
+        <div class="team-stat-label">Total Members</div>
+    </div>
+    <div class="team-stat-card">
+        <div class="team-stat-number">{{ members|length }}</div>
+        <div class="team-stat-label">Active Members</div>
+    </div>
+    <div class="team-stat-card">
+        <div class="team-stat-number">5</div>
+        <div class="team-stat-label">Hierarchy Levels</div>
+    </div>
+</div>
+
+<!-- Team Members Grid -->
+<div class="team-grid">
+    {% for member in members %}
+    <div class="member-card">
+        <div class="member-name">{{ member.name }}</div>
+        <div class="member-role">{{ member.role }}</div>
+        
+        <div class="member-contact">
+            <i class="fas fa-envelope"></i>
+            <span>{{ member.email }}</span>
+        </div>
+        <div class="member-contact">
+            <i class="fas fa-phone"></i>
+            <span>{{ member.phone }}</span>
+        </div>
+        
+        {% if member.parent_user %}
+        <div class="member-parent">
+            <i class="fas fa-user-tie"></i> Reports to: {{ member.parent_user.name }}
+        </div>
+        {% else %}
+        <div class="member-parent">
+            <i class="fas fa-crown"></i> Team Owner
+        </div>
+        {% endif %}
+        
+        <div class="member-stats">
+            <span class="small text-muted">Assigned Leads:</span>
+            <span class="assigned-count">{{ member.assigned_leads.count|default:0 }}</span>
+        </div>
+    </div>
+    {% empty %}
+    <div class="no-members">
+        <i class="fas fa-users mb-3" style="font-size: 48px; opacity: 0.3;"></i>
+        <div class="mb-2">No team members found</div>
+        <div class="small">Import team members to get started</div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

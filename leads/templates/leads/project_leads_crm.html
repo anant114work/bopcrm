@@ -1,0 +1,380 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}{{ project.name }} Leads - Meta Leads CRM{% endblock %}
+{% block page_title %}{{ project.name }} Leads{% endblock %}
+
+
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-building"></i> {{ project.name }} Leads</h2>
+    </div>
+    <div class="card-content">
+        <div style="margin-bottom: 20px;">
+            <a href="/projects/" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Projects
+            </a>
+        </div>
+
+        <!-- Project Info -->
+        <div style="background: #f8fafc; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+            <div class="gap-2">
+                <div>
+                    <strong>Developer:</strong> {{ project.developer }}
+                </div>
+                <div>
+                    <strong>Location:</strong> {{ project.location }}
+                </div>
+                <div>
+                    <strong>Total Leads:</strong> {{ total_leads }}
+                </div>
+                <div>
+                    <strong>Today's Leads:</strong> {{ todays_leads_count }}
+                    {% if todays_meta_leads_count > 0 or todays_google_leads_count > 0 %}
+                    <br><small>Meta: {{ todays_meta_leads_count }} | Google: {{ todays_google_leads_count }}</small>
+                    {% endif %}
+                </div>
+                <div>
+                    <strong>All Meta Leads:</strong> <span style="color: #3b82f6;">{{ meta_leads_count }}</span>
+                    <br><small>Callable: {{ all_meta_leads_count }}</small>
+                </div>
+                <div>
+                    <strong>All Google Leads:</strong> <span style="color: #10b981;">{{ google_leads_count }}</span>
+                    <br><small>Callable: {{ all_google_leads_count }}</small>
+                </div>
+                <div>
+                    <a href="/call-analytics/by-source/{{ project.id }}/" style="color: #6366f1; text-decoration: none;">
+                        <i class="fas fa-chart-bar"></i> <strong>Call Reports</strong>
+                    </a>
+                </div>
+                {% if user.is_staff or request.session.team_member_name == 'ADMIN USER' %}
+                <div>
+                    <a href="/call-reports/upload/" style="color: #ef4444; text-decoration: none;">
+                        <i class="fas fa-file-excel"></i> <strong>Upload Call Reports</strong>
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            <div style="margin-top: 16px;">
+                <!-- All Leads Calling -->
+                <div style="margin-bottom: 15px;">
+                    <h4 style="margin-bottom: 10px; color: #374151;">📞 All Leads Auto-Calling</h4>
+                    <div style="margin-bottom: 10px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Select AI Agent:</label>
+                        <select id="autoCallAgentSelect" class="form-control" style="max-width: 300px;">
+                            <option value="">Select an AI Agent...</option>
+                            {% for agent in ai_agents %}
+                            <option value="{{ agent.agent_id }}" {% if agent.project_name == project.name %}selected{% endif %}>
+                                {{ agent.name }} {% if agent.project_name %}({{ agent.project_name }}){% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="d-flex">
+                        {% if all_meta_leads_count > 0 %}
+                        <button onclick="startAutoCalling('all_meta')" class="btn btn-primary" id="allMetaCallBtn">
+                            <i class="fab fa-meta"></i> Call All Meta Leads ({{ all_meta_leads_count }})
+                        </button>
+                        {% endif %}
+                        {% if all_google_leads_count > 0 %}
+                        <button onclick="startAutoCalling('all_google')" class="btn btn-info" id="allGoogleCallBtn">
+                            <i class="fab fa-google"></i> Call All Google Leads ({{ all_google_leads_count }})
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div id="autoCallStatus" style="margin-top: 10px; display: none; width: 100%;"></div>
+            </div>
+        </div>
+
+        <!-- Simple Call Controls -->
+        <div style="background: #f0f9ff; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <h4 style="color: #1e40af; margin-bottom: 10px;">📞 Call Visible Leads</h4>
+            
+            <!-- AI Agent Selection -->
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 500;">Select AI Agent:</label>
+                <select id="agentSelect" class="form-control" style="max-width: 300px;">
+                    <option value="">Select an AI Agent...</option>
+                    {% for agent in ai_agents %}
+                    <option value="{{ agent.agent_id }}" {% if agent.project_name == project.name %}selected{% endif %}>
+                        {{ agent.name }} {% if agent.project_name %}({{ agent.project_name }}){% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="d-flex">
+                <button onclick="callVisibleLeads('meta')" class="btn btn-primary" class="small">
+                    Call Meta Leads on Page
+                </button>
+                <button onclick="callVisibleLeads('google')" class="btn btn-info" class="small">
+                    Call Google Leads on Page
+                </button>
+                <button onclick="callVisibleLeads('all')" class="btn btn-success" class="small">
+                    Call All Leads on Page
+                </button>
+                <div id="visibleCallStatus" class="small"></div>
+            </div>
+        </div>
+
+        <!-- Leads Table -->
+        <div style="overflow-x: auto;">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Contact</th>
+                        <th>Requirements</th>
+                        <th>Form</th>
+                        <th>Date</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for lead in leads %}
+                    <tr data-lead-id="{{ lead.id }}" data-source="{{ lead.source }}" data-phone="{{ lead.phone_number }}">
+                        <td>
+                            <strong>{{ lead.full_name|default:"No Name" }}</strong>
+                        </td>
+                        <td>
+                            {% if lead.email %}
+                            <div>{{ lead.email }}</div>
+                            {% endif %}
+                            {% if lead.phone_number %}
+                            <div>{{ lead.phone_number }}</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if lead.budget %}
+                            <div><strong>Budget:</strong> {{ lead.budget }}</div>
+                            {% endif %}
+                            {% if lead.configuration %}
+                            <div><strong>Config:</strong> {{ lead.configuration }}</div>
+                            {% endif %}
+                        </td>
+                        <td>{{ lead.form_name|truncatechars:20 }}</td>
+                        <td>{{ lead.created_time|date:"M d, Y H:i" }}</td>
+                        <td>
+                            <button onclick="callSingleLead({{ lead.id }})" class="btn btn-success" style="font-size: 10px; padding: 2px 6px; margin-right: 5px;">
+                                Call
+                            </button>
+                            <a href="/leads/{{ lead.id }}/" class="btn btn-primary" class="small">
+                                Details
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center">
+                            <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 16px; display: block;"></i>
+                            No leads found for this project
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if leads.has_other_pages %}
+        <div class="pagination">
+            {% if leads.has_previous %}
+                <a href="?page=1">&laquo; First</a>
+                <a href="?page={{ leads.previous_page_number }}">&lsaquo; Previous</a>
+            {% endif %}
+            
+            <span class="current">
+                Page {{ leads.number }} of {{ leads.paginator.num_pages }}
+            </span>
+            
+            {% if leads.has_next %}
+                <a href="?page={{ leads.next_page_number }}">Next &rsaquo;</a>
+                <a href="?page={{ leads.paginator.num_pages }}">Last &raquo;</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function callVisibleLeads(sourceFilter) {
+    const agentSelect = document.getElementById('agentSelect');
+    const selectedAgent = agentSelect.value;
+    
+    if (!selectedAgent) {
+        alert('Please select an AI Agent first');
+        return;
+    }
+    
+    const rows = document.querySelectorAll('tr[data-lead-id]');
+    const leadIds = [];
+    
+    rows.forEach(row => {
+        const source = row.getAttribute('data-source');
+        const phone = row.getAttribute('data-phone');
+        const leadId = row.getAttribute('data-lead-id');
+        
+        if (phone && phone !== 'None') {
+            if (sourceFilter === 'all' || 
+                (sourceFilter === 'meta' && source === 'Meta') ||
+                (sourceFilter === 'google' && source === 'Google Sheets')) {
+                leadIds.push(leadId);
+            }
+        }
+    });
+    
+    if (leadIds.length === 0) {
+        alert(`No ${sourceFilter} leads with phone numbers found on this page`);
+        return;
+    }
+    
+    const statusDiv = document.getElementById('visibleCallStatus');
+    statusDiv.innerHTML = `Calling ${leadIds.length} ${sourceFilter} leads with agent ${agentSelect.options[agentSelect.selectedIndex].text}...`;
+    
+    let index = 0;
+    const callNext = () => {
+        if (index >= leadIds.length) {
+            statusDiv.innerHTML = `Completed calling ${leadIds.length} leads`;
+            return;
+        }
+        
+        const leadId = leadIds[index];
+        callSingleLead(leadId, false, selectedAgent);
+        statusDiv.innerHTML = `Calling lead ${index + 1}/${leadIds.length}...`;
+        index++;
+        
+        setTimeout(callNext, 2000);
+    };
+    
+    callNext();
+}
+
+function callSingleLead(leadId, showAlert = true, agentId = null) {
+    if (!agentId) {
+        const agentSelect = document.getElementById('agentSelect');
+        agentId = agentSelect.value;
+        
+        if (!agentId) {
+            alert('Please select an AI Agent first');
+            return;
+        }
+    }
+    
+    fetch(`/projects/{{ project.id }}/call-single-lead/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+            lead_id: leadId,
+            agent_id: agentId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (showAlert) {
+            if (data.success) {
+                alert(`Call initiated for ${data.lead_name}`);
+            } else {
+                alert(`Error: ${data.error}`);
+            }
+        }
+    })
+    .catch(error => {
+        if (showAlert) {
+            alert(`Error: ${error.message}`);
+        }
+    });
+}
+
+function startAutoCalling(source = 'all') {
+    const agentSelect = document.getElementById('autoCallAgentSelect');
+    const selectedAgent = agentSelect.value;
+    
+    if (!selectedAgent) {
+        alert('Please select an AI Agent first');
+        return;
+    }
+    
+    let btnId = 'autoCallBtn';
+    if (source === 'all_meta') btnId = 'allMetaCallBtn';
+    else if (source === 'all_google') btnId = 'allGoogleCallBtn';
+    
+    const button = document.getElementById(btnId);
+    if (button) {
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting...';
+    }
+    
+    fetch('/projects/{{ project.id }}/start-auto-calling/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ source: source, agent_id: selectedAgent })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('autoCallStatus').style.display = 'block';
+            document.getElementById('autoCallStatus').innerHTML = `
+                <div style="background: #f0f9ff; padding: 15px; border-radius: 8px; border-left: 4px solid #0ea5e9;">
+                    <h4 style="color: #0c4a6e; margin-bottom: 10px;">Auto-Calling Complete</h4>
+                    <p><strong>Agent:</strong> ${agentSelect.options[agentSelect.selectedIndex].text}</p>
+                    <p><strong>Source:</strong> ${data.source_filter || source}</p>
+                    <p><strong>Success:</strong> ${data.success_count || 0}</p>
+                    <p><strong>Failed:</strong> ${data.failed_count || 0}</p>
+                </div>
+            `;
+        } else {
+            alert('Error: ' + (data.error || data.message || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        alert('Error starting calls: ' + error.message);
+    })
+    .finally(() => {
+        if (button) {
+            button.disabled = false;
+            button.textContent = button.textContent.replace('Starting...', 'Call All');
+        }
+    });
+}
+
+// Sync agent selection between both dropdowns
+document.addEventListener('DOMContentLoaded', function() {
+    const autoCallAgent = document.getElementById('autoCallAgentSelect');
+    const visibleAgent = document.getElementById('agentSelect');
+    
+    if (autoCallAgent && visibleAgent) {
+        autoCallAgent.addEventListener('change', function() {
+            visibleAgent.value = this.value;
+        });
+        visibleAgent.addEventListener('change', function() {
+            autoCallAgent.value = this.value;
+        });
+    }
+});
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

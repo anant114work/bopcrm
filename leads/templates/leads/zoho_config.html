@@ -1,0 +1,191 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}Zoho Marketing Automation - Meta Leads CRM{% endblock %}
+
+{% block page_title %}⚙️ Zoho Marketing Automation{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 0 auto;">
+    <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+        <h3 style="margin: 0 0 10px 0; color: #1f2937;">Connect Zoho Marketing Automation</h3>
+        <p class="small">
+            Sync your leads with Zoho Marketing Automation for automated campaigns and lead nurturing
+        </p>
+    </div>
+
+    {% if not config %}
+    <form id="zohoConfigForm" style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #e5e7eb;">
+        <div style="margin-bottom: 20px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">
+                Client ID
+            </label>
+            <input type="text" id="clientId" name="client_id" 
+                   placeholder="1000.GMB0YULZHJK411284S8I5GZ4CHUEX0"
+                   class="small"
+                   required>
+        </div>
+        
+        <div style="margin-bottom: 20px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">
+                Client Secret
+            </label>
+            <input type="password" id="clientSecret" name="client_secret" 
+                   placeholder="122c324d3496d5d777ceeebc129470715fbb856b7"
+                   class="small"
+                   required>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">
+                Redirect URI
+            </label>
+            <input type="url" id="redirectUri" name="redirect_uri" 
+                   placeholder="http://127.0.0.1:8000/zoho-callback/"
+                   value="http://127.0.0.1:8000/zoho-callback/"
+                   class="small"
+                   required>
+            <div class="small">
+                Add this URL to your Zoho app's authorized redirect URIs
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%;">
+            💾 Save Configuration
+        </button>
+    </form>
+    {% else %}
+    <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #e5e7eb;">
+        <div class="d-flex">
+            <h4 style="margin: 0; color: #1f2937;">Zoho Configuration</h4>
+            <span class="small">
+                {% if config.access_token %}✓ Connected{% else %}⚠ Not Authorized{% endif %}
+            </span>
+        </div>
+        
+        <div style="margin-bottom: 16px;">
+            <strong>Client ID:</strong> {{ config.client_id|truncatechars:20 }}...
+        </div>
+        <div style="margin-bottom: 16px;">
+            <strong>Redirect URI:</strong> {{ config.redirect_uri }}
+        </div>
+        
+        {% if not config.access_token %}
+        <div class="d-flex">
+            <button onclick="authorizeZoho()" class="btn btn-primary" style="flex: 1;">
+                🔗 Authorize with Zoho
+            </button>
+            <button onclick="resetConfig()" class="btn" style="background: #ef4444; color: white; padding: 10px 20px;">
+                🗑️ Reset
+            </button>
+        </div>
+        {% else %}
+        <div style="background: #dcfce7; padding: 16px; border-radius: 8px; border-left: 4px solid #10b981; margin-bottom: 16px;">
+            <h4 style="margin: 0 0 8px 0; color: #166534;">✅ Successfully Connected</h4>
+            <p class="small">
+                Your CRM is now connected to Zoho Marketing Automation. Leads will be automatically synced.
+            </p>
+        </div>
+        <button onclick="resetConfig()" class="btn" style="background: #ef4444; color: white; width: 100%;">
+            🗑️ Delete Configuration
+        </button>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <div style="background: #fef3c7; border: 1px solid #fde68a; padding: 16px; border-radius: 8px; margin-top: 20px;">
+        <h4 style="margin: 0 0 8px 0; color: #92400e;">📋 Setup Instructions</h4>
+        <ol class="small">
+            <li>Go to <a href="https://api-console.zoho.com/" target="_blank" style="color: #92400e;">Zoho API Console</a></li>
+            <li>Create a new "Server-based Applications" client</li>
+            <li>Add the redirect URI: <code>http://127.0.0.1:8000/zoho-callback/</code></li>
+            <li>Copy the Client ID and Client Secret here</li>
+            <li>Click "Authorize with Zoho" to complete the setup</li>
+        </ol>
+    </div>
+
+    <div style="background: #f0f9ff; border: 1px solid #bfdbfe; padding: 16px; border-radius: 8px; margin-top: 20px;">
+        <h4 style="margin: 0 0 8px 0; color: #1e40af;">🔄 What happens after connection?</h4>
+        <ul class="small">
+            <li>New leads will be automatically synced to Zoho Marketing Automation</li>
+            <li>Lead data includes: Name, Email, Phone, Source, Configuration</li>
+            <li>You can create automated campaigns in Zoho based on lead sources</li>
+            <li>Track lead engagement and conversion in Zoho dashboard</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('zohoConfigForm')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData();
+    formData.append('client_id', document.getElementById('clientId').value);
+    formData.append('client_secret', document.getElementById('clientSecret').value);
+    formData.append('redirect_uri', document.getElementById('redirectUri').value);
+    
+    const btn = document.querySelector('button[type="submit"]');
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+    
+    fetch('/save-zoho-config/', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ ' + data.message);
+            window.location.reload();
+        } else {
+            alert('❌ Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('❌ Error: ' + error);
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.textContent = originalText;
+    });
+});
+
+function authorizeZoho() {
+    fetch('/zoho-auth/')
+    .then(response => response.json())
+    .then(data => {
+        if (data.auth_url) {
+            window.location.href = data.auth_url;
+        } else {
+            alert('❌ Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('❌ Error: ' + error);
+    });
+}
+
+function resetConfig() {
+    if (confirm('⚠️ Are you sure you want to delete the Zoho configuration?\n\nThis will remove all credentials and disconnect from Zoho Marketing Automation.')) {
+        fetch('/reset-zoho-config/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ ' + data.message);
+                window.location.reload();
+            } else {
+                alert('❌ Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('❌ Error: ' + error);
+        });
+    }
+}
+</script>
+{% endblock %}

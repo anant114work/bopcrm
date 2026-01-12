@@ -1,0 +1,233 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}Call Analytics - IVR Dashboard{% endblock %}
+{% block page_title %}IVR Call Analytics{% endblock %}
+
+{% csrf_token %}
+
+
+
+{% block content %}
+<!-- Tata IVR Integration Status -->
+<div class="tata-integration-status">
+    <div>
+        <strong><i class="fas fa-phone-volume"></i> Tata IVR Integration Status:</strong>
+        {% if error %}
+        {{ error }}
+        {% else %}
+        System {% if system_status == 'online' %}Connected{% else %}Disconnected{% endif %}
+        {% endif %}
+    </div>
+    <div>
+        <span style="color: #10b981; font-weight: 600;">
+            <i class="fas fa-check-circle"></i> System Active
+        </span>
+    </div>
+</div>
+
+<!-- Call Statistics -->
+<div class="call-stats">
+    <div class="call-stat-card">
+        <div class="call-stat-number">{{ call_stats.total_calls|default:"--" }}</div>
+        <div class="call-stat-label">Total Calls Today</div>
+    </div>
+    <div class="call-stat-card">
+        <div class="call-stat-number">{{ call_stats.successful_calls|default:"--" }}</div>
+        <div class="call-stat-label">Successful Connections</div>
+    </div>
+    <div class="call-stat-card">
+        <div class="call-stat-number">{{ call_queue|length|default:"--" }}</div>
+        <div class="call-stat-label">In Queue</div>
+    </div>
+    <div class="call-stat-card">
+        <div class="call-stat-number">{{ call_stats.failed_calls|default:"--" }}</div>
+        <div class="call-stat-label">Failed/No Answer</div>
+    </div>
+</div>
+
+<!-- IVR System Controls -->
+<div class="ivr-controls">
+    <h3 style="margin: 0 0 12px 0; color: var(--primary-dark);"><i class="fas fa-cogs"></i> Tata IVR System Controls</h3>
+    <div class="d-flex">
+        <div class="ivr-status">
+            <i class="fas fa-circle" style="color: {% if system_status == 'online' %}#10b981{% else %}#dc2626{% endif %};"></i>
+            <span>Tata IVR System {% if system_status == 'online' %}Online{% else %}Offline{% endif %}</span>
+        </div>
+        <span class="btn-tata" style="opacity: 0.7;">
+            <i class="fas fa-play"></i> Campaign Ready
+        </span>
+        <span class="btn-tata" style="opacity: 0.7;">
+            <i class="fas fa-pause"></i> Manual Control
+        </span>
+        <span class="btn-tata" style="opacity: 0.7;">
+            <i class="fas fa-stop"></i> IVR Active
+        </span>
+        <select class="form-control" style="width: auto;">
+            <option>High Budget Priority</option>
+            <option>Recent Leads First</option>
+            <option>Uncontacted Only</option>
+        </select>
+    </div>
+</div>
+
+<!-- Call Records Table -->
+<div class="calls-table-container">
+    <div class="calls-table-header">
+        <div><i class="fas fa-phone"></i> Recent Call Records</div>
+        <span class="small">
+            <i class="fas fa-sync fa-spin"></i> Auto-Loading
+        </span>
+    </div>
+    <div style="overflow-x: auto;">
+        <table class="table-compact">
+            <thead>
+                <tr>
+                    <th style="width: 15%;">Date/Time</th>
+                    <th style="width: 20%;">Customer</th>
+                    <th style="width: 15%;">Agent</th>
+                    <th style="width: 10%;">Duration</th>
+                    <th style="width: 12%;">Status</th>
+                    <th style="width: 15%;">Recording</th>
+                    <th style="width: 13%;">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="callRecordsTable">
+                <tr>
+                    <td colspan="7" class="text-center">
+                        <i class="fas fa-spinner fa-spin"></i> Loading call records...
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Performance Data -->
+<div class="performance-grid">
+    <div class="performance-card">
+        <h4><i class="fas fa-chart-bar"></i> Call Outcomes (Tata IVR Data)</h4>
+        <div class="performance-item">
+            <span>Connected & Interested</span>
+            <span class="performance-value success">
+                {{ performance_data.interested|default:"--" }} 
+                ({{ performance_data.interested_percent|default:"--" }}%)
+            </span>
+        </div>
+        <div class="performance-item">
+            <span>Connected & Not Interested</span>
+            <span class="performance-value warning">
+                {{ performance_data.not_interested|default:"--" }} 
+                ({{ performance_data.not_interested_percent|default:"--" }}%)
+            </span>
+        </div>
+        <div class="performance-item">
+            <span>No Answer</span>
+            <span class="performance-value danger">
+                {{ performance_data.no_answer|default:"--" }} 
+                ({{ performance_data.no_answer_percent|default:"--" }}%)
+            </span>
+        </div>
+        <div class="performance-item">
+            <span>Busy/Invalid Number</span>
+            <span class="performance-value neutral">
+                {{ performance_data.busy|default:"--" }} 
+                ({{ performance_data.busy_percent|default:"--" }}%)
+            </span>
+        </div>
+    </div>
+    
+    <div class="performance-card">
+        <h4><i class="fas fa-clock"></i> Best Performing Times</h4>
+        {% if performance_data.time_slots %}
+            {% for slot in performance_data.time_slots %}
+            <div class="performance-item">
+                <span>{{ slot.time_range }}</span>
+                <span class="performance-value {% if slot.success_rate > 60 %}success{% elif slot.success_rate > 40 %}warning{% else %}danger{% endif %}">
+                    {{ slot.success_rate }}% Success
+                </span>
+            </div>
+            {% endfor %}
+        {% else %}
+        <div class="performance-item">
+            <span style="color: #6b7280; font-style: italic;">No time slot data available from Tata IVR</span>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+fetch('/call-analytics/api/')
+.then(response => response.json())
+.then(data => {
+    const tbody = document.getElementById('callRecordsTable');
+    tbody.innerHTML = '';
+    
+    if (data.success && data.calls && data.calls.length > 0) {
+        data.calls.forEach(call => {
+            const row = document.createElement('tr');
+            const date = new Date(call.start_time);
+            const duration = call.duration ? Math.floor(call.duration / 60) + 'm ' + (call.duration % 60) + 's' : '0s';
+            
+            row.innerHTML = `
+                <td>
+                    <div class="small">${date.toLocaleDateString()}</div>
+                    <div style="font-size: 10px; color: #6b7280;">${date.toLocaleTimeString()}</div>
+                </td>
+                <td>
+                    <div style="font-weight: 600; margin-bottom: 2px;">${call.customer_number || 'Unknown'}</div>
+                    <div style="font-size: 10px; color: #6b7280;">${call.customer_name || 'Tata IVR'}</div>
+                </td>
+                <td>
+                    <div class="small">${call.agent_name || 'System'}</div>
+                    <div style="font-size: 10px; color: #6b7280;">${call.department || 'General'}</div>
+                </td>
+                <td>${duration}</td>
+                <td>
+                    <span class="status-badge status-${call.status || 'unknown'}">
+                        ${(call.status || 'Unknown').charAt(0).toUpperCase() + (call.status || 'unknown').slice(1)}
+                    </span>
+                </td>
+                <td>
+                    ${call.recording_url ? 
+                        '<a href="' + call.recording_url + '" target="_blank" class="btn-play">Play</a>' : 
+                        '<span style="color: #6b7280; font-size: 10px;">No recording</span>'
+                    }
+                </td>
+                <td>
+                    <span class="btn-details" style="opacity: 0.7;">View</span>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+        
+        const summaryRow = document.createElement('tr');
+        summaryRow.innerHTML = `
+            <td colspan="7" class="text-center">
+                <i class="fas fa-check-circle"></i> Showing ${data.calls.length} recent calls from Tata IVR
+            </td>
+        `;
+        tbody.appendChild(summaryRow);
+    } else {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center">
+                    <div class="small"><i class="fas fa-info-circle"></i> No call records found</div>
+                    <div class="small">Tata IVR integration is connected but no calls available</div>
+                </td>
+            </tr>
+        `;
+    }
+})
+.catch(error => {
+    const tbody = document.getElementById('callRecordsTable');
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="7" class="text-center">
+                <div class="small"><i class="fas fa-exclamation-triangle"></i> Error Loading Call Records</div>
+                <div class="small">Error: ${error.message}</div>
+            </td>
+        </tr>
+    `;
+});
+{% endblock %}

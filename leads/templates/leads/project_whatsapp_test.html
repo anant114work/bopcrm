@@ -1,0 +1,277 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}WhatsApp Test - {{ project.name }}{% endblock %}
+{% block page_title %}WhatsApp Test - {{ project.name }}{% endblock %}
+
+{% block content %}
+<style>
+    .campaign-card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; cursor: pointer; }
+    .campaign-card:hover { border-color: #3b82f6; }
+    .campaign-card.selected { border-color: #3b82f6; background: #eff6ff; }
+    .phone-input { display: flex; }
+    .country-code { background: #f3f4f6; border: 1px solid #d1d5db; padding: 0.75rem; border-radius: 6px 0 0 6px; }
+    .result { margin-top: 1rem; padding: 1rem; border-radius: 6px; }
+    .success { background: #ecfdf5; color: #065f46; border: 1px solid #10b981; }
+    .error { background: #fef2f2; color: #991b1b; border: 1px solid #ef4444; }
+</style>
+<div class="card">
+    <h3>WhatsApp Test - {{ project.name }}</h3>
+    <p style="color: #6b7280; margin-bottom: 2rem;">Test WhatsApp campaigns with custom phone numbers</p>
+            
+            <div class="form-group">
+                <label class="form-label">Select Campaign</label>
+                {% for template in project_templates %}
+                <div class="campaign-card" onclick="selectCampaign('{{ template.name }}', '{{ template.id }}')" id="campaign{{ template.id }}">
+                    <h4>{{ template.name }}</h4>
+                    <p class="small">{{ template.message_text|truncatechars:50 }}</p>
+                    <div class="small">{{ template.get_template_type_display }} Template</div>
+                </div>
+                {% empty %}
+                <div class="text-center">
+                    <p>No WhatsApp templates found for {{ project.name }}</p>
+                    <p class="small">Create templates via AI Sensy sync or add campaigns manually</p>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Test Phone Number</label>
+                <div class="phone-input">
+                    <span class="country-code">+91</span>
+                    <input type="tel" id="phoneNumber" class="form-control" placeholder="Enter phone number" style="border-radius: 0 6px 6px 0;">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Test Name</label>
+                <input type="text" id="testName" class="form-control" placeholder="Test User" value="Test User">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Follow-up Timer</label>
+                <div class="d-flex">
+                    <input type="number" id="followupHours" class="form-control" placeholder="0" value="0" min="0" max="23" style="width: 50%;">
+                    <input type="number" id="followupMinutes" class="form-control" placeholder="30" value="30" min="1" max="59" style="width: 50%;">
+                </div>
+                <div class="small">Hours (0-23) and Minutes (1-59)</div>
+            </div>
+            
+            <button class="btn btn-success" onclick="sendTestMessage()" style="width: 100%; margin-bottom: 1rem;">
+                Send Test Message
+            </button>
+            
+            <button class="btn btn-primary" onclick="broadcastToLeads()" style="width: 100%; margin-bottom: 1rem;">
+                Broadcast to {{ leads_count }} Project Leads
+            </button>
+            
+            <button class="btn btn-info" onclick="syncAiSensy()" style="width: 100%; margin-bottom: 1rem;">
+                Sync Templates from AI Sensy
+            </button>
+            
+            <button class="btn btn-secondary" onclick="testConnection()" style="width: 100%;">
+                Test AI Sensy Connection
+            </button>
+            
+    <div id="result"></div>
+    
+    <div id="followupTimer" style="display: none; margin-top: 1rem; padding: 1rem; background: #f0f9ff; border-radius: 6px; border: 1px solid #3b82f6;">
+        <h4 style="margin: 0 0 0.5rem 0; color: #1e40af;">Follow-up Scheduled</h4>
+        <p style="margin: 0; color: #1e40af;">Next message will be sent in: <span id="countdown"></span></p>
+    </div>
+</div>
+    
+    <script>
+        let selectedCampaign = '';
+        
+        function selectCampaign(campaign, templateId) {
+            // Remove previous selection
+            document.querySelectorAll('.campaign-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Select new campaign
+            document.getElementById('campaign' + templateId).classList.add('selected');
+            selectedCampaign = campaign;
+        }
+        
+        function sendTestMessage() {
+            const phoneNumber = document.getElementById('phoneNumber').value;
+            const testName = document.getElementById('testName').value;
+            const followupHours = parseInt(document.getElementById('followupHours').value) || 0;
+            const followupMinutes = parseInt(document.getElementById('followupMinutes').value) || 0;
+            const resultDiv = document.getElementById('result');
+            
+            if (!selectedCampaign) {
+                resultDiv.innerHTML = '<div class="result error">Please select a campaign</div>';
+                return;
+            }
+            
+            if (!phoneNumber) {
+                resultDiv.innerHTML = '<div class="result error">Please enter a phone number</div>';
+                return;
+            }
+            
+            if (followupHours === 0 && followupMinutes === 0) {
+                resultDiv.innerHTML = '<div class="result error">Please set follow-up time (at least 1 minute)</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<div class="result" style="background: #fef3c7; color: #92400e;">Sending test message...</div>';
+            
+            fetch('/whatsapp/test-send/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    campaign: selectedCampaign,
+                    phone: phoneNumber,
+                    name: testName,
+                    followup_hours: followupHours,
+                    followup_minutes: followupMinutes,
+                    project_id: {{ project.id }}
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const imageText = data.has_image ? ' (with project image)' : ' (text only)';
+                    resultDiv.innerHTML = `<div class="result success">Test message sent successfully to ${phoneNumber}${imageText}</div>`;
+                    
+                    // Show follow-up timer
+                    const totalMinutes = (followupHours * 60) + followupMinutes;
+                    const followupTime = new Date(Date.now() + (totalMinutes * 60 * 1000));
+                    
+                    document.getElementById('followupTimer').style.display = 'block';
+                    startCountdown(followupTime);
+                } else {
+                    resultDiv.innerHTML = `<div class="result error">Failed: ${data.error}</div>`;
+                }
+            })
+            .catch(error => {
+                resultDiv.innerHTML = `<div class="result error">❌ Error: ${error.message}</div>`;
+            });
+        }
+        
+        function startCountdown(targetTime) {
+            const countdownElement = document.getElementById('countdown');
+            
+            function updateCountdown() {
+                const now = new Date().getTime();
+                const distance = targetTime.getTime() - now;
+                
+                if (distance < 0) {
+                    countdownElement.innerHTML = 'Follow-up message should be sent now!';
+                    return;
+                }
+                
+                const hours = Math.floor(distance / (1000 * 60 * 60));
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+                
+                countdownElement.innerHTML = `${hours}h ${minutes}m ${seconds}s`;
+            }
+            
+            updateCountdown();
+            setInterval(updateCountdown, 1000);
+        }
+        
+        function syncAiSensy() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<div class="result" style="background: #fef3c7; color: #92400e;">Syncing templates from AI Sensy...</div>';
+            
+            fetch('/whatsapp/sync-aisensy/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    resultDiv.innerHTML = `<div class="result success">${data.message}</div>`;
+                } else {
+                    resultDiv.innerHTML = `<div class="result error">Sync failed: ${data.error}</div>`;
+                }
+            })
+            .catch(error => {
+                resultDiv.innerHTML = `<div class="result error">Error: ${error.message}</div>`;
+            });
+        }
+        
+        function broadcastToLeads() {
+            const followupHours = parseInt(document.getElementById('followupHours').value) || 24;
+            const resultDiv = document.getElementById('result');
+            
+            if (!selectedCampaign) {
+                resultDiv.innerHTML = '<div class="result error">Please select a campaign</div>';
+                return;
+            }
+            
+            if (!confirm(`Send ${selectedCampaign} campaign to {{ leads_count }} project leads with ${followupHours}h follow-up?`)) {
+                return;
+            }
+            
+            resultDiv.innerHTML = '<div class="result" style="background: #fef3c7; color: #92400e;">Broadcasting to project leads...</div>';
+            
+            fetch('/whatsapp/broadcast-to-leads/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    campaign: selectedCampaign,
+                    project_id: {{ project.id }},
+                    followup_hours: followupHours
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    let message = `Broadcast sent to ${data.messages_sent}/${data.total_leads} leads successfully`;
+                    if (data.failed_count > 0) {
+                        message += `<br>Failed: ${data.failed_count} messages`;
+                        if (data.errors && data.errors.length > 0) {
+                            message += `<br>Sample errors: ${data.errors.map(e => e.error).join(', ')}`;
+                        }
+                    }
+                    resultDiv.innerHTML = `<div class="result ${data.failed_count > 0 ? 'error' : 'success'}">${message}</div>`;
+                } else {
+                    resultDiv.innerHTML = `<div class="result error">Broadcast failed: ${data.error}</div>`;
+                }
+            })
+            .catch(error => {
+                resultDiv.innerHTML = `<div class="result error">Broadcast error: ${error.message}</div>`;
+            });
+        }
+        
+        function testConnection() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<div class="result" style="background: #fef3c7; color: #92400e;">Testing AI Sensy connection...</div>';
+            
+            fetch('/whatsapp/test-connection/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    resultDiv.innerHTML = `<div class="result success">Connection successful! Status: ${data.status_code}</div>`;
+                } else {
+                    resultDiv.innerHTML = `<div class="result error">Connection failed: ${data.error || data.response_text} (Status: ${data.status_code || 'N/A'})</div>`;
+                }
+                console.log('API Test Response:', data);
+            })
+            .catch(error => {
+                resultDiv.innerHTML = `<div class="result error">Connection test error: ${error.message}</div>`;
+                console.error('Connection test error:', error);
+            });
+        }
+    </script>
+{% endblock %}

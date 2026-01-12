@@ -1,0 +1,111 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}WhatsApp Dashboard - {{ lead.name }}{% endblock %}
+
+{% block page_title %}📱 WhatsApp Dashboard - {{ lead.name }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h3 style="margin: 0 0 1rem 0;">WhatsApp Dashboard - {{ lead.name }}</h3>
+    <p style="margin: 0 0 1rem 0; color: #6b7280;">Phone: {{ lead.phone }} | Project: {{ project.name|default:"No Project" }}</p>
+    
+    {% if templates %}
+        <div class="gap-2">
+            {% for template in templates %}
+            <div class="card" style="border: 1px solid #3b82f6;">
+                <div class="d-flex">
+                    <strong>{{ template.name }}</strong>
+                    <span style="background: #3b82f6; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">{{ template.template_type }}</span>
+                </div>
+                
+                <p style="margin: 0.5rem 0;"><strong>Order:</strong> {{ template.order }}</p>
+                <p style="margin: 0.5rem 0;"><strong>Delay:</strong> {{ template.drip_delay_minutes }} minutes</p>
+                
+                <div style="margin: 1rem 0;">
+                    <strong>Message:</strong>
+                    <div style="border: 1px solid #d1d5db; padding: 0.5rem; margin-top: 0.5rem; background: #f9fafb; border-radius: 4px;">
+                        {{ template.message_text|linebreaks }}
+                    </div>
+                </div>
+                
+                <button class="btn btn-primary" onclick="sendWhatsAppMessage({{ lead.id }}, {{ template.id }}, '{{ template.name }}', {{ template.drip_delay_minutes }})">
+                    Send Message
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="text-center">
+            <p style="margin: 0 0 1rem 0;">No WhatsApp templates configured for this project.</p>
+            {% if project %}
+                <a href="{% url 'project_whatsapp_templates' project.id %}" class="btn btn-primary">Configure Templates</a>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+
+<!-- Message Status Modal -->
+<div id="messageStatusModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2rem; border-radius: 8px; max-width: 600px; width: 90%;">
+        <div class="d-flex">
+            <h5 style="margin: 0;">WhatsApp Message Status</h5>
+            <button onclick="document.getElementById('messageStatusModal').style.display='none'" class="btn btn-secondary">×</button>
+        </div>
+        
+        <div id="messageStatus"></div>
+        
+        <div id="apiPayload" style="margin-top: 1rem;">
+            <h6>API Payload:</h6>
+            <pre id="payloadJson" style="background: #f9fafb; padding: 1rem; border-radius: 4px; overflow-x: auto; font-size: 0.875rem;"></pre>
+        </div>
+    </div>
+</div>
+
+<script>
+function sendWhatsAppMessage(leadId, templateId, templateName, delayMinutes) {
+    if (delayMinutes > 0) {
+        if (!confirm(`This message will be sent after ${delayMinutes} minutes. Continue?`)) {
+            return;
+        }
+    }
+    
+    fetch('/send-whatsapp-message/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            lead_id: leadId,
+            template_id: templateId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('messageStatus').innerHTML = 
+                `<div style="background: #d1fae5; color: #065f46; padding: 1rem; border-radius: 4px;">${data.message || 'Message sent successfully'}</div>`;
+            document.getElementById('payloadJson').textContent = 
+                JSON.stringify(data.payload || data.results?.[0]?.payload || {}, null, 2);
+            
+            if (delayMinutes > 0) {
+                setTimeout(() => {
+                    alert(`Message "${templateName}" should be sent now!`);
+                }, delayMinutes * 60 * 1000);
+            }
+        } else {
+            const errorMsg = data.error || data.results?.[0]?.error || 'Unknown error occurred';
+            document.getElementById('messageStatus').innerHTML = 
+                `<div style="background: #fee2e2; color: #991b1b; padding: 1rem; border-radius: 4px;">Error: ${errorMsg}</div>`;
+            document.getElementById('payloadJson').textContent = 
+                JSON.stringify(data.payload || data.results?.[0]?.payload || {}, null, 2);
+        }
+        
+        document.getElementById('messageStatusModal').style.display = 'block';
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to send message');
+    });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,376 @@
+{% extends 'leads/base_unified.html' %}
+{% load lead_filters %}
+
+{% block title %}Enhanced Leads{% endblock %}
+{% block page_title %}All Leads{% endblock %}
+
+
+
+{% block content %}
+<div class="leads-container">
+    <!-- Header -->
+    <div class="page-header">
+        <div class="header-top">
+            <div class="header-title">
+                <div class="title-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div>
+                    <h1>Lead Management</h1>
+                    <p class="text-muted">Manage and track all your leads in one place</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">{{ leads.count }}</div>
+                <div class="stat-label">Filtered Results</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ total_leads }}</div>
+                <div class="stat-label">Total Leads</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ qualified_count|default:0 }}</div>
+                <div class="stat-label">Qualified</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ overdue_count|default:0 }}</div>
+                <div class="stat-label">Overdue</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-section" id="filtersSection">
+        <div class="filters-header" onclick="toggleFilters()">
+            <div class="filters-title">
+                <div class="filters-icon">
+                    <i class="fas fa-filter"></i>
+                </div>
+                <span>Advanced Filters</span>
+            </div>
+            <i class="fas fa-chevron-down expand-icon"></i>
+        </div>
+        
+        <div class="filters-content">
+            <form method="get" id="searchForm" class="filters-form">
+                <div class="filter-grid">
+                    <div class="filter-group">
+                        <label class="filter-label">Search</label>
+                        <input type="text" name="search" class="filter-input" placeholder="Name, phone, email..." value="{{ request.GET.search }}">
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label class="filter-label">Source</label>
+                        <select name="source" class="filter-input">
+                            <option value="">All Sources</option>
+                            <option value="meta" {% if request.GET.source == 'meta' %}selected{% endif %}>Meta Leads</option>
+                            <option value="google" {% if request.GET.source == 'google' %}selected{% endif %}>Google Leads</option>
+                            <option value="ivr" {% if request.GET.source == 'ivr' %}selected{% endif %}>IVR Calls</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label class="filter-label">Stage</label>
+                        <select name="stage" class="filter-input">
+                            <option value="">All Stages</option>
+                            <option value="new" {% if request.GET.stage == 'new' %}selected{% endif %}>New</option>
+                            <option value="contacted" {% if request.GET.stage == 'contacted' %}selected{% endif %}>Contacted</option>
+                            <option value="interested" {% if request.GET.stage == 'interested' %}selected{% endif %}>Interested</option>
+                            <option value="hot" {% if request.GET.stage == 'hot' %}selected{% endif %}>Hot</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label class="filter-label">Lead Quality</label>
+                        <select name="quality" class="filter-input">
+                            <option value="">All Leads</option>
+                            <option value="qualified" {% if request.GET.quality == 'qualified' %}selected{% endif %}>Qualified (50s+ calls)</option>
+                            <option value="unqualified" {% if request.GET.quality == 'unqualified' %}selected{% endif %}>Unqualified</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label class="filter-label">Date From</label>
+                        <input type="date" name="date_from" class="filter-input" value="{{ request.GET.date_from }}">
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label class="filter-label">Date To</label>
+                        <input type="date" name="date_to" class="filter-input" value="{{ request.GET.date_to }}">
+                    </div>
+                </div>
+                
+                <div class="filter-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i> Search Leads
+                    </button>
+                    <a href="?" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Clear Filters
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-section">
+        <div class="table-header">
+            <div class="table-title">
+                <i class="fas fa-table"></i>
+                <span>Leads Database</span>
+            </div>
+            <div class="table-stats">
+                <div class="table-stat">
+                    <div class="table-stat-number">{{ leads.count }}</div>
+                    <div class="table-stat-label">Showing</div>
+                </div>
+                <div class="table-stat">
+                    <div class="table-stat-number">{{ page_obj.paginator.count }}</div>
+                    <div class="table-stat-label">Total</div>
+                </div>
+            </div>
+        </div>
+        
+        <table class="leads-table">
+            <thead>
+                <tr>
+                    <th>Lead Information</th>
+                    <th>Contact Details</th>
+                    <th>Source & Quality</th>
+                    <th>Stage</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for lead in leads %}
+                <tr>
+                    <td>
+                        <div class="lead-name">{{ lead.full_name|default:"No Name" }}</div>
+                        <div class="lead-meta">
+                            {% if lead.total_submissions > 1 %}
+                            {{ lead.total_submissions }} submissions • {{ lead.latest_submission|date:"M d" }}
+                            {% else %}
+                            {{ lead.created_time|date:"M d, Y" }}
+                            {% endif %}
+                        </div>
+                        {% if lead.budget %}
+                        <div class="lead-meta" style="color: #10b981; font-weight: 500;">{{ lead.budget }}</div>
+                        {% endif %}
+                    </td>
+                    
+                    <td>
+                        <div class="contact-phone">{% maskable_number lead.phone_number "phone" %}</div>
+                        {% if lead.email %}
+                        <div class="contact-email">{{ lead.email|truncatechars:25 }}</div>
+                        {% endif %}
+                    </td>
+                    
+                    <td>
+                        {% if lead.all_sources %}
+                            {% for source in lead.all_sources|slice:":2" %}
+                                {% if 'meta' in source|lower %}
+                                <span class="source-badge meta-badge">{{ source|truncatechars:8 }}</span>
+                                {% elif 'google' in source|lower %}
+                                <span class="source-badge google-badge">{{ source|truncatechars:8 }}</span>
+                                {% else %}
+                                <span class="source-badge ivr-badge">{{ source|truncatechars:8 }}</span>
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
+                        {% if lead.is_qualified %}
+                        <div class="qualified-badge">
+                            <i class="fas fa-check-circle"></i> Qualified
+                        </div>
+                        {% endif %}
+                    </td>
+                    
+                    <td>
+                        <span class="stage-badge stage-{{ lead.stage }}">
+                            {{ lead.get_stage_display }}
+                        </span>
+                    </td>
+                    
+                    <td style="position: relative;">
+                        <div class="action-buttons">
+                            <button onclick="toggleJourney({{ lead.id }})" class="btn btn-secondary btn-sm">
+                                <i class="fas fa-route"></i> Journey ({{ lead.journey.count }})
+                            </button>
+                            {% if request.session.is_admin %}
+                            <a href="/leads/{{ lead.id }}/whatsapp/" class="btn btn-primary btn-sm">
+                                <i class="fab fa-whatsapp"></i> WhatsApp
+                            </a>
+                            {% endif %}
+                        </div>
+                        
+                        <div id="journey-{{ lead.id }}" class="journey-dropdown">
+                            <div class="journey-header">
+                                <h4 style="margin: 0; font-size: 1rem;">Lead Journey</h4>
+                                <button onclick="toggleJourney({{ lead.id }})" class="journey-close-btn">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="journey-timeline">
+                                {% for journey_item in lead.journey.all|slice:":5" %}
+                                <div class="journey-item">
+                                    <div class="journey-type-badge journey-{{ journey_item.journey_type }}">
+                                        {{ journey_item.get_journey_type_display }}
+                                    </div>
+                                    <div class="journey-title">{{ journey_item.title }}</div>
+                                    <div class="journey-time">{{ journey_item.created_at|date:"M d, H:i" }}</div>
+                                    {% if journey_item.description %}
+                                    <div class="journey-desc">{{ journey_item.description|truncatechars:80 }}</div>
+                                    {% endif %}
+                                </div>
+                                {% empty %}
+                                <div class="journey-item">
+                                    <div class="journey-desc" class="text-center">
+                                        No journey items yet.
+                                    </div>
+                                </div>
+                                {% endfor %}
+                                
+                                {% if lead.journey.count > 5 %}
+                                <div class="journey-item">
+                                    <div class="text-center">
+                                        <a href="/leads/{{ lead.id }}/" style="color: #667eea; font-weight: 500; text-decoration: none;">
+                                            View all {{ lead.journey.count }} items →
+                                        </a>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5">
+                        <div class="empty-state">
+                            <div class="empty-icon">
+                                <i class="fas fa-search" style="font-size: 4rem; opacity: 0.3;"></i>
+                            </div>
+                            <h3>No leads found</h3>
+                            <p>Try adjusting your search criteria or filters</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.paginator.num_pages > 1 %}
+    <div class="pagination-section">
+        <div class="pagination-info">
+            Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} leads
+        </div>
+        
+        <div class="pagination-controls">
+            {% if page_obj.has_previous %}
+            <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page=1" class="page-btn">
+                <i class="fas fa-angle-double-left"></i>
+            </a>
+            <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}" class="page-btn">
+                <i class="fas fa-angle-left"></i>
+            </a>
+            {% endif %}
+            
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <span class="page-btn active">{{ num }}</span>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ num }}" class="page-btn">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+            
+            {% if page_obj.has_next %}
+            <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}" class="page-btn">
+                <i class="fas fa-angle-right"></i>
+            </a>
+            <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.paginator.num_pages }}" class="page-btn">
+                <i class="fas fa-angle-double-right"></i>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+// Toggle filters
+function toggleFilters() {
+    const section = document.getElementById('filtersSection');
+    section.classList.toggle('expanded');
+}
+
+// Journey dropdown
+function toggleJourney(leadId) {
+    document.querySelectorAll('.journey-dropdown').forEach(dropdown => {
+        if (dropdown.id !== `journey-${leadId}`) {
+            dropdown.style.display = 'none';
+        }
+    });
+    
+    const dropdown = document.getElementById(`journey-${leadId}`);
+    const isVisible = dropdown.style.display === 'block';
+    
+    if (isVisible) {
+        dropdown.style.display = 'none';
+    } else {
+        const button = event.target.closest('.btn');
+        const buttonRect = button.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        
+        if (buttonRect.top > viewportHeight / 2) {
+            dropdown.classList.add('open-upward');
+        } else {
+            dropdown.classList.remove('open-upward');
+        }
+        
+        dropdown.style.display = 'block';
+        
+        setTimeout(() => {
+            const dropdownRect = dropdown.getBoundingClientRect();
+            if (dropdownRect.bottom > viewportHeight) {
+                dropdown.scrollIntoView({ behavior: 'smooth', block: 'end' });
+            }
+        }, 10);
+    }
+}
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', function(event) {
+    if (!event.target.closest('.btn') && !event.target.closest('.journey-dropdown')) {
+        document.querySelectorAll('.journey-dropdown').forEach(dropdown => {
+            dropdown.style.display = 'none';
+        });
+    }
+});
+
+// Auto-submit form on filter change
+document.querySelectorAll('select.filter-input').forEach(select => {
+    select.addEventListener('change', () => {
+        document.getElementById('searchForm').submit();
+    });
+});
+
+// Smooth form submission
+document.getElementById('searchForm').addEventListener('submit', function() {
+    const submitBtn = this.querySelector('button[type="submit"]');
+    submitBtn.innerHTML = '<span class="spinner"></span> Searching...';
+    submitBtn.disabled = true;
+});
+
+// Toggle mask function
+function toggleMask(element) {
+    const isCurrentlyMasked = element.textContent === element.dataset.masked;
+    element.textContent = isCurrentlyMasked ? element.dataset.original : element.dataset.masked;
+    element.style.color = isCurrentlyMasked ? '#10b981' : '#6b7280';
+}
+</script>
+{% endblock %}

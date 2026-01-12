@@ -1,0 +1,814 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}Lead Management Dashboard{% endblock %}
+{% block page_title %}Lead Management Dashboard{% endblock %}
+
+
+
+{% block content %}
+<!-- Dashboard Header -->
+<div style="background: white; padding: 24px; border-radius: 8px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <div style="font-size: 28px; font-weight: 700; color: #1e293b; margin-bottom: 4px;">Lead Management Dashboard</div>
+            <div style="font-size: 14px; color: #64748b;">Comprehensive lead tracking and analytics</div>
+        </div>
+        <div style="display: flex; gap: 12px;">
+            <button id="instantSyncBtn" style="padding: 10px 20px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
+                <span id="syncText">Instant Sync</span>
+                <i class="fas fa-sync-alt" id="syncIcon" style="margin-left: 8px;"></i>
+            </button>
+            <a href="/add-lead/" style="padding: 10px 20px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
+                <i class="fas fa-plus"></i> Add Lead
+            </a>
+        </div>
+    </div>
+    <div id="syncMessage" style="margin-top: 12px; display: none;"></div>
+</div>
+
+{% if not ai_analyze %}
+<!-- Source Navigation -->
+<div class="source-tabs">
+    <a href="/leads/" class="source-tab {% if not source_filter %}active{% endif %}">
+        <span class="count">{{ total_leads }}</span>
+        <span class="label">All Leads</span>
+    </a>
+</div>
+
+<!-- Metrics Dashboard -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 16px;">
+    <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 6px; padding: 12px; color: white; transition: all 0.3s ease; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.15); cursor: pointer;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 6px 12px rgba(16, 185, 129, 0.25)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 6px rgba(16, 185, 129, 0.15)'">
+        <div style="font-size: 10px; opacity: 0.85; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600;">Business Value</div>
+        <div style="font-size: 18px; font-weight: 700; margin-bottom: 2px;">₹{{ meta_budget_crores }}Cr</div>
+        <div style="font-size: 10px; opacity: 0.75;">Pipeline</div>
+    </div>
+    
+    <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 6px; padding: 12px; color: white; transition: all 0.3s ease; box-shadow: 0 2px 6px rgba(245, 158, 11, 0.15); cursor: pointer;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 6px 12px rgba(245, 158, 11, 0.25)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 6px rgba(245, 158, 11, 0.15)'">
+        <div style="font-size: 10px; opacity: 0.85; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600;">Call Ready</div>
+        <div style="font-size: 18px; font-weight: 700; margin-bottom: 2px;">{{ leads_with_phone }}</div>
+        <div style="font-size: 10px; opacity: 0.75;">{{ phone_percentage }}% ready</div>
+    </div>
+    
+    <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-radius: 6px; padding: 12px; color: white; transition: all 0.3s ease; box-shadow: 0 2px 6px rgba(239, 68, 68, 0.15); cursor: pointer;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 6px 12px rgba(239, 68, 68, 0.25)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 6px rgba(239, 68, 68, 0.15)'">
+        <div style="font-size: 10px; opacity: 0.85; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600;">Conversion</div>
+        <div style="font-size: 18px; font-weight: 700; margin-bottom: 2px;">{{ conversion_rate }}%</div>
+        <div style="font-size: 10px; opacity: 0.75;">Converted</div>
+    </div>
+    
+    <div style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); border-radius: 6px; padding: 12px; color: white; transition: all 0.3s ease; box-shadow: 0 2px 6px rgba(139, 92, 246, 0.15); cursor: pointer;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 6px 12px rgba(139, 92, 246, 0.25)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 6px rgba(139, 92, 246, 0.15)'">
+        <div style="font-size: 10px; opacity: 0.85; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600;">This Week</div>
+        <div style="font-size: 18px; font-weight: 700; margin-bottom: 2px;">{{ recent_leads_count }}</div>
+        <div style="font-size: 10px; opacity: 0.75;">New leads</div>
+    </div>
+</div>
+
+<!-- Quick Stats Row -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-bottom: 16px;">
+    <div style="background: white; border-radius: 6px; padding: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.06); border-left: 3px solid #3b82f6; transition: all 0.2s;" onmouseover="this.style.boxShadow='0 3px 8px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow='0 1px 2px rgba(0,0,0,0.06)'">
+        <div style="font-size: 10px; color: #6b7280; font-weight: 600; margin-bottom: 3px;">Quality</div>
+        <div style="font-size: 16px; font-weight: 700; color: #1e293b;">{{ quality_score }}%</div>
+    </div>
+    <div style="background: white; border-radius: 6px; padding: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.06); border-left: 3px solid #10b981; transition: all 0.2s;" onmouseover="this.style.boxShadow='0 3px 8px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow='0 1px 2px rgba(0,0,0,0.06)'">
+        <div style="font-size: 10px; color: #6b7280; font-weight: 600; margin-bottom: 3px;">Meta</div>
+        <div style="font-size: 16px; font-weight: 700; color: #1e293b;">{{ meta_with_budget }}</div>
+    </div>
+    <div style="background: white; border-radius: 6px; padding: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.06); border-left: 3px solid #f59e0b; transition: all 0.2s;" onmouseover="this.style.boxShadow='0 3px 8px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow='0 1px 2px rgba(0,0,0,0.06)'">
+        <div style="font-size: 10px; color: #6b7280; font-weight: 600; margin-bottom: 3px;">Google</div>
+        <div style="font-size: 16px; font-weight: 700; color: #1e293b;">{{ google_with_budget }}</div>
+    </div>
+    <div style="background: white; border-radius: 6px; padding: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.06); border-left: 3px solid #8b5cf6; transition: all 0.2s;" onmouseover="this.style.boxShadow='0 3px 8px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow='0 1px 2px rgba(0,0,0,0.06)'">
+        <div style="font-size: 10px; color: #6b7280; font-weight: 600; margin-bottom: 3px;">Top City</div>
+        <div style="font-size: 16px; font-weight: 700; color: #1e293b;">{{ city_analysis.0.city|default:"N/A" }}</div>
+    </div>
+</div>
+{% endif %}
+
+<!-- AI Analysis Controls -->
+{% if ai_analyze %}
+<div style="background: #f8fafc; padding: 16px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #667eea;">
+    <div class="d-flex">
+        <div>
+            <h3 style="margin: 0; color: #667eea;"><i class="fas fa-robot"></i> AI Analysis Mode</h3>
+            <p class="text-muted">Select leads to analyze with AI or analyze individual leads</p>
+        </div>
+        <div class="d-flex">
+            <button id="analyzeBulkBtn" class="btn-filter" style="background: #667eea;">
+                <i class="fas fa-brain"></i> Analyze Selected
+            </button>
+            <button id="suggestProjectsBtn" class="btn-filter" style="background: #10b981;">
+                <i class="fas fa-building"></i> Suggest Projects
+            </button>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Filters -->
+<form method="get">
+    <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; align-items: end;">
+        <div style="display: flex; flex-direction: column;">
+            <label style="display: block; margin-bottom: 4px; font-weight: 500; color: #374151; font-size: 14px;"><i class="fas fa-search"></i> Search</label>
+            <input type="text" name="search" value="{{ search }}" placeholder="Name, phone..." style="width: 100%; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 14px;">
+        </div>
+        <div style="display: flex; flex-direction: column;">
+            <label style="display: block; margin-bottom: 4px; font-weight: 500; color: #374151; font-size: 14px;"><i class="fas fa-filter"></i> Source</label>
+            <input type="text" placeholder="Select sources..." readonly style="width: 100%; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 14px; background: white;">
+        </div>
+        <div style="display: flex; flex-direction: column;">
+            <label style="display: block; margin-bottom: 4px; font-weight: 500; color: #374151; font-size: 14px;"><i class="fas fa-list"></i> Form</label>
+            <input type="text" placeholder="Search forms..." style="width: 100%; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 14px;">
+        </div>
+        <div style="display: flex; flex-direction: column;">
+            <label style="display: block; margin-bottom: 4px; font-weight: 500; color: #374151; font-size: 14px;"><i class="fas fa-calendar"></i> Start</label>
+            <input type="date" name="start_date" value="{{ start_date|default:'' }}" style="width: 100%; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 14px;">
+        </div>
+        <div style="display: flex; flex-direction: column;">
+            <label style="display: block; margin-bottom: 4px; font-weight: 500; color: #374151; font-size: 14px;"><i class="fas fa-calendar"></i> End</label>
+            <input type="date" name="end_date" value="{{ end_date|default:'' }}" style="width: 100%; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 14px;">
+        </div>
+        <button type="submit" style="padding: 10px 16px; background: #60045d; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">Filter</button>
+    </div>
+</form>
+
+<!-- Leads Table -->
+<div style="background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; margin-bottom: 24px;">
+    <div style="padding: 16px 20px; background: #f9fafb; border-bottom: 1px solid #e5e7eb; font-weight: 600; color: #374151; display: flex; align-items: center; gap: 8px;">
+        <i class="fas fa-users"></i> All Leads ({{ leads.paginator.count }})
+    </div>
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: #f9fafb;">
+                    <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Name</th>
+                    <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Contact</th>
+                    <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Budget</th>
+                    <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Form</th>
+                    <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Date</th>
+                    <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Stage</th>
+                    <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Assigned</th>
+                    <th style="padding: 12px 16px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for lead in leads %}
+                <tr style="border-bottom: 1px solid #f3f4f6;">
+                    <td style="padding: 12px 16px; font-size: 14px;">
+                        <div style="font-weight: 600; color: #1e293b; margin-bottom: 4px;">{{ lead.full_name|default:"No Name" }}</div>
+                        {% if lead.source == "Google" %}
+                        <span style="background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600;">Google</span>
+                        {% else %}
+                        <span style="background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600;">{{ lead.source|default:"Meta" }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 12px 16px; font-size: 13px;">
+                        {% if lead.email %}
+                        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px; color: #374151;">
+                            <i class="fas fa-envelope" style="color: #6b7280; width: 14px;"></i>
+                            <span>{{ lead.email|truncatechars:20 }}</span>
+                        </div>
+                        {% endif %}
+                        {% if lead.phone_number %}
+                        <div style="display: flex; align-items: center; gap: 6px; color: #374151;">
+                            <i class="fas fa-phone" style="color: #6b7280; width: 14px;"></i>
+                            <span>{{ lead.phone_number }}</span>
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 12px 16px; font-size: 13px;">
+                        {% if lead.budget %}
+                        <div style="font-weight: 600; color: #10b981; margin-bottom: 4px;">₹{{ lead.budget }}</div>
+                        {% endif %}
+                        {% if lead.city %}
+                        <div style="font-size: 12px; color: #6b7280;">{{ lead.city }}</div>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 12px 16px; font-size: 13px; color: #374151;">{{ lead.form_name|truncatechars:20 }}</td>
+                    <td style="padding: 12px 16px; font-size: 13px;">
+                        <div style="font-weight: 600; color: #1e293b;">{{ lead.created_time|date:"M d" }}</div>
+                        <div style="font-size: 11px; color: #9ca3af;">{{ lead.created_time|date:"H:i" }}</div>
+                    </td>
+                    <td style="padding: 12px 16px; font-size: 13px;">
+                        <span style="background: #dbeafe; color: #1e40af; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase;">{{ lead.get_stage_display|default:"New" }}</span>
+                    </td>
+                    <td style="padding: 12px 16px; font-size: 13px;">
+                        {% if lead.assignment.assigned_to %}
+                        <div style="font-weight: 600; color: #1e293b;">{{ lead.assignment.assigned_to.name|truncatechars:10 }}</div>
+                        <div style="font-size: 11px; color: #9ca3af;">{{ lead.assignment.assigned_at|date:"M d" }}</div>
+                        {% else %}
+                        <span style="color: #ef4444; font-size: 12px; font-weight: 500;">Unassigned</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 12px 16px; font-size: 13px;">
+                        <a href="/leads/{{ lead.id }}/" style="display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 6px; background: #dbeafe; color: #1e40af; text-decoration: none; font-size: 14px;">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" style="padding: 40px; text-align: center; color: #9ca3af;">
+                        <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 16px; display: block;"></i>
+                        No leads found
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if leads.has_other_pages %}
+<div style="background: white; padding: 16px 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 24px;">
+    {% if leads.has_previous %}
+        <a href="?page=1{% if search %}&search={{ search }}{% endif %}{% if form_filter %}&form={{ form_filter }}{% endif %}{% if source_filter %}&source={{ source_filter }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}" style="padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 6px; text-decoration: none; color: #374151; font-size: 14px;">&laquo; First</a>
+        <a href="?page={{ leads.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if form_filter %}&form={{ form_filter }}{% endif %}{% if source_filter %}&source={{ source_filter }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}" style="padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 6px; text-decoration: none; color: #374151; font-size: 14px;">&lsaquo; Previous</a>
+    {% endif %}
+    
+    <span style="padding: 8px 12px; color: #374151; font-size: 14px;">
+        Page {{ leads.number }} of {{ leads.paginator.num_pages }}
+    </span>
+    
+    {% if leads.has_next %}
+        <a href="?page={{ leads.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if form_filter %}&form={{ form_filter }}{% endif %}{% if source_filter %}&source={{ source_filter }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}" style="padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 6px; text-decoration: none; color: #374151; font-size: 14px;">Next &rsaquo;</a>
+        <a href="?page={{ leads.paginator.num_pages }}{% if search %}&search={{ search }}{% endif %}{% if form_filter %}&form={{ form_filter }}{% endif %}{% if source_filter %}&source={{ source_filter }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}" style="padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 6px; text-decoration: none; color: #374151; font-size: 14px;">Last &raquo;</a>
+    {% endif %}
+</div>
+{% endif %}
+<script>
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function regularCall(phone) {
+    if (confirm(`Start regular call to ${phone}?`)) {
+        fetch('/initiate-click-call/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                phone_number: phone
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                throw new Error('Server returned HTML instead of JSON - check authentication');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                alert(`📞 Regular Call Initiated!\n\nCall will be placed to ${phone}`);
+            } else {
+                alert('Call failed: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Error initiating call: ' + error.message);
+        });
+    }
+}
+
+function aiCall(phone, name) {
+    if (confirm(`Start AI call to ${name} at ${phone}?`)) {
+        fetch('/simple-ai-call/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                phone_number: phone,
+                lead_name: name
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                throw new Error('Server returned HTML instead of JSON - check authentication');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                alert(`🤖 AI Call Initiated!\n\nAI agent will call ${name} at ${phone}\n\nCall ID: ${data.call_id || 'N/A'}`);
+            } else {
+                alert('AI Call failed: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Error: ' + error.message);
+        });
+    }
+}
+
+
+
+// Event listeners for call buttons
+document.addEventListener('click', function(e) {
+    if (e.target.closest('.regular-call-btn')) {
+        const phone = e.target.closest('.regular-call-btn').dataset.phone;
+        regularCall(phone);
+    }
+    
+    if (e.target.closest('.ai-call-btn')) {
+        const phone = e.target.closest('.ai-call-btn').dataset.phone;
+        const name = e.target.closest('.ai-call-btn').dataset.name;
+        aiCall(phone, name);
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    // AI Modal handler
+    const aiModal = document.getElementById('aiModal');
+    if (aiModal) {
+        aiModal.addEventListener('show.bs.modal', function(event) {
+            // Modal functionality here
+        });
+    }addEventListener('show.bs.modal', function(event) {
+            // Modal functionality here
+        });
+    }
+});
+</script>
+{% endblock %}
+        aiModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const leadId = button.getAttribute('data-lead-id');
+            const name = button.getAttribute('data-lead-name');
+            const phone = button.getAttribute('data-lead-phone');
+            const email = button.getAttribute('data-lead-email');
+            const city = button.getAttribute('data-lead-city');
+            const budget = button.getAttribute('data-lead-budget');
+            const config = button.getAttribute('data-lead-config');
+            const form = button.getAttribute('data-lead-form');
+            
+            const modalContent = document.getElementById('aiModalContent');
+            modalContent.innerHTML = `
+                <div class="text-center p-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2">Analyzing ${name} with AI...</p>
+                </div>
+            `;
+            
+            fetch('/ai/analyze-lead/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({lead_id: leadId, include_projects: true})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const analysis = data.analysis;
+                    const projects = data.suggested_projects || [];
+                    
+                    const scoreColor = analysis.quality_score >= 8 ? 'success' : analysis.quality_score >= 6 ? 'warning' : 'danger';
+                    const priorityColor = analysis.priority === 'high' ? 'danger' : analysis.priority === 'medium' ? 'warning' : 'secondary';
+                    
+                    modalContent.innerHTML = `
+                        <div class="mb-3">
+                            <h4 class="mb-2">${name}</h4>
+                            <div class="d-flex gap-2 mb-3">
+                                <span class="badge bg-${scoreColor}">Quality: ${analysis.quality_score}/10</span>
+                                <span class="badge bg-${priorityColor}">${analysis.priority.toUpperCase()} Priority</span>
+                            </div>
+                        </div>
+                        
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <h6 class="card-title">Lead Profile Analysis</h6>
+                                <div class="row">
+                                    <div class="col-6"><strong>Phone:</strong> ${phone || 'Not provided'}</div>
+                                    <div class="col-6"><strong>Email:</strong> ${email || 'Not provided'}</div>
+                                    <div class="col-6"><strong>City:</strong> ${city || 'Not provided'}</div>
+                                    <div class="col-6"><strong>Budget:</strong> ${budget || 'Not specified'}</div>
+                                    <div class="col-6"><strong>Config:</strong> ${config || 'Not specified'}</div>
+                                    <div class="col-6"><strong>Source:</strong> ${form || 'Unknown'}</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <h6>AI Recommendations</h6>
+                            <ul class="list-unstyled">
+                                ${analysis.recommendations ? analysis.recommendations.map(rec => `<li class="mb-1"><i class="fas fa-check-circle text-success me-2"></i>${rec}</li>`).join('') : '<li><i class="fas fa-check-circle text-success me-2"></i>Contact within 24 hours</li><li><i class="fas fa-check-circle text-success me-2"></i>Verify budget and requirements</li>'}
+                            </ul>
+                        </div>
+                        
+                        <div class="alert alert-info mb-3">
+                            <strong>Lead Type:</strong> ${analysis.lead_type || 'Prospect'} | 
+                            <strong>Next Action:</strong> ${analysis.next_action || 'Call'}
+                        </div>
+                        
+                        ${projects.length > 0 ? `
+                        <div class="mb-3">
+                            <h6>Suggested Projects</h6>
+                            <div class="d-grid gap-2">
+                                ${projects.map(project => `
+                                    <div class="alert alert-primary mb-1">
+                                        <i class="fas fa-building me-2"></i>${project}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        ` : ''}
+                        
+                        <div class="d-flex gap-2 justify-content-center">
+                            <button class="btn btn-success btn-sm" onclick="generateMessage(${leadId})">
+                                <i class="fas fa-message"></i> Generate Message
+                            </button>
+                            <button class="btn btn-primary btn-sm" onclick="getCallTime(${leadId})">
+                                <i class="fas fa-clock"></i> Best Call Time
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    modalContent.innerHTML = `
+                        <div class="alert alert-danger text-center">
+                            <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                            <p>Error analyzing lead: ${data.error}</p>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                modalContent.innerHTML = `
+                    <div class="alert alert-danger text-center">
+                        <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                        <p>Error: ${error}</p>
+                    </div>
+                `;
+            });
+        });
+    }
+    
+    // Bulk analyze button
+    const analyzeBulkBtn = document.getElementById('analyzeBulkBtn');
+    if (analyzeBulkBtn) {
+        analyzeBulkBtn.addEventListener('click', function() {
+            const selected = Array.from(document.querySelectorAll('.lead-checkbox:checked')).map(cb => cb.value);
+            if (selected.length === 0) {
+                alert('Please select leads to analyze');
+                return;
+            }
+            
+            fetch('/ai/bulk-analyze/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({lead_ids: selected})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Analyzed ${data.analyzed_count} leads:\n\nHigh Quality: ${data.results.filter(r => r.analysis.quality_score >= 8).length}\nMedium Quality: ${data.results.filter(r => r.analysis.quality_score >= 6 && r.analysis.quality_score < 8).length}\nLow Quality: ${data.results.filter(r => r.analysis.quality_score < 6).length}`);
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            });
+        });
+    }
+    
+    // Suggest projects button
+    const suggestProjectsBtn = document.getElementById('suggestProjectsBtn');
+    if (suggestProjectsBtn) {
+        suggestProjectsBtn.addEventListener('click', function() {
+            const selected = Array.from(document.querySelectorAll('.lead-checkbox:checked')).map(cb => cb.value);
+            if (selected.length === 0) {
+                alert('Please select leads for project suggestions');
+                return;
+            }
+            
+            alert(`AI Project Suggestions for ${selected.length} leads:\n\n• Premium 2-3 BHK apartments in Gurgaon\n• Budget-friendly options in Noida\n• Luxury villas in Delhi NCR\n• Commercial spaces for investment\n• Ready-to-move properties`);
+        });
+    }
+    
+    // Select All functionality
+    const selectAll = document.getElementById('selectAll');
+    if (selectAll) {
+        selectAll.addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('.lead-checkbox');
+            checkboxes.forEach(cb => cb.checked = this.checked);
+        });
+    }
+    
+    // Instant Sync functionality
+    const instantSyncBtn = document.getElementById('instantSyncBtn');
+    if (instantSyncBtn) {
+        instantSyncBtn.addEventListener('click', function() {
+            const btn = this;
+            const icon = document.getElementById('syncIcon');
+            const text = document.getElementById('syncText');
+            const message = document.getElementById('syncMessage');
+            
+            // Show loading state
+            btn.disabled = true;
+            btn.style.background = '#6b7280';
+            text.style.display = 'none';
+            icon.style.display = 'none';
+            document.getElementById('spinner').style.display = 'block';
+            
+            // Show loading message
+            message.style.display = 'block';
+            message.style.background = '#dbeafe';
+            message.style.color = '#1e40af';
+            message.style.border = '1px solid #93c5fd';
+            message.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connecting to Meta API and syncing leads...';
+            
+            fetch('/sync/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    since_date: new Date().toISOString().split('T')[0],
+                    until_date: new Date().toISOString().split('T')[0]
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (data.total_synced > 0) {
+                        // Success with new leads
+                        message.style.background = '#dcfce7';
+                        message.style.color = '#166534';
+                        message.style.border = '1px solid #86efac';
+                        message.innerHTML = `<i class="fas fa-check-circle"></i> Success! Found ${data.total_synced} new leads. Today: ${data.today_leads || 0} leads. Refreshing page...`;
+                        
+                        setTimeout(() => {
+                            location.reload();
+                        }, 2000);
+                    } else {
+                        // Success but no new leads
+                        message.style.background = '#fef3c7';
+                        message.style.color = '#92400e';
+                        message.style.border = '1px solid #fcd34d';
+                        message.innerHTML = `<i class="fas fa-info-circle"></i> Sync completed - No new leads found. Today: ${data.today_leads || 0} leads total.`;
+                        
+                        setTimeout(() => {
+                            message.style.display = 'none';
+                        }, 4000);
+                    }
+                } else {
+                    // Error
+                    message.style.background = '#fee2e2';
+                    message.style.color = '#dc2626';
+                    message.style.border = '1px solid #fca5a5';
+                    message.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Sync failed: ${data.error}`;
+                    
+                    setTimeout(() => {
+                        message.style.display = 'none';
+                    }, 5000);
+                }
+            })
+            .catch(error => {
+                message.style.background = '#fee2e2';
+                message.style.color = '#dc2626';
+                message.style.border = '1px solid #fca5a5';
+                message.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Network error: ${error.message}`;
+                
+                setTimeout(() => {
+                    message.style.display = 'none';
+                }, 5000);
+            })
+            .finally(() => {
+                // Reset button state
+                btn.disabled = false;
+                btn.style.background = '#10b981';
+                text.style.display = 'inline';
+                icon.style.display = 'inline';
+                document.getElementById('spinner').style.display = 'none';
+            });
+        });
+    }
+    
+
+});
+
+function generateMessage(leadId) {
+    fetch('/ai/generate-follow-up/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({lead_id: leadId, context: 'Follow-up after AI analysis'})
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`AI Generated Message:\n\n"${data.message}"`);
+        } else {
+            alert('Error generating message: ' + data.error);
+        }
+    });
+}
+
+function getCallTime(leadId) {
+    fetch('/ai/suggest-call-time/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({lead_id: leadId})
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Best Call Time:\n\n${data.suggestion}`);
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+}
+
+
+
+
+function showDropdown(id) {
+    document.getElementById(id).style.display = 'block';
+}
+
+function filterOptions(dropdownId, searchValue) {
+    const options = document.querySelectorAll(`#${dropdownId} .form-option`);
+    options.forEach(option => {
+        const text = option.textContent.toLowerCase();
+        option.style.display = text.includes(searchValue.toLowerCase()) ? 'block' : 'none';
+    });
+}
+
+function selectForm(value, display) {
+    document.getElementById('formInput').value = display;
+    document.getElementById('formValue').value = value;
+    document.getElementById('formDropdown').style.display = 'none';
+}
+
+function toggleSource(value) {
+    const checkbox = document.querySelector(`input[value="${value}"]`);
+    checkbox.checked = !checkbox.checked;
+    
+    const selected = Array.from(document.querySelectorAll('#sourceDropdown input:checked')).map(i => i.nextSibling.textContent.trim());
+    document.getElementById('sourceInput').value = selected.length ? selected.join(', ') : 'Select sources...';
+    document.getElementById('sourceValue').value = selected.join(',');
+}
+
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.dropdown-container')) {
+        document.querySelectorAll('.dropdown-menu').forEach(menu => menu.style.display = 'none');
+    }
+});
+
+// Initialize display values
+window.addEventListener('load', function() {
+    const sourceValue = '{{ source_filter }}';
+    if (sourceValue) {
+        const sources = sourceValue.split(',');
+        const labels = [];
+        sources.forEach(src => {
+            const checkbox = document.querySelector(`#sourceDropdown input[value="${src}"]`);
+            if (checkbox) {
+                checkbox.checked = true;
+                labels.push(checkbox.nextSibling.textContent.trim());
+            }
+        });
+        document.getElementById('sourceInput').value = labels.join(', ');
+    }
+    
+    const formValue = '{{ form_filter }}';
+    if (formValue) {
+        document.getElementById('formInput').value = formValue;
+    }
+});
+
+</script>
+function initiateAcefoneCall(leadId, phone) {
+    if (confirm(`Initiate Call Karo AI call to ${phone}?`)) {
+        fetch('/acefone-call/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                lead_id: leadId,
+                phone: phone
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Call initiated successfully via Call Karo AI! Call ID: ' + data.call_id);
+                location.reload(); // Refresh to show updated stage
+            } else {
+                alert('Call failed: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Call error:', error);
+            alert('Error initiating call: ' + error.message);
+        });
+    }
+}
+</script>
+// Call dropdown functions
+function toggleCallDropdown(leadId) {
+    const dropdown = document.getElementById(`callDropdown${leadId}`);
+    // Close all other dropdowns
+    document.querySelectorAll('.call-dropdown').forEach(d => {
+        if (d.id !== `callDropdown${leadId}`) d.style.display = 'none';
+    });
+    dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+}
+
+function scheduleCall(leadId, phone) {
+    const datetime = prompt(`Schedule call for lead ${leadId}\n\nEnter date and time (YYYY-MM-DD HH:MM):`);
+    if (!datetime) return;
+    
+    fetch('/acefone-call/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            lead_id: leadId,
+            phone: phone,
+            schedule_at: datetime,
+            min_trigger_time: "09:00",
+            max_trigger_time: "20:00",
+            number_of_retries: 2,
+            gap_between_retries: [30, 60]
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Call scheduled successfully!\nCall ID: ${data.call_id}\nScheduled for: ${datetime}`);
+        } else {
+            alert('Schedule failed: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        alert('Error scheduling call: ' + error.message);
+    });
+}
+
+function viewCallLogs(leadId) {
+    fetch(`/call-logs/?lead_id=${leadId}`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.call_logs && data.call_logs.length > 0) {
+            let logText = `Call History for Lead ${leadId}:\n\n`;
+            data.call_logs.forEach(log => {
+                logText += `📞 ${log.status.toUpperCase()}\n`;
+                logText += `   Phone: ${log.phone}\n`;
+                logText += `   Time: ${new Date(log.initiated_at).toLocaleString()}\n`;
+                logText += `   Agent: ${log.team_member}\n\n`;
+            });
+            alert(logText);
+        } else {
+            alert('No call logs found for this lead.');
+        }
+    })
+    .catch(error => {
+        alert('Error fetching call logs: ' + error.message);
+    });
+}
+
+function viewRecordings(leadId) {
+    alert(`Call recordings for Lead ${leadId}:\n\n🎵 Recording functionality coming soon!\n\nThis will show:\n• Call recordings\n• Call duration\n• Call quality metrics\n• Conversation transcripts`);
+}
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.dropdown')) {
+        document.querySelectorAll('.call-dropdown').forEach(d => d.style.display = 'none');
+    }
+});

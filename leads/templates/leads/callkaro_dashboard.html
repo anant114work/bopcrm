@@ -1,0 +1,177 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}Call Karo AI Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Call Karo AI Dashboard</h3>
+                    <div class="card-tools">
+                        <a href="{% url 'callkaro_config' %}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-cog"></i> Configuration
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Stats Row -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="info-box">
+                                <span class="info-box-icon bg-info"><i class="fas fa-phone"></i></span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Calls Today</span>
+                                    <span class="info-box-number">{{ stats.total_calls_today }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="info-box">
+                                <span class="info-box-icon bg-success"><i class="fas fa-check"></i></span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Completed</span>
+                                    <span class="info-box-number">{{ stats.completed_calls_today }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="info-box">
+                                <span class="info-box-icon bg-warning"><i class="fas fa-bullhorn"></i></span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Active Campaigns</span>
+                                    <span class="info-box-number">{{ stats.active_campaigns }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="info-box">
+                                <span class="info-box-icon bg-purple"><i class="fas fa-robot"></i></span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">AI Agents</span>
+                                    <span class="info-box-number">{{ stats.total_agents }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <!-- Recent Calls -->
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Recent AI Calls</h5>
+                                </div>
+                                <div class="card-body">
+                                    {% if recent_calls %}
+                                    <div class="table-responsive">
+                                        <table class="table table-striped">
+                                            <thead>
+                                                <tr>
+                                                    <th>Call ID</th>
+                                                    <th>Phone</th>
+                                                    <th>Lead</th>
+                                                    <th>Agent</th>
+                                                    <th>Status</th>
+                                                    <th>Duration</th>
+                                                    <th>Time</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for call in recent_calls %}
+                                                <tr>
+                                                    <td><code>{{ call.call_id|truncatechars:15 }}</code></td>
+                                                    <td>{{ call.phone_number }}</td>
+                                                    <td>
+                                                        {% if call.lead %}
+                                                            <a href="{% url 'lead_detail' call.lead.id %}">{{ call.lead.full_name }}</a>
+                                                        {% else %}
+                                                            Manual Call
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>{{ call.agent.name }}</td>
+                                                    <td>
+                                                        {% if call.status == 'completed' %}
+                                                            <span class="badge bg-success">{{ call.status|title }}</span>
+                                                        {% elif call.status == 'failed' %}
+                                                            <span class="badge bg-danger">{{ call.status|title }}</span>
+                                                        {% elif call.status == 'initiated' %}
+                                                            <span class="badge bg-primary">{{ call.status|title }}</span>
+                                                        {% else %}
+                                                            <span class="badge bg-secondary">{{ call.status|title }}</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>{{ call.duration_formatted }}</td>
+                                                    <td>{{ call.created_at|timesince }} ago</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    {% else %}
+                                    <div class="text-center py-4">
+                                        <i class="fas fa-phone fa-3x text-muted mb-3"></i>
+                                        <p class="text-muted">No AI calls made yet.</p>
+                                        <a href="{% url 'call_panel' %}" class="btn btn-primary">Start Making Calls</a>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- AI Agents & Campaigns -->
+                        <div class="col-md-4">
+                            <!-- AI Agents -->
+                            <div class="card mb-3">
+                                <div class="card-header">
+                                    <h5>AI Agents</h5>
+                                </div>
+                                <div class="card-body">
+                                    {% if agents %}
+                                    {% for agent in agents %}
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <div>
+                                            <strong>{{ agent.name }}</strong><br>
+                                            <small class="text-muted">{{ agent.agent_id }}</small>
+                                        </div>
+                                        <span class="badge bg-success">Active</span>
+                                    </div>
+                                    {% endfor %}
+                                    {% else %}
+                                    <p class="text-muted">No agents configured.</p>
+                                    <a href="{% url 'callkaro_config' %}" class="btn btn-sm btn-primary">Add Agents</a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <!-- Recent Campaigns -->
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Recent Campaigns</h5>
+                                </div>
+                                <div class="card-body">
+                                    {% if campaigns %}
+                                    {% for campaign in campaigns %}
+                                    <div class="mb-3 p-2 border rounded">
+                                        <strong>{{ campaign.name }}</strong><br>
+                                        <small class="text-muted">{{ campaign.batch_id }}</small><br>
+                                        <div class="mt-1">
+                                            <span class="badge bg-info">{{ campaign.total_calls }} calls</span>
+                                            <span class="badge bg-success">{{ campaign.completed_calls }} completed</span>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                    {% else %}
+                                    <p class="text-muted">No campaigns created yet.</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}Projects - Meta Leads CRM{% endblock %}
+{% block page_title %}🏗️ Projects{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-content">
+        <h3 class="mb-4">All Projects</h3>
+        
+        <div class="project-grid">
+            {% for project in projects %}
+            <div class="card project-card-item">
+                <div class="card-content">
+                    <h4 class="project-title">{{ project.name }}</h4>
+                    <p class="project-detail">
+                        <strong>Developer:</strong> {{ project.developer }}
+                    </p>
+                    <p class="project-detail">
+                        <strong>Location:</strong> {{ project.location }}
+                    </p>
+                    <p class="project-detail mb-3">
+                        <strong>Leads:</strong> {{ project.lead_count }}
+                    </p>
+                    <div class="project-actions">
+                        <a href="/projects/{{ project.id }}/" class="btn btn-secondary btn-sm">
+                            📋 Details
+                        </a>
+                        <a href="/projects/{{ project.id }}/leads/" class="btn btn-primary btn-sm">
+                            👥 Leads
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="no-projects">
+                <h4>No projects found</h4>
+                <p>Projects will be created automatically based on form names.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

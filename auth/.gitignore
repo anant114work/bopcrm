@@ -1,0 +1,9 @@
+# Ignore all credential files with actual passwords
+*_actual.md
+*_prod.md
+*.env
+*.key
+*.pem
+*.json
+credentials.txt
+passwords.txt

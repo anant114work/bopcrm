@@ -1,0 +1,130 @@
+{% extends 'leads/base_unified.html' %}
+{% load lead_filters %}
+
+{% block title %}{{ project.name }} Leads - Meta Leads CRM{% endblock %}
+{% block page_title %}🏗️ {{ project.name }} Leads{% endblock %}
+
+{% block content %}
+<div class="card" style="margin-bottom: 1rem;">
+    <div class="d-flex">
+        <div>
+            <h3 style="margin: 0;">{{ project.name }}</h3>
+            <p style="margin: 0.5rem 0 0 0; color: #6b7280;">
+                {{ project.developer }} • {{ project.location }} • {{ total_leads }} leads
+            </p>
+        </div>
+        <a href="/projects/" class="btn btn-secondary">← Back to Projects</a>
+    </div>
+</div>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Contact</th>
+                <th>Requirements</th>
+                <th>Form</th>
+                <th>Date</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for lead in leads %}
+            <tr>
+                <td>
+                    <div>
+                        <a href="/leads/{{ lead.id }}/" style="font-weight: 600; color: #1e293b; text-decoration: none;">
+                            {{ lead.full_name|default:"No Name" }}
+                        </a>
+                        {% if lead.budget %}
+                        <div class="text-muted">
+                            Budget: {{ lead.budget }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </td>
+                <td>
+                    <div>
+                        {% if lead.email %}
+                        <div style="margin-bottom: 4px;">
+                            <a href="mailto:{{ lead.email }}" class="small">
+                                {{ lead.email }}
+                            </a>
+                        </div>
+                        {% endif %}
+                        {% if lead.phone_number %}
+                        <div>
+                            <a href="tel:{{ lead.phone_number }}" class="small">
+                                {% maskable_number lead.phone_number "phone" %}
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </td>
+                <td>
+                    {% if lead.configuration %}
+                    <div class="small">
+                        {{ lead.configuration }}
+                    </div>
+                    {% endif %}
+                    {% if lead.preferred_time %}
+                    <div class="text-muted">
+                        Preferred: {{ lead.preferred_time }}
+                    </div>
+                    {% endif %}
+                </td>
+                <td>
+                    <span class="text-muted">
+                        {{ lead.form_name|truncatechars:25 }}
+                    </span>
+                </td>
+                <td>
+                    <div class="text-muted">
+                        {{ lead.created_time|date:"M d, Y" }}<br>
+                        <span style="font-size: 11px;">{{ lead.created_time|date:"H:i" }}</span>
+                    </div>
+                </td>
+                <td>
+                    <a href="/leads/{{ lead.id }}/" class="btn btn-secondary" class="small">
+                        Details
+                    </a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-center">
+                    No leads found for this project
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if leads.has_other_pages %}
+<div class="pagination">
+    {% if leads.has_previous %}
+        <a href="?page=1">« First</a>
+        <a href="?page={{ leads.previous_page_number }}">‹ Previous</a>
+    {% endif %}
+    
+    <span class="current">Page {{ leads.number }} of {{ leads.paginator.num_pages }}</span>
+    
+    {% if leads.has_next %}
+        <a href="?page={{ leads.next_page_number }}">Next ›</a>
+        <a href="?page={{ leads.paginator.num_pages }}">Last »</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function toggleMask(element) {
+        const isCurrentlyMasked = element.textContent === element.dataset.masked;
+        element.textContent = isCurrentlyMasked ? element.dataset.original : element.dataset.masked;
+        element.style.color = isCurrentlyMasked ? '#10b981' : '#6b7280';
+    }
+</script>
+{% endblock %}

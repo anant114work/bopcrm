@@ -1,0 +1,304 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}Call Report Upload - Meta Leads CRM{% endblock %}
+{% block page_title %}Call Report Upload{% endblock %}
+
+
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-file-upload"></i> Upload Call Reports</h2>
+    </div>
+    <div class="card-content">
+        
+        <!-- Upload Form -->
+        <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+            <h3 style="margin-bottom: 15px;"><i class="fas fa-cloud-upload-alt"></i> Upload Excel File</h3>
+            <p class="text-muted">
+                Upload your call report Excel file with the exact format: Phone Number, Agent, Version, Call Date, Call Time, Disposition, Call Duration, etc.
+            </p>
+            
+            <form id="uploadForm" enctype="multipart/form-data">
+                <div class="d-flex">
+                    <div>
+                        <label for="excelFile" style="display: block; margin-bottom: 5px; font-weight: bold;">Excel File:</label>
+                        <input type="file" id="excelFile" name="excel_file" accept=".xlsx,.xls" required 
+                               style="padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;">
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="uploadBtn">
+                        <i class="fas fa-upload"></i> Upload & Process
+                    </button>
+                    <button type="button" class="btn btn-info" id="reprocessBtn" onclick="reprocessMatching()">
+                        <i class="fas fa-sync-alt"></i> Reprocess Matching
+                    </button>
+                </div>
+            </form>
+            
+            <div id="uploadStatus" style="margin-top: 15px; display: none;"></div>
+        </div>
+
+        <!-- Expected Format -->
+        <div style="background: #fef3c7; padding: 15px; border-radius: 8px; margin-bottom: 30px;">
+            <h4 style="color: #92400e; margin-bottom: 10px;"><i class="fas fa-info-circle"></i> Expected Excel Format</h4>
+            <div style="overflow-x: auto;">
+                <table class="table" class="small">
+                    <thead>
+                        <tr style="background: #f59e0b; color: white;">
+                            <th>Phone Number</th>
+                            <th>Agent</th>
+                            <th>Version</th>
+                            <th>Call Date</th>
+                            <th>Call Time</th>
+                            <th>Disposition</th>
+                            <th>Call Duration</th>
+                            <th>Call Recording</th>
+                            <th>Try Count</th>
+                            <th>Hangup Reason</th>
+                            <th>Cost</th>
+                            <th>source</th>
+                            <th>project</th>
+                            <th>campaign_type</th>
+                            <th>lead_source</th>
+                            <th>conversion_status</th>
+                            <th>disposition_reason</th>
+                            <th>x_model_used</th>
+                            <th>variable_name</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>917088845807</td>
+                            <td>au-reality</td>
+                            <td>v1</td>
+                            <td>2025-12-13</td>
+                            <td>2025-12-13 16:05:31</td>
+                            <td>User declined...</td>
+                            <td>194.964997</td>
+                            <td>https://...</td>
+                            <td>0</td>
+                            <td>CLIENT_INITIATED</td>
+                            <td>27.6580528</td>
+                            <td>auto_call_today_meta</td>
+                            <td>AU Aspire Leisure Valley</td>
+                            <td>daily_auto_call_meta</td>
+                            <td>Meta</td>
+                            <td>FALSE</td>
+                            <td>User declined...</td>
+                            <td>gpt-5-mini-1</td>
+                            <td></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Recent Uploads -->
+        <div>
+            <h3 style="margin-bottom: 20px;"><i class="fas fa-history"></i> Recent Uploads</h3>
+            
+            {% if recent_uploads %}
+            <div style="overflow-x: auto;">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Upload Date</th>
+                            <th>Filename</th>
+                            <th>Total Records</th>
+                            <th>Matched</th>
+                            <th>Unmatched</th>
+                            <th>Success Rate</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for upload in recent_uploads %}
+                        <tr>
+                            <td>{{ upload.uploaded_at|date:"M d, Y H:i" }}</td>
+                            <td>{{ upload.filename }}</td>
+                            <td>{{ upload.total_records }}</td>
+                            <td style="color: #10b981;">{{ upload.matched_records }}</td>
+                            <td style="color: #ef4444;">{{ upload.unmatched_records }}</td>
+                            <td>
+                                {% if upload.total_records > 0 %}
+                                    {% widthratio upload.matched_records upload.total_records 100 %}%
+                                {% else %}
+                                    0%
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="/call-reports/dashboard/{{ upload.id }}/" class="btn btn-primary" class="small">
+                                    <i class="fas fa-chart-bar"></i> View Report
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center">
+                <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 16px; display: block;"></i>
+                No uploads found. Upload your first call report above.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('uploadForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData();
+    const fileInput = document.getElementById('excelFile');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const status = document.getElementById('uploadStatus');
+    
+    if (!fileInput.files[0]) {
+        alert('Please select a file');
+        return;
+    }
+    
+    formData.append('excel_file', fileInput.files[0]);
+    
+    uploadBtn.disabled = true;
+    uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    status.style.display = 'block';
+    status.innerHTML = '<div style="color: #3b82f6;">Uploading and processing file...</div>';
+    
+    fetch('/call-reports/process/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            status.innerHTML = `
+                <div style="color: #10b981; padding: 15px; background: #ecfdf5; border-radius: 6px;">
+                    <i class="fas fa-check-circle"></i> <strong>Upload Successful!</strong><br>
+                    <div style="margin-top: 10px;">
+                        📊 Total Records: ${data.total_records}<br>
+                        ✅ Matched: ${data.matched_records}<br>
+                        ❌ Unmatched: ${data.unmatched_records}<br>
+                        📈 Success Rate: ${Math.round((data.matched_records / data.total_records) * 100)}%
+                    </div>
+                    <div style="margin-top: 15px;">
+                        <a href="/call-reports/dashboard/${data.upload_id}/" class="btn btn-primary">
+                            <i class="fas fa-chart-bar"></i> View Detailed Report
+                        </a>
+                    </div>
+                </div>
+            `;
+            
+            // Reset form
+            fileInput.value = '';
+            
+            // Refresh page after 3 seconds
+            setTimeout(() => {
+                window.location.reload();
+            }, 3000);
+        } else {
+            status.innerHTML = `
+                <div style="color: #ef4444; padding: 15px; background: #fef2f2; border-radius: 6px;">
+                    <i class="fas fa-exclamation-circle"></i> <strong>Upload Failed!</strong><br>
+                    ${data.error}
+                </div>
+            `;
+        }
+        
+        uploadBtn.disabled = false;
+        uploadBtn.innerHTML = '<i class="fas fa-upload"></i> Upload & Process';
+    })
+    .catch(error => {
+        status.innerHTML = `
+            <div style="color: #ef4444; padding: 15px; background: #fef2f2; border-radius: 6px;">
+                <i class="fas fa-exclamation-circle"></i> <strong>Error!</strong><br>
+                ${error.message}
+            </div>
+        `;
+        
+        uploadBtn.disabled = false;
+        uploadBtn.innerHTML = '<i class="fas fa-upload"></i> Upload & Process';
+    });
+});
+
+function reprocessMatching() {
+    const reprocessBtn = document.getElementById('reprocessBtn');
+    const status = document.getElementById('uploadStatus');
+    
+    reprocessBtn.disabled = true;
+    reprocessBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Reprocessing...';
+    status.style.display = 'block';
+    status.innerHTML = '<div style="color: #3b82f6;">Reprocessing unmatched records with enhanced matching...</div>';
+    
+    fetch('/call-reports/reprocess-matching/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            status.innerHTML = `
+                <div style="color: #10b981; padding: 15px; background: #ecfdf5; border-radius: 6px;">
+                    <i class="fas fa-check-circle"></i> <strong>Reprocessing Complete!</strong><br>
+                    <div style="margin-top: 10px;">
+                        🔄 Newly Matched: ${data.newly_matched}<br>
+                        ✅ Total Matched: ${data.total_matched}<br>
+                        📊 Total Records: ${data.total_records}<br>
+                        📈 Match Rate: ${data.match_rate}%
+                    </div>
+                </div>
+            `;
+            
+            // Refresh page after 2 seconds
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            status.innerHTML = `
+                <div style="color: #ef4444; padding: 15px; background: #fef2f2; border-radius: 6px;">
+                    <i class="fas fa-exclamation-circle"></i> <strong>Reprocessing Failed!</strong><br>
+                    ${data.error}
+                </div>
+            `;
+        }
+        
+        reprocessBtn.disabled = false;
+        reprocessBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Reprocess Matching';
+    })
+    .catch(error => {
+        status.innerHTML = `
+            <div style="color: #ef4444; padding: 15px; background: #fef2f2; border-radius: 6px;">
+                <i class="fas fa-exclamation-circle"></i> <strong>Error!</strong><br>
+                ${error.message}
+            </div>
+        `;
+        
+        reprocessBtn.disabled = false;
+        reprocessBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Reprocess Matching';
+    });
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

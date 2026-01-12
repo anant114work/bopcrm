@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Instant Sync Test</title>
+    <style>
+        .sync-btn {
+            background: #10b981;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .sync-btn:disabled {
+            background: #6b7280;
+        }
+    </style>
+</head>
+<body>
+    <h1>Instant Sync Test</h1>
+    <button id="syncBtn" class="sync-btn">🔄 Instant Sync</button>
+    <div id="result"></div>
+
+    <script>
+        document.getElementById('syncBtn').addEventListener('click', function() {
+            const btn = this;
+            const result = document.getElementById('result');
+            
+            btn.disabled = true;
+            btn.textContent = '⏳ Syncing...';
+            
+            fetch('/manual-sync-all/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                result.innerHTML = `
+                    <h3>Sync Results:</h3>
+                    <p>Meta Leads: ${data.meta_synced}</p>
+                    <p>Google Leads: ${data.google_synced}</p>
+                    <p>Total: ${data.meta_synced + data.google_synced}</p>
+                    <p>Message: ${data.message}</p>
+                `;
+            })
+            .catch(error => {
+                result.innerHTML = `<p style="color: red;">Error: ${error}</p>`;
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.textContent = '🔄 Instant Sync';
+            });
+        });
+    </script>
+</body>
+</html>

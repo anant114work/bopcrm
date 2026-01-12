@@ -1,0 +1,98 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}Tagged Leads - CRM{% endblock %}
+{% block page_title %}🏷️ Smart Tagged Leads{% endblock %}
+
+
+
+{% block content %}
+<div style="max-width: 1200px; margin: 0 auto;">
+    <!-- Classification Button -->
+    <button class="classify-btn" onclick="classifyAllNotes()">
+        <i class="fas fa-robot"></i> Classify All Notes with AI
+    </button>
+
+    <!-- Tag Summary -->
+    <div class="tag-summary">
+        {% for tag in tag_summary %}
+        <div class="tag-card {% if tag.tag == selected_tag %}active{% endif %}" onclick="selectTag('{{ tag.tag }}')">
+            <div class="tag-name">{{ tag.tag|title }}</div>
+            <div class="tag-count">{{ tag.count }}</div>
+        </div>
+        {% empty %}
+        <div class="text-center">
+            <i class="fas fa-tags" style="font-size: 48px; margin-bottom: 16px; opacity: 0.3;"></i>
+            <h3>No Tags Found</h3>
+            <p>Click "Classify All Notes" to analyze existing notes and create smart tags</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Selected Tag Leads -->
+    {% if selected_tag %}
+    <div class="leads-section">
+        <h3 style="margin-bottom: 20px; color: var(--primary-dark);">
+            <i class="fas fa-tag"></i> Leads tagged as "{{ selected_tag|title }}" ({{ leads|length }})
+        </h3>
+        
+        {% for lead in leads %}
+        <div class="lead-item">
+            <div class="lead-info">
+                <h4>{{ lead.full_name }}</h4>
+                <div class="lead-meta">
+                    <span><i class="fas fa-envelope"></i> {{ lead.email }}</span>
+                    <span style="margin-left: 16px;"><i class="fas fa-phone"></i> {{ lead.phone_number }}</span>
+                    <span style="margin-left: 16px;"><i class="fas fa-building"></i> {{ lead.form_name }}</span>
+                </div>
+            </div>
+            <div>
+                <a href="/leads/{{ lead.id }}/" class="btn btn-primary btn-sm">View Details</a>
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center">
+            <i class="fas fa-search" style="font-size: 32px; margin-bottom: 12px; opacity: 0.5;"></i>
+            <p>No leads found with this tag</p>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function selectTag(tagName) {
+    window.location.href = `/tagged-leads/?tag=${tagName}`;
+}
+
+function classifyAllNotes() {
+    const btn = event.target;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    btn.disabled = true;
+    
+    fetch('/classify-notes/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Success! Processed ${data.processed_count} notes and applied smart tags.`);
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Error processing notes');
+        console.error(error);
+    })
+    .finally(() => {
+        btn.innerHTML = '<i class="fas fa-robot"></i> Classify All Notes with AI';
+        btn.disabled = false;
+    });
+}
+</script>
+{% endblock %}

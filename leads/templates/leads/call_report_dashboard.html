@@ -1,0 +1,385 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}Call Report Dashboard - Meta Leads CRM{% endblock %}
+{% block page_title %}Call Report Dashboard{% endblock %}
+
+
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-chart-line"></i> Call Report Analysis
+        {% if upload %} - {{ upload.filename }}{% endif %}
+        </h2>
+    </div>
+    <div class="card-content">
+        
+        <!-- Upload Selection -->
+        <div style="margin-bottom: 20px;">
+            <div class="d-flex">
+                <label><strong>Select Report:</strong></label>
+                <select id="uploadSelect" onchange="changeUpload()" class="form-control" style="width: auto;">
+                    {% for recent_upload in recent_uploads %}
+                    <option value="{{ recent_upload.id }}" {% if upload and upload.id == recent_upload.id %}selected{% endif %}>
+                        {{ recent_upload.filename }} ({{ recent_upload.uploaded_at|date:"M d" }})
+                    </option>
+                    {% endfor %}
+                </select>
+                <a href="/call-reports/upload/" class="btn btn-success">
+                    <i class="fas fa-upload"></i> Upload New Report
+                </a>
+                <button onclick="reprocessMatching()" class="btn btn-warning" style="margin-left: 10px;">
+                    <i class="fas fa-sync"></i> Fix Matching
+                </button>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="gap-2">
+            
+            <!-- Meta Leads Stats -->
+            <div style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; padding: 20px; border-radius: 12px;">
+                <div class="d-flex">
+                    <i class="fab fa-meta" style="font-size: 24px; margin-right: 10px;"></i>
+                    <h3 style="margin: 0;">Meta Leads Report</h3>
+                </div>
+                <div class="gap-2">
+                    <div>
+                        <div style="font-size: 24px; font-weight: bold;">{{ meta_stats.total }}</div>
+                        <div class="small">Total Calls</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 24px; font-weight: bold;">{{ meta_stats.matched }}</div>
+                        <div class="small">Matched</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 24px; font-weight: bold;">{{ meta_stats.converted }}</div>
+                        <div class="small">Converted</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 24px; font-weight: bold;">₹{{ meta_stats.total_cost|floatformat:0 }}</div>
+                        <div class="small">Total Cost</div>
+                    </div>
+                </div>
+                <div class="small">
+                    Avg Duration: {{ meta_stats.avg_duration|floatformat:1 }}s
+                </div>
+            </div>
+
+            <!-- Google Sheets Stats -->
+            <div style="background: linear-gradient(135deg, #10b981, #047857); color: white; padding: 20px; border-radius: 12px;">
+                <div class="d-flex">
+                    <i class="fab fa-google" style="font-size: 24px; margin-right: 10px;"></i>
+                    <h3 style="margin: 0;">Google Sheets Report</h3>
+                </div>
+                <div class="gap-2">
+                    <div>
+                        <div style="font-size: 24px; font-weight: bold;">{{ google_stats.total }}</div>
+                        <div class="small">Total Calls</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 24px; font-weight: bold;">{{ google_stats.matched }}</div>
+                        <div class="small">Matched</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 24px; font-weight: bold;">{{ google_stats.converted }}</div>
+                        <div class="small">Converted</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 24px; font-weight: bold;">₹{{ google_stats.total_cost|floatformat:0 }}</div>
+                        <div class="small">Total Cost</div>
+                    </div>
+                </div>
+                <div class="small">
+                    Avg Duration: {{ google_stats.avg_duration|floatformat:1 }}s
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="gap-2">
+            
+            <!-- Conversion Rate Chart -->
+            <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                <h3 style="margin-bottom: 20px;"><i class="fas fa-chart-pie"></i> Conversion Rate by Source</h3>
+                <canvas id="conversionChart" width="400" height="300"></canvas>
+            </div>
+
+            <!-- Cost Analysis Chart -->
+            <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                <h3 style="margin-bottom: 20px;"><i class="fas fa-dollar-sign"></i> Cost Analysis</h3>
+                <canvas id="costChart" width="400" height="300"></canvas>
+            </div>
+        </div>
+
+        <!-- Disposition Analysis -->
+        <div class="gap-2">
+            
+            <!-- Meta Dispositions -->
+            <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                <h3 style="margin-bottom: 20px; color: #3b82f6;">
+                    <i class="fab fa-meta"></i> Top Meta Dispositions
+                </h3>
+                <div style="overflow-x: auto;">
+                    <table class="table" class="small">
+                        <thead>
+                            <tr>
+                                <th>Disposition</th>
+                                <th>Count</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for disp in meta_dispositions %}
+                            <tr>
+                                <td>{{ disp.disposition|truncatechars:50 }}</td>
+                                <td>
+                                    <span class="small">
+                                        {{ disp.count }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="2" class="text-center">No Meta dispositions found</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Google Dispositions -->
+            <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                <h3 style="margin-bottom: 20px; color: #10b981;">
+                    <i class="fab fa-google"></i> Top Google Dispositions
+                </h3>
+                <div style="overflow-x: auto;">
+                    <table class="table" class="small">
+                        <thead>
+                            <tr>
+                                <th>Disposition</th>
+                                <th>Count</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for disp in google_dispositions %}
+                            <tr>
+                                <td>{{ disp.disposition|truncatechars:50 }}</td>
+                                <td>
+                                    <span class="small">
+                                        {{ disp.count }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="2" class="text-center">No Google dispositions found</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Call Records -->
+        <div class="gap-2">
+            
+            <!-- Recent Meta Calls -->
+            <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                <h3 style="margin-bottom: 20px; color: #3b82f6;">
+                    <i class="fab fa-meta"></i> Recent Meta Calls
+                </h3>
+                <div style="overflow-x: auto;">
+                    <table class="table" class="small">
+                        <thead>
+                            <tr>
+                                <th>Phone</th>
+                                <th>Lead</th>
+                                <th>Duration</th>
+                                <th>Status</th>
+                                <th>Matched</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in recent_meta %}
+                            <tr>
+                                <td>{{ record.phone_number|truncatechars:12 }}</td>
+                                <td>{{ record.matched_lead.full_name|default:"Unknown"|truncatechars:15 }}</td>
+                                <td>{{ record.call_duration|floatformat:1 }}s</td>
+                                <td>
+                                    {% if record.conversion_status == 'TRUE' %}
+                                    <span style="background: #dcfce7; color: #166534; padding: 1px 4px; border-radius: 4px; font-size: 10px;">
+                                        Converted
+                                    </span>
+                                    {% else %}
+                                    <span style="background: #fef2f2; color: #dc2626; padding: 1px 4px; border-radius: 4px; font-size: 10px;">
+                                        Not Converted
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if record.is_matched %}
+                                    <i class="fas fa-check-circle" style="color: #10b981;"></i>
+                                    {% else %}
+                                    <i class="fas fa-times-circle" style="color: #ef4444;"></i>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center">No Meta calls found</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Recent Google Calls -->
+            <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                <h3 style="margin-bottom: 20px; color: #10b981;">
+                    <i class="fab fa-google"></i> Recent Google Calls
+                </h3>
+                <div style="overflow-x: auto;">
+                    <table class="table" class="small">
+                        <thead>
+                            <tr>
+                                <th>Phone</th>
+                                <th>Lead</th>
+                                <th>Duration</th>
+                                <th>Status</th>
+                                <th>Matched</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in recent_google %}
+                            <tr>
+                                <td>{{ record.phone_number|truncatechars:12 }}</td>
+                                <td>{{ record.matched_lead.full_name|default:"Unknown"|truncatechars:15 }}</td>
+                                <td>{{ record.call_duration|floatformat:1 }}s</td>
+                                <td>
+                                    {% if record.conversion_status == 'TRUE' %}
+                                    <span style="background: #dcfce7; color: #166534; padding: 1px 4px; border-radius: 4px; font-size: 10px;">
+                                        Converted
+                                    </span>
+                                    {% else %}
+                                    <span style="background: #fef2f2; color: #dc2626; padding: 1px 4px; border-radius: 4px; font-size: 10px;">
+                                        Not Converted
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if record.is_matched %}
+                                    <i class="fas fa-check-circle" style="color: #10b981;"></i>
+                                    {% else %}
+                                    <i class="fas fa-times-circle" style="color: #ef4444;"></i>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center">No Google calls found</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Conversion Rate Chart
+const conversionCtx = document.getElementById('conversionChart').getContext('2d');
+new Chart(conversionCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['Meta Converted', 'Meta Not Converted', 'Google Converted', 'Google Not Converted'],
+        datasets: [{
+            data: [
+                {{ meta_stats.converted }}, 
+                {{ meta_stats.total|add:"-"|add:meta_stats.converted }}, 
+                {{ google_stats.converted }}, 
+                {{ google_stats.total|add:"-"|add:google_stats.converted }}
+            ],
+            backgroundColor: ['#3b82f6', '#93c5fd', '#10b981', '#6ee7b7'],
+            borderWidth: 2,
+            borderColor: '#ffffff'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+// Cost Analysis Chart
+const costCtx = document.getElementById('costChart').getContext('2d');
+new Chart(costCtx, {
+    type: 'bar',
+    data: {
+        labels: ['Meta Leads', 'Google Sheets'],
+        datasets: [{
+            label: 'Total Cost (₹)',
+            data: [{{ meta_stats.total_cost }}, {{ google_stats.total_cost }}],
+            backgroundColor: ['#3b82f6', '#10b981'],
+            borderColor: ['#1d4ed8', '#047857'],
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        },
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+function changeUpload() {
+    const uploadId = document.getElementById('uploadSelect').value;
+    if (uploadId) {
+        window.location.href = `/call-reports/dashboard/${uploadId}/`;
+    }
+}
+
+function reprocessMatching() {
+    if (confirm('Re-process call report matching with improved phone number matching? This will try to match unmatched records with leads in your database.')) {
+        fetch('/call-reports/reprocess-matching/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`Success! ${data.message}\n\nTotal Records: ${data.total_records}\nTotal Matched: ${data.total_matched}\nMatch Rate: ${data.match_rate}%`);
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error reprocessing matching');
+        });
+    }
+}
+</script>
+{% endblock %}

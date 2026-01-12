@@ -1,0 +1,44 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}Zoho Connected - Meta Leads CRM{% endblock %}
+
+{% block page_title %}✅ Zoho Integration{% endblock %}
+
+{% block content %}
+<div class="text-center">
+    
+    <div style="background: #dcfce7; padding: 40px; border-radius: 12px; border-left: 4px solid #10b981; margin-bottom: 30px;">
+        <div style="font-size: 48px; margin-bottom: 16px;">✅</div>
+        <h2 style="margin: 0 0 16px 0; color: #166534;">Successfully Connected!</h2>
+        <p style="margin: 0; color: #166534; font-size: 16px;">
+            {{ message }}
+        </p>
+        <div class="small">
+            <strong>API Domain:</strong> {{ api_domain }}
+        </div>
+    </div>
+    
+    <div class="d-flex">
+        <a href="/zoho-status/" class="btn btn-primary" style="padding: 12px 24px;">
+            📊 View Integration Status
+        </a>
+        <a href="/zoho-config/" class="btn btn-secondary" style="padding: 12px 24px;">
+            ⚙️ Manage Configuration
+        </a>
+        <a href="/" class="btn btn-secondary" style="padding: 12px 24px;">
+            🏠 Back to Dashboard
+        </a>
+    </div>
+    
+    <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; margin-top: 30px; text-align: left;">
+        <h4 style="color: #1e40af; margin-bottom: 12px;">🚀 What's Next?</h4>
+        <ul class="small">
+            <li>New leads will automatically sync to Zoho Marketing Automation</li>
+            <li>Create automated email campaigns in your Zoho dashboard</li>
+            <li>Set up lead nurturing workflows based on lead sources</li>
+            <li>Monitor integration status and test connections anytime</li>
+        </ul>
+    </div>
+    
+</div>
+{% endblock %}

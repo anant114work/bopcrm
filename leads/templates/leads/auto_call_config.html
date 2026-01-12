@@ -1,0 +1,164 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}Auto Call Configuration{% endblock %}
+{% block page_title %}Auto Call Configuration{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5>Configure Automatic Calls for New Leads</h5>
+    </div>
+    <div class="card-body">
+        <form id="autoCallForm">
+            <div class="row">
+                <div class="col-md-4">
+                    <label>Project Name</label>
+                    <input type="text" id="projectName" class="form-control" placeholder="e.g., Chrysalis" required>
+                    <small class="text-muted">Leads containing this project name will trigger auto calls</small>
+                </div>
+                <div class="col-md-4">
+                    <label>Mapped Agent</label>
+                    <select id="agentId" class="form-control" required>
+                        <option value="">Select Agent</option>
+                        {% for member in team_members %}
+                        <option value="{{ member.id }}">{{ member.name }} - {{ member.role }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label>&nbsp;</label>
+                    <button type="submit" class="btn btn-primary form-control">Save Configuration</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6>Current Configurations</h6>
+            </div>
+            <div class="card-body">
+                {% for config in configs %}
+                <div class="alert alert-info">
+                    <strong>{{ config.project_name }}</strong> → {{ config.mapped_agent.name }}
+                    <span class="badge badge-{{ config.is_active|yesno:'success,danger' }}">
+                        {{ config.is_active|yesno:'Active,Inactive' }}
+                    </span>
+                </div>
+                {% empty %}
+                <p class="text-muted">No configurations yet</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6>Recent Auto Call Logs</h6>
+            </div>
+            <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                {% for log in recent_logs %}
+                <div class="mb-2 p-2 border-left border-{{ log.status|yesno:'success,danger' }}">
+                    <small>
+                        <strong>{{ log.lead.full_name }}</strong> → {{ log.agent.name }}<br>
+                        Status: {{ log.get_status_display }} | {{ log.initiated_at|date:"M d, H:i" }}
+                        {% if log.error_message %}
+                        <br><span class="text-danger">{{ log.error_message }}</span>
+                        {% endif %}
+                    </small>
+                </div>
+                {% empty %}
+                <p class="text-muted">No call logs yet</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header">
+        <h6>Test Auto Call System</h6>
+    </div>
+    <div class="card-body">
+        <form id="testCallForm">
+            <div class="row">
+                <div class="col-md-4">
+                    <input type="text" id="testPhone" class="form-control" placeholder="Test phone number" required>
+                </div>
+                <div class="col-md-4">
+                    <select id="testAgent" class="form-control" required>
+                        <option value="">Select Agent</option>
+                        {% for member in team_members %}
+                        <option value="{{ member.id }}">{{ member.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-warning">Test Call</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.getElementById('autoCallForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const projectName = document.getElementById('projectName').value;
+    const agentId = document.getElementById('agentId').value;
+    
+    fetch('/save-auto-call-config/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            project_name: projectName,
+            agent_id: agentId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Configuration saved: ' + data.message);
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+});
+
+document.getElementById('testCallForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const phone = document.getElementById('testPhone').value;
+    const agentId = document.getElementById('testAgent').value;
+    
+    fetch('/test-auto-call/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            phone: phone,
+            agent_id: agentId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Test call logged: ' + data.message);
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+});
+</script>
+{% endblock %}

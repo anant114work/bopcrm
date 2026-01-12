@@ -1,0 +1,567 @@
+{% extends 'leads/base_unified.html' %}
+{% load lead_filters %}
+
+{% block title %}WhatsApp - Meta Leads CRM{% endblock %}
+{% block page_title %}WhatsApp Messaging{% endblock %}
+
+
+
+{% block content %}
+<!-- Add Lead Modal -->
+<div id="addLeadModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title">Add New Lead</h2>
+            <span class="close" onclick="closeAddLeadModal()">&times;</span>
+        </div>
+        <form id="addLeadForm">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="leadName">Full Name *</label>
+                    <input type="text" id="leadName" name="full_name" required placeholder="Enter full name">
+                </div>
+                <div class="form-group">
+                    <label for="leadPhone">Phone Number *</label>
+                    <input type="tel" id="leadPhone" name="phone_number" required placeholder="Enter phone number">
+                </div>
+            </div>
+            
+            <div class="form-group full-width">
+                <label for="leadEmail">Email Address</label>
+                <input type="email" id="leadEmail" name="email" placeholder="Enter email address">
+            </div>
+            
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="leadCity">City</label>
+                    <input type="text" id="leadCity" name="city" placeholder="Enter city">
+                </div>
+                <div class="form-group">
+                    <label for="leadBudget">Budget Range</label>
+                    <select id="leadBudget" name="budget">
+                        <option value="">Select Budget</option>
+                        <option value="Under 50L">Under 50L</option>
+                        <option value="50L-1Cr">50L - 1Cr</option>
+                        <option value="1Cr-2Cr">1Cr - 2Cr</option>
+                        <option value="Above 2Cr">Above 2Cr</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="leadConfig">Configuration</label>
+                    <input type="text" id="leadConfig" name="configuration" placeholder="e.g., 2BHK, 3BHK, Villa">
+                </div>
+                <div class="form-group">
+                    <label for="leadProject">Project/Source</label>
+                    <select id="leadProject" name="form_name">
+                        <option value="Manual Entry">Manual Entry</option>
+                        <option value="Migsun Projects">Migsun Projects</option>
+                        <option value="Eldeco Projects">Eldeco Projects</option>
+                        <option value="EBC Projects">EBC Projects</option>
+                        <option value="Gaur Projects">Gaur Projects</option>
+                        <option value="SPJ Projects">SPJ Projects</option>
+                        <option value="Max Projects">Max Projects</option>
+                    </select>
+                </div>
+            </div>
+            <div class="d-flex">
+                <button type="button" class="btn btn-secondary" onclick="closeAddLeadModal()" style="min-width: 120px;">Cancel</button>
+                <button type="submit" class="btn btn-primary" style="min-width: 120px;">Add Lead</button>
+            </div>
+        </form>
+    </div>
+</div>
+                <div class="card">
+                    <div class="filter-grid">
+                        <div class="filter-item">
+                            <label><i class="icon-search"></i> Search Name/Phone</label>
+                            <div class="d-flex">
+                                <input type="text" id="searchInput" placeholder="Search leads..." value="{{ search|default:'' }}" style="flex: 1;">
+                                <button type="button" onclick="filterLeads()" class="btn btn-primary" style="padding: 12px 16px; white-space: nowrap;">Search</button>
+                            </div>
+                        </div>
+                        <div class="filter-item">
+                            <label><i class="icon-building"></i> Filter by Form</label>
+                            <select id="formFilter" onchange="filterLeads()">
+                                <option value="">All Forms</option>
+                                <option value="migsun" {% if form_filter == 'migsun' %}selected{% endif %}>Migsun Projects</option>
+                                <option value="eldeco" {% if form_filter == 'eldeco' %}selected{% endif %}>Eldeco Projects</option>
+                                <option value="ebc" {% if form_filter == 'ebc' %}selected{% endif %}>EBC Projects</option>
+                                <option value="gaur" {% if form_filter == 'gaur' %}selected{% endif %}>Gaur Projects</option>
+                                <option value="spj" {% if form_filter == 'spj' %}selected{% endif %}>SPJ Projects</option>
+                                <option value="max" {% if form_filter == 'max' %}selected{% endif %}>Max Projects</option>
+                            </select>
+                        </div>
+                        <div class="filter-item">
+                            <label><i class="icon-dollar"></i> Filter by Budget</label>
+                            <select id="budgetFilter">
+                                <option value="">All Budgets</option>
+                                <option value="low">Under 50L</option>
+                                <option value="mid">50L - 1Cr</option>
+                                <option value="high">1Cr - 2Cr</option>
+                                <option value="premium">Above 2Cr</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="stats-bar">
+                        <div class="stats-item">
+                            <i class="icon-check"></i>
+                            <span><span class="stats-number" id="selectedCount">0</span> leads selected</span>
+                        </div>
+                        <div class="stats-item">
+                            <i class="icon-eye"></i>
+                            <span><span class="stats-number" id="visibleCount">0</span> on this page</span>
+                        </div>
+                        <div class="stats-item">
+                            <i class="icon-user"></i>
+                            <span><span class="stats-number">{{ leads.paginator.count }}</span> total leads</span>
+                        </div>
+                    </div>
+                    
+                    <div class="campaign-selector">
+                        <label><i class="icon-message"></i> Select Campaign for Bulk Assignment</label>
+                        <select id="campaignSelect">
+                            <option value="migsun2">Migsun 2 (API)</option>
+                            <option value="migsun1">Migsun 1 (API)</option>
+                            <option value="gauraspireleisure2">Gaura Spire Leisure 2 (API)</option>
+                            <option value="gauraspireleisure1">Gaura Spire Leisure 1 (API)</option>
+                            <option value="followupcampaign">Follow-up Campaign (API)</option>
+                            <option value="crm3">CRM3 (API)</option>
+                            <option value="crm">CRM (API)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="btn-group">
+                        <button id="sendBtn" class="btn btn-primary" onclick="console.log('Button clicked!'); sendMessages();" disabled>
+                            <i class="icon-send"></i> Send WhatsApp Messages
+                        </button>
+                        <button class="btn btn-secondary" onclick="selectAll()">
+                            <i class="icon-check-all"></i> Select All Visible
+                        </button>
+                        <button class="btn btn-secondary" onclick="showAddLeadModal()">
+                            <i class="icon-user"></i> Add Lead
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;">
+                                    <input type="checkbox" id="selectAllCheckbox" class="checkbox-custom" onchange="toggleAll()">
+                                </th>
+                                <th><i class="icon-user"></i> Name</th>
+                                <th><i class="icon-phone"></i> Contact</th>
+                                <th><i class="icon-home"></i> Requirements</th>
+                                <th><i class="icon-file"></i> Form</th>
+                                <th><i class="icon-calendar"></i> Date</th>
+                                <th><i class="icon-message"></i> Campaign</th>
+                                <th><i class="icon-status"></i> Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for lead in leads %}
+                            <tr>
+                                <td>
+                                    <input type="checkbox" class="lead-checkbox checkbox-custom" value="{{ lead.id }}" onchange="updateCount()">
+                                </td>
+                                <td>
+                                    <div>
+                                        <a href="/leads/{{ lead.id }}/" class="lead-name">
+                                            {{ lead.full_name|default:"No Name" }}
+                                        </a>
+                                        {% if lead.budget %}
+                                        <div class="budget-tag">
+                                            <i class="icon-dollar"></i> {{ lead.budget }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="contact-info">
+                                        <a href="tel:{{ lead.phone_number }}" class="phone-link">
+                                            <i class="icon-phone"></i> {% maskable_number lead.phone_number "phone" %}
+                                        </a>
+                                        {% if lead.email %}
+                                        <a href="mailto:{{ lead.email }}" class="email-link">
+                                            <i class="icon-mail"></i> {{ lead.email|truncatechars:25 }}
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if lead.configuration %}
+                                    <div class="config-tag">
+                                        <i class="icon-home"></i> {{ lead.configuration }}
+                                    </div>
+                                    {% endif %}
+                                    {% if lead.city %}
+                                    <div class="city-text">
+                                        <i class="icon-location"></i> {{ lead.city }}
+                                    </div>
+                                    {% endif %}
+                                    {% if not lead.configuration and not lead.city %}
+                                    <span style="color: #9ca3af;">—</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="form-text">
+                                        {{ lead.form_name|truncatechars:25 }}
+                                        {% if lead.lead_id|slice:':7' == 'MANUAL_' %}
+                                        <span class="manual-entry-badge">MANUAL</span>
+                                        {% endif %}
+                                    </span>
+                                    {% if lead.created_by %}
+                                    <div style="font-size: 10px; color: #059669; margin-top: 2px;">
+                                        👤 {{ lead.created_by.username }}
+                                    </div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="date-text">
+                                        {{ lead.created_time|date:"M d, Y" }}<br>
+                                        <span style="font-size: 11px;">{{ lead.created_time|date:"H:i" }}</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <select class="campaign-select" data-lead-id="{{ lead.id }}">
+                                        <option value="migsun2">Migsun 2</option>
+                                        <option value="migsun1">Migsun 1</option>
+                                        <option value="gauraspireleisure2">Gaura 2</option>
+                                        <option value="gauraspireleisure1">Gaura 1</option>
+                                        <option value="followupcampaign">Follow-up</option>
+                                        <option value="crm3">CRM3</option>
+                                        <option value="crm" selected>CRM</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <span id="status-{{ lead.id }}" class="status-ready">
+                                        <i class="icon-check"></i> Ready
+                                    </span>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="8" class="empty-state">
+                                    <div class="empty-state-icon"><i class="icon-search"></i></div>
+                                    <div class="empty-state-title">No leads found</div>
+                                    <div class="empty-state-text">Try adjusting your filters or sync new leads</div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination -->
+                {% if leads.has_other_pages %}
+                <div class="card">
+                    <div class="d-flex">
+                        {% if leads.has_previous %}
+                            <a href="?page=1{% if search %}&search={{ search }}{% endif %}{% if form_filter %}&form={{ form_filter }}{% endif %}" class="btn btn-secondary">First</a>
+                            <a href="?page={{ leads.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if form_filter %}&form={{ form_filter }}{% endif %}" class="btn btn-secondary">Previous</a>
+                        {% endif %}
+                        
+                        <span style="font-weight: 600; color: #374151;">Page {{ leads.number }} of {{ leads.paginator.num_pages }}</span>
+                        
+                        {% if leads.has_next %}
+                            <a href="?page={{ leads.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if form_filter %}&form={{ form_filter }}{% endif %}" class="btn btn-secondary">Next</a>
+                            <a href="?page={{ leads.paginator.num_pages }}{% if search %}&search={{ search }}{% endif %}{% if form_filter %}&form={{ form_filter }}{% endif %}" class="btn btn-secondary">Last</a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+    <script>
+        function updateCount() {
+            const visibleCheckboxes = document.querySelectorAll('tbody tr:not([style*="display: none"]) .lead-checkbox:checked');
+            const count = visibleCheckboxes.length;
+            document.getElementById('selectedCount').textContent = count;
+            document.getElementById('sendBtn').disabled = count === 0;
+        }
+        
+        function toggleAll() {
+            const selectAll = document.getElementById('selectAllCheckbox');
+            const checkboxes = document.querySelectorAll('.lead-checkbox');
+            checkboxes.forEach(cb => cb.checked = selectAll.checked);
+            updateCount();
+        }
+        
+        function selectAll() {
+            const visibleCheckboxes = document.querySelectorAll('tbody tr:not([style*="display: none"]) .lead-checkbox');
+            visibleCheckboxes.forEach(cb => cb.checked = true);
+            document.getElementById('selectAllCheckbox').checked = true;
+            updateCount();
+        }
+        
+        // Bulk campaign assignment
+        function assignBulkCampaign() {
+            const selectedCampaign = document.getElementById('campaignSelect').value;
+            const checkboxes = document.querySelectorAll('.lead-checkbox:checked');
+            
+            checkboxes.forEach(cb => {
+                const leadId = cb.value;
+                const campaignSelect = document.querySelector(`select[data-lead-id="${leadId}"]`);
+                if (campaignSelect) {
+                    campaignSelect.value = selectedCampaign;
+                }
+            });
+        }
+        
+        // Filter functionality - redirect to server-side filtering for pagination
+        function filterLeads() {
+            const searchTerm = document.getElementById('searchInput').value;
+            const formFilter = document.getElementById('formFilter').value;
+            
+            // Build URL with filters
+            const params = new URLSearchParams();
+            if (searchTerm) params.set('search', searchTerm);
+            if (formFilter) params.set('form', formFilter);
+            
+            // Redirect to filtered results
+            window.location.href = '?' + params.toString();
+        }
+        
+        // Client-side filtering for current page only
+        function filterCurrentPage() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const formFilter = document.getElementById('formFilter').value.toLowerCase();
+            const budgetFilter = document.getElementById('budgetFilter').value;
+            const rows = document.querySelectorAll('tbody tr');
+            
+            let visibleCount = 0;
+            
+            rows.forEach(row => {
+                if (row.cells.length < 7) return; // Skip empty rows
+                
+                const name = row.cells[1].textContent.toLowerCase();
+                const contact = row.cells[2].textContent.toLowerCase();
+                const form = row.cells[4].textContent.toLowerCase();
+                const budgetText = row.cells[1].textContent.toLowerCase();
+                
+                let showRow = true;
+                
+                // Search filter
+                if (searchTerm && !name.includes(searchTerm) && !contact.includes(searchTerm)) {
+                    showRow = false;
+                }
+                
+                // Form filter
+                if (formFilter && !form.includes(formFilter)) {
+                    showRow = false;
+                }
+                
+                // Budget filter
+                if (budgetFilter) {
+                    const budgetMatch = budgetText.match(/budget:?\s*([\d.]+)\s*(lakh?|cr|crore)?/i);
+                    if (budgetMatch) {
+                        const amount = parseFloat(budgetMatch[1]);
+                        const unit = budgetMatch[2] ? budgetMatch[2].toLowerCase() : '';
+                        let budgetInLakhs = amount;
+                        
+                        if (unit.includes('cr')) {
+                            budgetInLakhs = amount * 100;
+                        }
+                        
+                        switch(budgetFilter) {
+                            case 'low':
+                                if (budgetInLakhs >= 50) showRow = false;
+                                break;
+                            case 'mid':
+                                if (budgetInLakhs < 50 || budgetInLakhs >= 100) showRow = false;
+                                break;
+                            case 'high':
+                                if (budgetInLakhs < 100 || budgetInLakhs >= 200) showRow = false;
+                                break;
+                            case 'premium':
+                                if (budgetInLakhs < 200) showRow = false;
+                                break;
+                        }
+                    }
+                }
+                
+                row.style.display = showRow ? '' : 'none';
+                if (showRow) visibleCount++;
+            });
+            
+            document.getElementById('visibleCount').textContent = visibleCount;
+            updateCount();
+        }
+        
+        // Auto-assign campaign when bulk selector changes
+        document.addEventListener('DOMContentLoaded', function() {
+            const bulkSelect = document.getElementById('campaignSelect');
+            if (bulkSelect) {
+                bulkSelect.addEventListener('change', assignBulkCampaign);
+            }
+            
+            // Add filter event listeners
+            document.getElementById('searchInput').addEventListener('input', filterCurrentPage);
+            document.getElementById('formFilter').addEventListener('change', filterCurrentPage);
+            document.getElementById('budgetFilter').addEventListener('change', filterCurrentPage);
+            
+            // Add search button for server-side filtering
+            const searchInput = document.getElementById('searchInput');
+            searchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    filterLeads();
+                }
+            });
+            
+            // Initial count
+            filterCurrentPage();
+        });
+        
+        function showAddLeadModal() {
+            document.getElementById('addLeadModal').style.display = 'block';
+        }
+        
+        function closeAddLeadModal() {
+            document.getElementById('addLeadModal').style.display = 'none';
+            document.getElementById('addLeadForm').reset();
+        }
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('addLeadModal');
+            if (event.target == modal) {
+                closeAddLeadModal();
+            }
+        }
+        
+        // Handle form submission
+        document.getElementById('addLeadForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData);
+            
+            fetch('/add-lead/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Lead added successfully!');
+                    closeAddLeadModal();
+                    // Redirect to first page to show new lead
+                    window.location.href = '/whatsapp/?search=' + encodeURIComponent(data.lead_name || '');
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('Error adding lead: ' + error.message);
+            });
+        });
+        
+        function sendMessages() {
+            console.log('🔥 FUNCTION CALLED: sendMessages()');
+            
+            const checkboxes = document.querySelectorAll('.lead-checkbox:checked');
+            console.log('📋 Found checkboxes:', checkboxes.length);
+            
+            const leadIds = Array.from(checkboxes).map(cb => cb.value);
+            console.log('🚀 Starting WhatsApp send process...');
+            console.log('Selected Lead IDs:', leadIds);
+            
+            if (leadIds.length === 0) {
+                console.log('❌ No leads selected!');
+                alert('Please select at least one lead');
+                return;
+            }
+            
+            console.log('✅ Proceeding with', leadIds.length, 'leads');
+            
+            const btn = document.getElementById('sendBtn');
+            btn.disabled = true;
+            btn.textContent = 'Sending...';
+            
+            // Send messages with individual campaign selection
+            const promises = leadIds.map(leadId => {
+                const campaignSelect = document.querySelector(`select[data-lead-id="${leadId}"]`);
+                const selectedCampaign = campaignSelect ? campaignSelect.value : 'crm';
+                
+                const statusEl = document.getElementById('status-' + leadId);
+                statusEl.textContent = 'Sending...';
+                statusEl.style.color = '#f59e0b';
+                
+                return fetch('/send-whatsapp/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: JSON.stringify({
+                        lead_ids: [leadId],
+                        template: selectedCampaign
+                    })
+                })
+                .then(response => {
+                    console.log('WhatsApp API Response Status:', response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('WhatsApp API Response Data:', data);
+                    
+                    if (data.success && data.results && data.results.length > 0) {
+                        const result = data.results[0];
+                        console.log('Lead Result:', result);
+                        
+                        if (result.success) {
+                            console.log('✅ SUCCESS: Message sent to', result.name, result.phone);
+                            statusEl.textContent = 'Sent ✓';
+                            statusEl.style.color = '#10b981';
+                            return { leadId, success: true, campaign: selectedCampaign };
+                        } else {
+                            console.log('❌ FAILED: Message failed for', result.name, '- Error:', result.message);
+                            statusEl.textContent = 'Failed ✗';
+                            statusEl.style.color = '#ef4444';
+                            return { leadId, success: false, error: result.message };
+                        }
+                    } else {
+                        console.log('❌ API ERROR:', data.error || 'No results returned');
+                        statusEl.textContent = 'Failed ✗';
+                        statusEl.style.color = '#ef4444';
+                        return { leadId, success: false, error: data.error || 'No results' };
+                    }
+                })
+                .catch(error => {
+                    statusEl.textContent = 'Failed ✗';
+                    statusEl.style.color = '#ef4444';
+                    return { leadId, success: false, error: error.message };
+                });
+            });
+            
+            Promise.all(promises).then(results => {
+                const successCount = results.filter(r => r.success).length;
+                const failedCount = results.filter(r => !r.success).length;
+                
+                console.log('📊 FINAL RESULTS:');
+                console.log('✅ Successful:', successCount);
+                console.log('❌ Failed:', failedCount);
+                console.log('📋 All Results:', results);
+                
+                alert(`Messages sent to ${successCount}/${results.length} leads`);
+                btn.disabled = false;
+                btn.textContent = 'Send WhatsApp Messages';
+            });
+        }
+        
+        function toggleMask(element) {
+            const isCurrentlyMasked = element.textContent === element.dataset.masked;
+            element.textContent = isCurrentlyMasked ? element.dataset.original : element.dataset.masked;
+            element.style.color = isCurrentlyMasked ? '#10b981' : '#6b7280';
+        }
+    </script>
+    {% csrf_token %}
+{% endblock %}

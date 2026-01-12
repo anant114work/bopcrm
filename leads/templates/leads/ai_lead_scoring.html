@@ -1,0 +1,113 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}AI Lead Scoring{% endblock %}
+{% block page_title %}AI-Powered Lead Scoring{% endblock %}
+
+
+
+{% block content %}
+{% if error %}
+<div class="card">
+    <div class="card-content">
+        <div class="text-center">
+            <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #f59e0b; margin-bottom: 16px;"></i>
+            <h3>AI System Not Available</h3>
+            <p>{{ error }}</p>
+            <p>Please configure OpenAI API key in settings to enable AI features.</p>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-chart-bar"></i> AI Lead Scoring Results</h2>
+        <div class="small">
+            Total Scored: {{ total_scored }} leads
+        </div>
+    </div>
+    <div class="card-content">
+        {% for item in scored_leads %}
+        <div class="score-card score-{{ item.priority }}">
+            <div class="d-flex">
+                <div>
+                    <h4 style="margin: 0; color: var(--primary-dark);">{{ item.lead.full_name }}</h4>
+                    <div class="small">
+                        {{ item.lead.phone_number }} • {{ item.lead.city }} • {{ item.lead.form_name|truncatechars:30 }}
+                    </div>
+                </div>
+                <div style="text-align: right;">
+                    <span class="score-badge {{ item.priority }}">
+                        Score: {{ item.score }}/10
+                    </span>
+                    <br>
+                    <div class="small">
+                        {{ item.conversion_probability }}% conversion
+                    </div>
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 12px;">
+                <strong>Budget:</strong> {{ item.lead.budget|default:"Not specified" }} •
+                <strong>Config:</strong> {{ item.lead.configuration|default:"Not specified" }}
+            </div>
+            
+            <div style="margin-bottom: 12px;">
+                <strong>Next Action:</strong> {{ item.next_action|title }}
+            </div>
+            
+            <div class="d-flex">
+                <button class="btn-ai" onclick="callLead('{{ item.lead.phone_number }}', '{{ item.lead.full_name }}')">
+                    <i class="fas fa-phone"></i> Call Now
+                </button>
+                <button class="btn-ai" onclick="viewLead({{ item.lead.id }})">
+                    <i class="fas fa-eye"></i> View Details
+                </button>
+            </div>
+        </div>
+        {% empty %}
+        <p>No scored leads available</p>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<script>
+function callLead(phone, name) {
+    showNotification(`Initiating call to ${name} at ${phone}`, 'info');
+}
+
+function viewLead(leadId) {
+    window.location.href = `/leads/${leadId}/`;
+}
+
+function showNotification(message, type) {
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        border-radius: 6px;
+        color: white;
+        font-weight: 500;
+        z-index: 10000;
+        max-width: 400px;
+    `;
+    
+    if (type === 'success') {
+        notification.style.backgroundColor = '#10b981';
+    } else if (type === 'error') {
+        notification.style.backgroundColor = '#ef4444';
+    } else {
+        notification.style.backgroundColor = '#3b82f6';
+    }
+    
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 5000);
+}
+</script>
+{% endblock %}

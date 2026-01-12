@@ -1,0 +1,344 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}Dashboard - Meta Leads CRM{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+{% if is_team_member %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-chart-line"></i> {% if is_manager %}Manager{% else %}My{% endif %} Dashboard</h2>
+    </div>
+    <div class="card-content">
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-number">{{ my_pending }}</div>
+                <div class="stat-label">My Pending Leads</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">{{ my_converted }}</div>
+                <div class="stat-label">My Conversions</div>
+            </div>
+            {% if is_manager %}
+            <div class="stat-item">
+                <div class="stat-number">{{ team_pending }}</div>
+                <div class="stat-label">Team Pending</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">{{ team_converted }}</div>
+                <div class="stat-label">Team Conversions</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-building"></i> Projects Overview</h2>
+    </div>
+    <div class="card-content">
+        {% if projects_with_leads %}
+        <div class="project-carousel">
+            <div class="carousel-container">
+                {% for project in projects_with_leads %}
+                <div class="project-slide">
+                    <div class="project-card">
+                        {% if project.images.first %}
+                        <img src="{{ project.images.first.image.url }}" alt="{{ project.name }}" class="project-image">
+                        {% else %}
+                        <div class="project-placeholder">{{ project.name|first }}</div>
+                        {% endif %}
+                        <div class="project-info">
+                            <h3>{{ project.name }}</h3>
+                            <p>{{ project.location }}</p>
+                            <div class="project-stats">
+                                <span class="leads-count">Active Project</span>
+                                <span class="price-range">{{ project.status|default:"Available" }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="carousel-indicators">
+                {% for project in projects_with_leads %}
+                <span class="indicator" onclick="currentSlide({{ forloop.counter }})"></span>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <div class="text-center p-5">
+            <div class="mb-2">No projects with leads assigned yet.</div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-clock"></i> Recent Leads</h2>
+    </div>
+    <div class="card-content">
+        {% if recent_leads %}
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Lead</th>
+                        <th>Phone</th>
+                        <th>Stage</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for lead in recent_leads %}
+                    <tr>
+                        <td>{{ lead.full_name|default:"No Name" }}</td>
+                        <td>{{ lead.phone_number|default:"No Phone" }}</td>
+                        <td>
+                            <span class="stage-badge stage-{{ lead.stage }}">{{ lead.get_stage_display }}</span>
+                        </td>
+                        <td>{{ lead.created_time|date:"M d, H:i" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center p-5">
+            No recent leads found.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% else %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-chart-line"></i> Key Metrics</h2>
+    </div>
+    <div class="card-content">
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-number">{{ total_leads }}</div>
+                <div class="stat-label">Total Leads</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">{{ meta_leads_count }}</div>
+                <div class="stat-label">Meta Leads</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">{{ overdue_leads }}</div>
+                <div class="stat-label">Overdue Leads</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">{{ conversion_rate }}%</div>
+                <div class="stat-label">Conversion Rate</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if is_team_member %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-link"></i> Quick Actions</h2>
+    </div>
+    <div class="card-content">
+        <div class="quick-actions">
+            <a href="/my-leads/" class="btn btn-primary"><i class="fas fa-user"></i> My Leads</a>
+            <a href="/projects/" class="btn btn-primary"><i class="fas fa-building"></i> View Projects</a>
+            {% if is_manager %}
+            <a href="/team-members/" class="btn btn-primary"><i class="fas fa-users"></i> Team Management</a>
+            {% endif %}
+            <a href="/whatsapp/" class="btn btn-secondary"><i class="fab fa-whatsapp"></i> WhatsApp</a>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-link"></i> Quick Links</h2>
+    </div>
+    <div class="card-content">
+        <div class="quick-actions">
+            <a href="/leads/" class="btn btn-primary"><i class="fas fa-list"></i> All Leads</a>
+            <a href="/my-leads/" class="btn btn-primary"><i class="fas fa-user"></i> My Leads</a>
+            <a href="/projects/" class="btn btn-primary"><i class="fas fa-project-diagram"></i> Projects</a>
+            <a href="/bookings/" class="btn btn-primary"><i class="fas fa-building"></i> United Network</a>
+            <a href="/whatsapp/" class="btn btn-secondary"><i class="fab fa-whatsapp"></i> WhatsApp</a>
+            <a href="/drip-campaigns/" class="btn btn-success"><i class="fas fa-paper-plane"></i> Drip Campaigns</a>
+            {% if user.is_staff or request.session.team_member_name == 'ADMIN USER' %}
+            <a href="/google-sheets/" class="btn btn-info"><i class="fab fa-google"></i> Google Sheets</a>
+            <a href="/call-reports/upload/" class="btn btn-info"><i class="fas fa-file-excel"></i> Upload Call Reports</a>
+            {% endif %}
+            <a href="/leads/?source=gaur" class="btn btn-warning"><i class="fas fa-filter"></i> Gaur Leads</a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- DID Numbers Management -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h2><i class="fas fa-phone"></i> DID Numbers Management</h2>
+        <button class="btn btn-primary btn-sm" onclick="fetchAcefoneNumbers()">
+            <i class="fas fa-sync"></i> Fetch from Acefone
+        </button>
+    </div>
+    <div class="card-content">
+        <div class="did-numbers-grid">
+            {% for did in did_numbers %}
+            <div class="did-number-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>{{ did.display_name }}</strong><br>
+                        <small class="text-muted">***-{{ did.number|slice:"-4:" }}</small>
+                    </div>
+                    <div class="text-right">
+                        {% if did.assigned_user %}
+                            <span class="badge badge-success">
+                                {{ did.assigned_user.name }}
+                            </span>
+                        {% else %}
+                            <span class="badge badge-danger">
+                                Unassigned
+                            </span>
+                        {% endif %}
+                        <br><button class="btn btn-sm btn-secondary mt-1" onclick="assignNumber({{ did.id }})">
+                            <i class="fas fa-edit"></i> Assign
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center p-5">
+                <i class="fas fa-phone-slash mb-3" style="font-size: 24px; opacity: 0.5;"></i>
+                <div>No DID numbers found. Click "Fetch from Acefone" to load your numbers.</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Assignment Modal -->
+<div id="assignNumberModal" class="modal">
+    <div class="modal-content">
+        <h3 class="mb-3">Assign DID Number</h3>
+        <input type="hidden" id="assignDidId">
+        <div class="form-group">
+            <label>Assign to Team Member:</label>
+            <select id="assignUserId" class="form-control">
+                <option value="">Unassign</option>
+                {% for member in team_members %}
+                <option value="{{ member.id }}">{{ member.name }} - {{ member.role }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="d-flex gap-2 justify-content-end mt-3">
+            <button class="btn btn-secondary" onclick="closeAssignModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="saveNumberAssignment()">Assign</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let slideIndex = 1;
+let slideInterval;
+
+function showSlide(n) {
+    const slides = document.querySelectorAll('.project-slide');
+    const indicators = document.querySelectorAll('.indicator');
+    
+    if (slides.length === 0) return;
+    
+    if (n > slides.length) { slideIndex = 1 }
+    if (n < 1) { slideIndex = slides.length }
+    
+    const container = document.querySelector('.carousel-container');
+    if (container) {
+        container.style.transform = `translateX(-${(slideIndex - 1) * 100}%)`;
+    }
+    
+    indicators.forEach(indicator => indicator.classList.remove('active'));
+    if (indicators[slideIndex - 1]) {
+        indicators[slideIndex - 1].classList.add('active');
+    }
+}
+
+function currentSlide(n) {
+    clearInterval(slideInterval);
+    showSlide(slideIndex = n);
+    startAutoSlide();
+}
+
+function nextSlide() {
+    showSlide(slideIndex += 1);
+}
+
+function startAutoSlide() {
+    slideInterval = setInterval(nextSlide, 4000);
+}
+
+// Initialize carousel
+document.addEventListener('DOMContentLoaded', function() {
+    showSlide(slideIndex);
+    startAutoSlide();
+});
+
+function fetchAcefoneNumbers() {
+    fetch('/fetch-acefone-numbers/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+}
+
+function assignNumber(didId) {
+    const modal = document.getElementById('assignNumberModal');
+    document.getElementById('assignDidId').value = didId;
+    modal.style.display = 'flex';
+}
+
+function closeAssignModal() {
+    document.getElementById('assignNumberModal').style.display = 'none';
+}
+
+function saveNumberAssignment() {
+    const didId = document.getElementById('assignDidId').value;
+    const userId = document.getElementById('assignUserId').value;
+    
+    fetch('/assign-did-number/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({did_id: didId, user_id: userId})
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Number assigned successfully!');
+            location.reload();
+        } else {
+            alert('Assignment failed: ' + data.error);
+        }
+    });
+}
+</script>
+{% endblock %}

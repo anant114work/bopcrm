@@ -1,0 +1,295 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}{{ campaign.name }} - Bulk Call Dashboard{% endblock %}
+{% block page_title %}📞 {{ campaign.name }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-phone"></i> {{ campaign.name }}</h2>
+        <div>
+            <a href="/bulk-call-upload/" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Upload
+            </a>
+            {% if campaign.status == 'pending' or campaign.status == 'paused' %}
+            <button onclick="startCalling()" class="btn btn-success" id="startBtn">
+                <i class="fas fa-play"></i> Start Calling
+            </button>
+            {% if stats.completed > 0 %}
+            <button onclick="resumeCalling()" class="btn btn-warning" id="resumeBtn" style="margin-left: 8px;">
+                <i class="fas fa-play-circle"></i> Resume (Skip Called)
+            </button>
+            {% endif %}
+            {% endif %}
+            {% if campaign.status == 'running' %}
+            <button onclick="stopCalling()" class="btn btn-danger" id="stopBtn">
+                <i class="fas fa-stop"></i> Stop Calling
+            </button>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card-content">
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-number" id="totalNumbers">{{ stats.total }}</div>
+                <div class="stat-label">Total Numbers</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="completedCalls">{{ stats.completed }}</div>
+                <div class="stat-label">Completed Calls</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="successfulCalls">{{ stats.successful }}</div>
+                <div class="stat-label">Successful Calls</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="successRate">{{ stats.success_rate|floatformat:1 }}%</div>
+                <div class="stat-label">Success Rate</div>
+            </div>
+        </div>
+
+        <div style="margin: 24px 0;">
+            <div style="background: #f3f4f6; border-radius: 8px; height: 20px; overflow: hidden;">
+                <div id="progressBar" style="background: #10b981; height: 100%; width: {% widthratio stats.completed stats.total 100 %}%; transition: width 0.3s;"></div>
+            </div>
+            <div class="small">
+                <span>Progress: <span id="progressText">{{ stats.completed }}/{{ stats.total }}</span></span>
+                <span>Status: <span id="campaignStatus" style="font-weight: bold; color: {% if campaign.status == 'running' %}#3b82f6{% elif campaign.status == 'completed' %}#10b981{% elif campaign.status == 'failed' %}#ef4444{% else %}#fbbf24{% endif %};">{{ campaign.status|title }}</span></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-list"></i> Call Records</h2>
+        <div>
+            <button onclick="refreshData()" class="btn btn-primary">
+                <i class="fas fa-sync"></i> Refresh
+            </button>
+        </div>
+    </div>
+    <div class="card-content">
+        <div id="liveConsole" class="small">
+            <div style="color: #10b981;">📞 CallKaro AI Agent - Live Console</div>
+            <div style="color: #6b7280;">Waiting for calls to start...</div>
+        </div>
+
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: #f9fafb;">
+                        <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Name</th>
+                        <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Phone</th>
+                        <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Status</th>
+                        <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Call Time</th>
+                        <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Duration</th>
+                        <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Call ID</th>
+                    </tr>
+                </thead>
+                <tbody id="callRecordsTable">
+                    {% for record in call_records %}
+                    <tr id="record-{{ record.id }}">
+                        <td style="padding: 12px; border-bottom: 1px solid #f3f4f6;">{{ record.name }}</td>
+                        <td style="padding: 12px; border-bottom: 1px solid #f3f4f6;">{{ record.phone_number }}</td>
+                        <td style="padding: 12px; border-bottom: 1px solid #f3f4f6;">
+                            {% if record.status == 'pending' %}
+                                <span class="small">⏳ Pending</span>
+                            {% elif record.status == 'calling' %}
+                                <span class="small">📞 Calling</span>
+                            {% elif record.status == 'connected' %}
+                                <span class="small">✅ Connected</span>
+                            {% elif record.status == 'failed' %}
+                                <span class="small">❌ Failed</span>
+                            {% elif record.status == 'no_answer' %}
+                                <span class="small">📵 No Answer</span>
+                            {% elif record.status == 'busy' %}
+                                <span class="small">📞 Busy</span>
+                            {% elif record.status == 'skipped' %}
+                                <span class="small">⏭️ Skipped</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 12px; border-bottom: 1px solid #f3f4f6;">
+                            {% if record.initiated_at %}
+                                {{ record.initiated_at|date:"H:i:s" }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td style="padding: 12px; border-bottom: 1px solid #f3f4f6;">
+                            {% if record.duration_seconds > 0 %}
+                                {{ record.duration_seconds }}s
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td style="padding: 12px; border-bottom: 1px solid #f3f4f6;">
+                            {% if record.call_id %}
+                                <code class="small">{{ record.call_id }}</code>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+let refreshInterval;
+
+function startCalling() {
+    fetch(`/bulk-call/{{ campaign.id }}/start/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('campaignStatus').textContent = 'Running';
+            document.getElementById('campaignStatus').style.color = '#3b82f6';
+            document.getElementById('startBtn').style.display = 'none';
+            
+            // Add to console
+            addToConsole('✅ Campaign started successfully');
+            
+            // Start auto-refresh
+            startAutoRefresh();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error starting campaign');
+    });
+}
+
+function stopCalling() {
+    fetch(`/bulk-call/{{ campaign.id }}/stop/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('campaignStatus').textContent = 'Paused';
+            document.getElementById('campaignStatus').style.color = '#6b7280';
+            document.getElementById('stopBtn').style.display = 'none';
+            
+            addToConsole('⏸️ Campaign paused');
+            
+            // Stop auto-refresh
+            stopAutoRefresh();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    });
+}
+
+function resumeCalling() {
+    fetch(`/bulk-call/{{ campaign.id }}/resume/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('campaignStatus').textContent = 'Running';
+            document.getElementById('campaignStatus').style.color = '#3b82f6';
+            document.getElementById('startBtn').style.display = 'none';
+            document.getElementById('resumeBtn').style.display = 'none';
+            
+            addToConsole('🔄 Resumed calling - skipping already called numbers');
+            addToConsole('✅ ' + data.message);
+            
+            // Start auto-refresh
+            startAutoRefresh();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error resuming campaign');
+    });
+}
+
+function refreshData() {
+    fetch(`/bulk-call/{{ campaign.id }}/status/`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update stats
+            document.getElementById('totalNumbers').textContent = data.campaign.total;
+            document.getElementById('completedCalls').textContent = data.campaign.completed;
+            document.getElementById('successfulCalls').textContent = data.campaign.successful;
+            document.getElementById('successRate').textContent = data.campaign.success_rate.toFixed(1) + '%';
+            document.getElementById('progressText').textContent = data.campaign.completed + '/' + data.campaign.total;
+            
+            // Update progress bar
+            const progressPercent = (data.campaign.completed / data.campaign.total) * 100;
+            document.getElementById('progressBar').style.width = progressPercent + '%';
+            
+            // Update status
+            document.getElementById('campaignStatus').textContent = data.campaign.status.charAt(0).toUpperCase() + data.campaign.status.slice(1);
+            
+            // Update console with recent calls
+            data.recent_calls.forEach(call => {
+                const statusIcon = call.status === 'connected' ? '✅' : 
+                                 call.status === 'failed' ? '❌' : 
+                                 call.status === 'calling' ? '📞' : '⏳';
+                addToConsole(`${statusIcon} ${call.name} (${call.phone}) - ${call.status} at ${call.initiated_at}`);
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error refreshing data:', error);
+    });
+}
+
+function addToConsole(message) {
+    const console = document.getElementById('liveConsole');
+    const timestamp = new Date().toLocaleTimeString();
+    const logEntry = document.createElement('div');
+    logEntry.innerHTML = `<span style="color: #6b7280;">[${timestamp}]</span> ${message}`;
+    console.appendChild(logEntry);
+    console.scrollTop = console.scrollHeight;
+    
+    // Keep only last 50 entries
+    while (console.children.length > 50) {
+        console.removeChild(console.firstChild);
+    }
+}
+
+function startAutoRefresh() {
+    refreshInterval = setInterval(refreshData, 3000); // Refresh every 3 seconds
+}
+
+function stopAutoRefresh() {
+    if (refreshInterval) {
+        clearInterval(refreshInterval);
+    }
+}
+
+// Start auto-refresh if campaign is running
+{% if campaign.status == 'running' %}
+startAutoRefresh();
+{% endif %}
+
+// Initial console message
+addToConsole('📊 Dashboard loaded - Campaign: {{ campaign.name }}');
+</script>
+{% endblock %}

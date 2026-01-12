@@ -1,0 +1,193 @@
+{% extends 'leads/base_unified.html' %}
+{% load lead_filters %}
+
+{% block title %}All Leads - Meta Leads CRM{% endblock %}
+{% block page_title %}👥 All Leads{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-content">
+        <form method="get" class="filter-grid">
+            <div class="form-group mb-0">
+                <label>Search</label>
+                <input type="text" name="search" class="form-control" placeholder="Search name, email, phone..." value="{{ search }}">
+            </div>
+            <div class="form-group mb-0">
+                <label>Form</label>
+                <select name="form" class="form-control">
+                    <option value="">All Forms</option>
+                    {% for form in forms %}
+                    <option value="{{ form }}" {% if form_filter == form %}selected{% endif %}>
+                        {{ form|truncatechars:40 }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">🔍 Filter</button>
+                <a href="/leads/" class="btn btn-secondary">✖️ Clear</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Contact</th>
+                <th>Requirements</th>
+                <th>Form</th>
+                <th>Date</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for lead in leads %}
+            <tr>
+                <td>
+                    <div>
+                        <a href="/leads/{{ lead.id }}/" class="lead-name">
+                            {{ lead.full_name|default:"No Name" }}
+                        </a>
+                        {% if lead.budget %}
+                        <div class="lead-budget">
+                            Budget: {{ lead.budget }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </td>
+                <td>
+                    <div>
+                        {% if lead.email %}
+                        <div class="mb-1">
+                            <a href="mailto:{{ lead.email }}" class="contact-email">
+                                {{ lead.email }}
+                            </a>
+                        </div>
+                        {% endif %}
+                        {% if lead.phone_number %}
+                        <div>
+                            <a href="tel:{{ lead.phone_number }}" class="contact-phone">
+                                {% maskable_number lead.phone_number "phone" %}
+                            </a>
+                        </div>
+                        {% endif %}
+                        {% if not lead.email and not lead.phone_number %}
+                        <span class="text-muted">No contact info</span>
+                        {% endif %}
+                    </div>
+                </td>
+                <td>
+                    {% if lead.configuration %}
+                    <div class="requirement-badge">
+                        {{ lead.configuration }}
+                    </div>
+                    {% endif %}
+                    {% if lead.preferred_time %}
+                    <div class="small text-muted">
+                        Preferred: {{ lead.preferred_time }}
+                    </div>
+                    {% endif %}
+                    {% if not lead.configuration and not lead.preferred_time %}
+                    <span class="text-muted">—</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <span class="small text-muted">
+                        {{ lead.form_name|truncatechars:25 }}
+                    </span>
+                </td>
+                <td>
+                    <div class="small text-muted">
+                        {{ lead.created_time|date:"M d, Y" }}<br>
+                        <span class="smaller">{{ lead.created_time|date:"H:i" }}</span>
+                    </div>
+                </td>
+                <td>
+                    <div class="d-flex gap-1">
+                        <a href="/leads/{{ lead.id }}/" class="btn btn-secondary btn-sm">
+                            Details
+                        </a>
+                        <a href="{% url 'lead_whatsapp_dashboard' lead.id %}" class="btn btn-success btn-sm">
+                            WhatsApp
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" class="text-center text-muted p-5">
+                    <div class="mb-2">No leads found</div>
+                    <div class="small">Try adjusting your filters or sync new leads from Meta</div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if leads.has_other_pages %}
+<div class="pagination">
+    {% if leads.has_previous %}
+        <a href="?page=1{% if search %}&search={{ search }}{% endif %}{% if form_filter %}&form={{ form_filter }}{% endif %}">
+            « First
+        </a>
+        <a href="?page={{ leads.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if form_filter %}&form={{ form_filter }}{% endif %}">
+            ‹ Previous
+        </a>
+    {% endif %}
+    
+    <span class="current">
+        Page {{ leads.number }} of {{ leads.paginator.num_pages }}
+    </span>
+    
+    {% if leads.has_next %}
+        <a href="?page={{ leads.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if form_filter %}&form={{ form_filter }}{% endif %}">
+            Next ›
+        </a>
+        <a href="?page={{ leads.paginator.num_pages }}{% if search %}&search={{ search }}{% endif %}{% if form_filter %}&form={{ form_filter }}{% endif %}">
+            Last »
+        </a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function syncLeads() {
+        const btn = document.querySelector('button[onclick="syncLeads()"]');
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = 'Syncing...';
+        btn.style.backgroundColor = '#6b7280';
+        
+        fetch('/sync/', {method: 'POST'})
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message || data.error);
+            if(data.success) {
+                location.reload();
+            } else {
+                btn.disabled = false;
+                btn.textContent = originalText;
+                btn.style.backgroundColor = '#10b981';
+            }
+        })
+        .catch(error => {
+            alert('Sync failed: ' + error);
+            btn.disabled = false;
+            btn.textContent = originalText;
+            btn.style.backgroundColor = '#10b981';
+        });
+    }
+    
+    function toggleMask(element) {
+        const isCurrentlyMasked = element.textContent === element.dataset.masked;
+        element.textContent = isCurrentlyMasked ? element.dataset.original : element.dataset.masked;
+        element.style.color = isCurrentlyMasked ? '#10b981' : '#6b7280';
+    }
+</script>
+{% endblock %}

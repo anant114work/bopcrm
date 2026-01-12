@@ -1,0 +1,363 @@
+{% extends 'leads/base_unified.html' %}
+{% load static %}
+
+{% block title %}Booking {{ booking.booking_id }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'bookings_dashboard' %}">Bookings</a></li>
+                    <li class="breadcrumb-item active">{{ booking.booking_id }}</li>
+                </ol>
+            </nav>
+            <h2 class="text-primary mb-3">
+                <i class="fas fa-file-contract"></i> Booking Details
+            </h2>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Main Booking Information -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Booking Information</h5>
+                    <span class="badge bg-{% if booking.status == 'confirmed' %}success{% elif booking.status == 'pending' %}warning{% else %}secondary{% endif %} fs-6">
+                        {{ booking.status|title }}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">Customer Details</h6>
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td class="fw-bold">Name:</td>
+                                    <td>{{ booking.customer_name }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Phone:</td>
+                                    <td>{{ booking.customer_phone }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Email:</td>
+                                    <td>{{ booking.customer_email|default:"Not provided" }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Address:</td>
+                                    <td>{{ booking.customer_address|default:"Not provided" }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Nominee:</td>
+                                    <td>{{ booking.nominee_name|default:"Not provided" }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">Unit Details</h6>
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td class="fw-bold">Unit Number:</td>
+                                    <td>{{ booking.unit_number }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Unit Type:</td>
+                                    <td>{{ booking.unit_type }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Area:</td>
+                                    <td>{{ booking.area }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Total Amount:</td>
+                                    <td class="text-success fw-bold">{{ booking.formatted_amount }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Booking Amount:</td>
+                                    <td class="text-primary fw-bold">₹{{ booking.booking_amount|floatformat:0 }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Project Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Project Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td class="fw-bold">Project Name:</td>
+                                    <td>{{ booking.project_name }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Location:</td>
+                                    <td>{{ booking.project_location }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Developer:</td>
+                                    <td>{{ booking.developer }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">Channel Partner</h6>
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td class="fw-bold">CP Code:</td>
+                                    <td>{{ booking.cp_code|default:"Not provided" }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Company:</td>
+                                    <td>{{ booking.cp_company|default:"Not provided" }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Name:</td>
+                                    <td>{{ booking.cp_name|default:"Not provided" }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Phone:</td>
+                                    <td>{{ booking.cp_phone|default:"Not provided" }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Email:</td>
+                                    <td>{{ booking.cp_email|default:"Not provided" }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Quick Info -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Quick Info</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Booking ID:</span>
+                        <strong>{{ booking.booking_id }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">API Key:</span>
+                        <code class="small">{{ booking.api_key }}</code>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Source:</span>
+                        <span class="badge bg-info">{{ booking.booking_source }}</span>
+                    </div>
+                    {% if booking.source_category %}
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Category:</span>
+                        <span class="badge bg-primary">{{ booking.source_category.name }}</span>
+                    </div>
+                    {% endif %}
+                    {% if booking.source_detail %}
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Detail:</span>
+                        <span class="badge bg-success">{{ booking.source_detail.name }}</span>
+                    </div>
+                    {% endif %}
+                    {% if booking.custom_source %}
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Custom:</span>
+                        <span class="badge bg-warning">{{ booking.custom_source }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Created:</span>
+                        <span>{{ booking.created_at|date:"M d, Y H:i" }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Received:</span>
+                        <span>{{ booking.received_at|date:"M d, Y H:i" }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Source Management -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Source Management</h5>
+                </div>
+                <div class="card-body">
+                    <form id="sourceForm">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">Source Category</label>
+                            <select class="form-select" id="sourceCategory" name="source_category">
+                                <option value="">Select Category</option>
+                                {% for category in source_categories %}
+                                <option value="{{ category.id }}" {% if booking.source_category_id == category.id %}selected{% endif %}>
+                                    {{ category.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Source Detail</label>
+                            <select class="form-select" id="sourceDetail" name="source_detail" disabled>
+                                <option value="">Select Detail</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Custom Source</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="customSource" name="custom_source" 
+                                       placeholder="Enter custom source" value="{{ booking.custom_source }}">
+                                <button type="button" class="btn btn-outline-secondary" id="addCustomBtn" disabled>
+                                    <i class="fas fa-plus"></i> Add
+                                </button>
+                            </div>
+                            <small class="text-muted">Add new source if not in the list above</small>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Update Source
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Raw Payload -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Raw Payload</h5>
+                </div>
+                <div class="card-body">
+                    <pre class="bg-light p-3 rounded small" style="max-height: 400px; overflow-y: auto;"><code>{{ booking.raw_payload|pprint }}</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.table-borderless td {
+    padding: 0.25rem 0.5rem;
+    border: none;
+}
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+pre code {
+    font-size: 0.75rem;
+    line-height: 1.4;
+}
+
+.breadcrumb {
+    background-color: transparent;
+    padding: 0;
+}
+</style>
+
+<script>
+$(document).ready(function() {
+    // Handle category change
+    $('#sourceCategory').change(function() {
+        const categoryId = $(this).val();
+        const sourceDetail = $('#sourceDetail');
+        const addCustomBtn = $('#addCustomBtn');
+        
+        if (categoryId) {
+            // Enable source detail dropdown
+            sourceDetail.prop('disabled', false);
+            addCustomBtn.prop('disabled', false);
+            
+            // Load sources for selected category
+            $.get(`/api/sources/${categoryId}/`, function(data) {
+                sourceDetail.html('<option value="">Select Detail</option>');
+                data.sources.forEach(function(source) {
+                    const selected = {{ booking.source_detail_id|default:0 }} == source.id ? 'selected' : '';
+                    sourceDetail.append(`<option value="${source.id}" ${selected}>${source.name}</option>`);
+                });
+            });
+        } else {
+            sourceDetail.html('<option value="">Select Detail</option>').prop('disabled', true);
+            addCustomBtn.prop('disabled', true);
+        }
+    });
+    
+    // Trigger change on page load if category is selected
+    if ($('#sourceCategory').val()) {
+        $('#sourceCategory').trigger('change');
+    }
+    
+    // Handle add custom source
+    $('#addCustomBtn').click(function() {
+        const categoryId = $('#sourceCategory').val();
+        const sourceName = $('#customSource').val().trim();
+        
+        if (!categoryId || !sourceName) {
+            alert('Please select a category and enter a source name');
+            return;
+        }
+        
+        $.ajax({
+            url: '/api/sources/create/',
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val(),
+                'Content-Type': 'application/json'
+            },
+            data: JSON.stringify({
+                category_id: categoryId,
+                source_name: sourceName
+            }),
+            success: function(data) {
+                if (data.success) {
+                    // Add to dropdown and select it
+                    $('#sourceDetail').append(`<option value="${data.source.id}" selected>${data.source.name}</option>`);
+                    $('#customSource').val('');
+                    alert(data.created ? 'New source created!' : 'Source already exists and selected.');
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            },
+            error: function() {
+                alert('Error creating custom source');
+            }
+        });
+    });
+    
+    // Handle form submission
+    $('#sourceForm').submit(function(e) {
+        e.preventDefault();
+        
+        $.ajax({
+            url: window.location.href,
+            method: 'POST',
+            data: $(this).serialize(),
+            success: function(data) {
+                if (data.success) {
+                    alert('Source updated successfully!');
+                    location.reload();
+                } else {
+                    alert('Error updating source');
+                }
+            },
+            error: function() {
+                alert('Error updating source');
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,192 @@
+{% extends 'leads/base_unified.html' %}
+{% load static %}
+
+{% block title %}Create Gaur Yamuna Campaign{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-plus text-success"></i> Create Gaur Yamuna Drip Campaign</h2>
+                <a href="{% url 'drip_campaigns_dashboard' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Campaigns
+                </a>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-building"></i> Gaur Yamuna Follow-up Sequence</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-4">
+                        This will create a complete 9-day WhatsApp drip campaign for Gaur Yamuna leads with the following sequence:
+                    </p>
+
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="timeline">
+                                <div class="timeline-item">
+                                    <div class="timeline-marker bg-success"></div>
+                                    <div class="timeline-content">
+                                        <h6 class="timeline-title">Day 1 - Welcome Message</h6>
+                                        <p class="timeline-text">Initial welcome and assistance offer</p>
+                                        <small class="text-muted">Template: gauryaumana_final</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="timeline-item">
+                                    <div class="timeline-marker bg-info"></div>
+                                    <div class="timeline-content">
+                                        <h6 class="timeline-title">Day 2 - Location Benefits</h6>
+                                        <p class="timeline-text">Highlight Yamuna Expressway and airport benefits</p>
+                                        <small class="text-muted">Template: gauryaumana_maybelater</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="timeline-item">
+                                    <div class="timeline-marker bg-warning"></div>
+                                    <div class="timeline-content">
+                                        <h6 class="timeline-title">Day 3 - Payment Plan</h6>
+                                        <p class="timeline-text">Introduce 20-20-20-20-20 Smart Payment Plan</p>
+                                        <small class="text-muted">Template: gauryaumana_later_2</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="timeline-item">
+                                    <div class="timeline-marker bg-primary"></div>
+                                    <div class="timeline-content">
+                                        <h6 class="timeline-title">Day 4 - Pricing Advantage</h6>
+                                        <p class="timeline-text">30% price advantage compared to competitors</p>
+                                        <small class="text-muted">Template: gauryaumana_later_3</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="timeline-item">
+                                    <div class="timeline-marker bg-secondary"></div>
+                                    <div class="timeline-content">
+                                        <h6 class="timeline-title">Day 5 - Project Features</h6>
+                                        <p class="timeline-text">Corner units and architectural highlights</p>
+                                        <small class="text-muted">Template: gauryaumana_maybelater4</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="timeline-item">
+                                    <div class="timeline-marker bg-info"></div>
+                                    <div class="timeline-content">
+                                        <h6 class="timeline-title">Day 6 - Clubhouse Features</h6>
+                                        <p class="timeline-text">75,000 sq ft lifestyle clubhouse amenities</p>
+                                        <small class="text-muted">Template: gauryaumana_maybelater5</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="timeline-item">
+                                    <div class="timeline-marker bg-success"></div>
+                                    <div class="timeline-content">
+                                        <h6 class="timeline-title">Day 7 - Premium Amenities</h6>
+                                        <p class="timeline-text">Detailed clubhouse and lifestyle features</p>
+                                        <small class="text-muted">Template: gauryaumana_maybelater6</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="timeline-item">
+                                    <div class="timeline-marker bg-warning"></div>
+                                    <div class="timeline-content">
+                                        <h6 class="timeline-title">Day 8 - Investment ROI</h6>
+                                        <p class="timeline-text">Airport impact on rental yields and appreciation</p>
+                                        <small class="text-muted">Template: gauryaumana_later7</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="timeline-item">
+                                    <div class="timeline-marker bg-primary"></div>
+                                    <div class="timeline-content">
+                                        <h6 class="timeline-title">Day 9 - Final Call</h6>
+                                        <p class="timeline-text">Final assistance and guidance offer</p>
+                                        <small class="text-muted">Template: gaurfinal</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6><i class="fas fa-info-circle"></i> Campaign Details</h6>
+                                    <ul class="list-unstyled">
+                                        <li><strong>Project:</strong> Gaur Yamuna</li>
+                                        <li><strong>Messages:</strong> 9 templates</li>
+                                        <li><strong>Duration:</strong> 9 days</li>
+                                        <li><strong>Platform:</strong> AI Sensy WhatsApp</li>
+                                        <li><strong>Automation:</strong> Fully automated</li>
+                                    </ul>
+                                    
+                                    <hr>
+                                    
+                                    <form method="post">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-success btn-block">
+                                            <i class="fas fa-rocket"></i> Create Campaign
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #dee2e6;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 30px;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -22px;
+    top: 5px;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 2px #dee2e6;
+}
+
+.timeline-content {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    padding: 15px;
+    margin-left: 15px;
+}
+
+.timeline-title {
+    margin-bottom: 5px;
+    color: #495057;
+}
+
+.timeline-text {
+    margin-bottom: 5px;
+    color: #6c757d;
+}
+</style>
+{% endblock %}

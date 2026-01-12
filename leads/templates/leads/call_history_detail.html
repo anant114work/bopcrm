@@ -1,0 +1,305 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}Call History Details - Upload #{{ upload.id }}{% endblock %}
+
+{% block page_title %}Call History Details - Upload #{{ upload.id }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-file-alt mr-2"></i>
+                        Call History Details - Upload #{{ upload.id }}
+                    </h3>
+                    <div class="card-tools">
+                        <a href="{% url 'call_history_dashboard' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left mr-2"></i>
+                            Back to Dashboard
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Upload Summary -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="info-box">
+                                <span class="info-box-icon bg-primary"><i class="fas fa-file-excel"></i></span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Filename</span>
+                                    <span class="info-box-number">{{ upload.filename }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="info-box">
+                                <span class="info-box-icon bg-info"><i class="fas fa-calendar"></i></span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Upload Date</span>
+                                    <span class="info-box-number">{{ upload.uploaded_at|date:"M d, Y" }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="info-box">
+                                <span class="info-box-icon bg-success"><i class="fas fa-check"></i></span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Matched</span>
+                                    <span class="info-box-number">{{ upload.matched_records }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="info-box">
+                                <span class="info-box-icon bg-warning"><i class="fas fa-exclamation"></i></span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Unmatched</span>
+                                    <span class="info-box-number">{{ upload.unmatched_records }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Records Table -->
+                    {% if records %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="recordsTable">
+                                <thead class="thead-dark">
+                                    <tr>
+                                        <th>Phone Number</th>
+                                        <th>CRM Lead</th>
+                                        <th>Call Date</th>
+                                        <th>Call Time</th>
+                                        <th>Agent</th>
+                                        <th>Disposition</th>
+                                        <th>Duration</th>
+                                        <th>Recording</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for record in records %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ record.phone_number }}</strong>
+                                        </td>
+                                        <td>
+                                            {% if record.lead %}
+                                                <a href="{% url 'lead_detail' record.lead.id %}" target="_blank">
+                                                    {{ record.lead.full_name }}
+                                                </a>
+                                                <br>
+                                                <small class="text-muted">{{ record.lead.email }}</small>
+                                            {% else %}
+                                                <span class="text-muted">No Match</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ record.call_date|default:"-" }}</td>
+                                        <td>{{ record.call_time|default:"-" }}</td>
+                                        <td>{{ record.agent_name|default:"-" }}</td>
+                                        <td>
+                                            {% if record.disposition %}
+                                                <span class="badge 
+                                                    {% if 'interested' in record.disposition|lower %}badge-success
+                                                    {% elif 'not interested' in record.disposition|lower %}badge-danger
+                                                    {% elif 'callback' in record.disposition|lower %}badge-warning
+                                                    {% else %}badge-secondary{% endif %}">
+                                                    {{ record.disposition }}
+                                                </span>
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ record.call_duration|default:"-" }}</td>
+                                        <td>
+                                            {% if record.call_recording %}
+                                                <a href="{{ record.call_recording }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-play"></i>
+                                                </a>
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-info" onclick="viewRecordDetails({{ forloop.counter0 }})">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            No records found for this upload.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Record Details Modal -->
+<div class="modal fade" id="recordDetailsModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Call Record Details</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="recordModalBody">
+                <!-- Details will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const recordsData = [
+    {% for record in records %}
+    {
+        phone_number: "{{ record.phone_number }}",
+        lead: {% if record.lead %}{
+            id: {{ record.lead.id }},
+            full_name: "{{ record.lead.full_name }}",
+            email: "{{ record.lead.email }}",
+            phone_number: "{{ record.lead.phone_number }}",
+            form_name: "{{ record.lead.form_name }}"
+        }{% else %}null{% endif %},
+        call_date: "{{ record.call_date|default:'' }}",
+        call_time: "{{ record.call_time|default:'' }}",
+        agent_name: "{{ record.agent_name|default:'' }}",
+        disposition: "{{ record.disposition|default:'' }}",
+        call_duration: "{{ record.call_duration|default:'' }}",
+        call_recording: "{{ record.call_recording|default:'' }}",
+        call_transcript: "{{ record.call_transcript|default:'' }}",
+        hangup_reason: "{{ record.hangup_reason|default:'' }}",
+        cost: "{{ record.cost|default:'' }}",
+        source: "{{ record.source|default:'' }}",
+        campaign_type: "{{ record.campaign_type|default:'' }}",
+        conversion_status: "{{ record.conversion_status|default:'' }}",
+        raw_data: {{ record.raw_data|safe }}
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+];
+
+function viewRecordDetails(index) {
+    const record = recordsData[index];
+    
+    let html = `
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Call Information</h6>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm">
+                            <tr><td><strong>Phone Number:</strong></td><td>${record.phone_number}</td></tr>
+                            <tr><td><strong>Call Date:</strong></td><td>${record.call_date || '-'}</td></tr>
+                            <tr><td><strong>Call Time:</strong></td><td>${record.call_time || '-'}</td></tr>
+                            <tr><td><strong>Duration:</strong></td><td>${record.call_duration || '-'}</td></tr>
+                            <tr><td><strong>Agent:</strong></td><td>${record.agent_name || '-'}</td></tr>
+                            <tr><td><strong>Disposition:</strong></td><td>${record.disposition || '-'}</td></tr>
+                            <tr><td><strong>Hangup Reason:</strong></td><td>${record.hangup_reason || '-'}</td></tr>
+                            <tr><td><strong>Cost:</strong></td><td>${record.cost || '-'}</td></tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">CRM Lead Information</h6>
+                    </div>
+                    <div class="card-body">
+    `;
+    
+    if (record.lead) {
+        html += `
+                        <table class="table table-sm">
+                            <tr><td><strong>Name:</strong></td><td>${record.lead.full_name}</td></tr>
+                            <tr><td><strong>Email:</strong></td><td>${record.lead.email}</td></tr>
+                            <tr><td><strong>Phone:</strong></td><td>${record.lead.phone_number}</td></tr>
+                            <tr><td><strong>Form:</strong></td><td>${record.lead.form_name}</td></tr>
+                        </table>
+                        <a href="/leads/${record.lead.id}/" target="_blank" class="btn btn-sm btn-primary">
+                            <i class="fas fa-external-link-alt mr-1"></i>
+                            View Lead Details
+                        </a>
+        `;
+    } else {
+        html += `
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle mr-2"></i>
+                            No matching CRM lead found for this phone number.
+                        </div>
+        `;
+    }
+    
+    html += `
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    if (record.call_transcript) {
+        html += `
+            <div class="row mt-3">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">Call Transcript</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="bg-light p-3 rounded">
+                                ${record.call_transcript}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    if (record.call_recording) {
+        html += `
+            <div class="row mt-3">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">Call Recording</h6>
+                        </div>
+                        <div class="card-body">
+                            <a href="${record.call_recording}" target="_blank" class="btn btn-primary">
+                                <i class="fas fa-play mr-2"></i>
+                                Play Recording
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    document.getElementById('recordModalBody').innerHTML = html;
+    $('#recordDetailsModal').modal('show');
+}
+
+$(document).ready(function() {
+    $('#recordsTable').DataTable({
+        "pageLength": 25,
+        "order": [[ 2, "desc" ]],
+        "responsive": true
+    });
+});
+</script>
+{% endblock %}

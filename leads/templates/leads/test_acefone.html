@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Acefone API Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .test-form { background: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        .result { background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .success { border-color: #28a745; background: #d4edda; }
+        .error { border-color: #dc3545; background: #f8d7da; }
+        input, button { padding: 10px; margin: 5px; }
+        button { background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Acefone API Test</h1>
+        <p>Test the exact same API call that your bulk calling system uses.</p>
+        
+        <div class="test-form">
+            <h3>Test Parameters</h3>
+            <p><strong>Agent Number:</strong> 918062451619</p>
+            <p><strong>Caller ID:</strong> 918062451620</p>
+            <p><strong>API Token:</strong> 2449a616-b256-448e-8dd7-3bdf21696f67</p>
+            
+            <label>Test Phone Number (10 digits):</label>
+            <input type="text" id="phoneNumber" value="9999929832" placeholder="Enter 10-digit phone number">
+            <button onclick="testAPI()">🚀 Test API Call</button>
+        </div>
+        
+        <div id="result" class="result" style="display: none;">
+            <h3>API Response</h3>
+            <div id="resultContent"></div>
+        </div>
+    </div>
+
+    <script>
+        async function testAPI() {
+            const phoneNumber = document.getElementById('phoneNumber').value;
+            const resultDiv = document.getElementById('result');
+            const contentDiv = document.getElementById('resultContent');
+            
+            if (!phoneNumber || phoneNumber.length !== 10) {
+                alert('Please enter a valid 10-digit phone number');
+                return;
+            }
+            
+            try {
+                contentDiv.innerHTML = '<p>⏳ Testing API call...</p>';
+                resultDiv.style.display = 'block';
+                resultDiv.className = 'result';
+                
+                const response = await fetch('/test-acefone-api/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        phone_number: phoneNumber
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.className = 'result success';
+                    contentDiv.innerHTML = `
+                        <h4>✅ SUCCESS - API Call Accepted!</h4>
+                        <p><strong>Status Code:</strong> ${data.status_code}</p>
+                        <p><strong>Response:</strong></p>
+                        <pre>${data.response_body}</pre>
+                        <p><strong>Payload Sent:</strong></p>
+                        <pre>${JSON.stringify(data.payload_sent, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.className = 'result error';
+                    contentDiv.innerHTML = `
+                        <h4>❌ FAILED - API Call Rejected</h4>
+                        <p><strong>Status Code:</strong> ${data.status_code}</p>
+                        <p><strong>Response:</strong></p>
+                        <pre>${data.response_body}</pre>
+                        <p><strong>Payload Sent:</strong></p>
+                        <pre>${JSON.stringify(data.payload_sent, null, 2)}</pre>
+                        <h5>Possible Issues:</h5>
+                        <ul>
+                            <li>DID not assigned to outbound route</li>
+                            <li>DID not mapped to agent</li>
+                            <li>Token mismatch</li>
+                            <li>Agent not reachable</li>
+                            <li>Account outbound calling disabled</li>
+                        </ul>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                contentDiv.innerHTML = `
+                    <h4>❌ ERROR</h4>
+                    <p>${error.message}</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

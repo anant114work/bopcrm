@@ -1,0 +1,136 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}My Leads - CRM{% endblock %}
+{% block page_title %}👤 {{ member.name }} - {{ member.role }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="d-flex">
+        <h3>👤 {{ member.name }}</h3>
+        <div class="small">
+            <div class="text-center">
+                <div style="font-weight: 600; color: #1d4ed8;">{{ my_leads.count }}</div>
+                <div class="text-muted">My Pending Leads</div>
+            </div>
+            <div class="text-center">
+                <div style="font-weight: 600; color: #166534;">0</div>
+                <div class="text-muted">My Completed</div>
+            </div>
+            <div class="text-center">
+                <div style="font-weight: 600; color: #92400e;">{{ my_leads|length }}</div>
+                <div class="text-muted">My Overdue</div>
+            </div>
+            {% if team_leads %}
+            <div class="text-center">
+                <div style="font-weight: 600; color: #3730a3;">{{ team_leads.count }}</div>
+                <div class="text-muted">Team Pending</div>
+            </div>
+            <div class="text-center">
+                <div style="font-weight: 600; color: #6b21a8;">{{ team_members.count }}</div>
+                <div class="text-muted">Team Size</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- My Assigned Leads -->
+<div class="card">
+    <h3 style="margin-bottom: 16px;">My Assigned Leads</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Lead</th>
+                <th>Contact</th>
+                <th>Status</th>
+                <th>Assigned</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for lead in my_leads %}
+            <tr>
+                <td>
+                    <div style="font-weight: 600;">{{ lead.full_name|default:"No Name" }}</div>
+                    <div class="text-muted">{{ lead.form_name|truncatechars:30 }}</div>
+                </td>
+                <td>
+                    <div>{{ lead.phone_number|default:"No Phone" }}</div>
+                    <div class="text-muted">{{ lead.email|default:"No Email" }}</div>
+                </td>
+                <td>
+                    <span class="small">
+                        {{ lead.stage|title }}
+                    </span>
+                </td>
+                <td>
+                    <div class="text-muted">
+                        {{ lead.assignment.assigned_at|date:"M d, H:i" }}
+                    </div>
+                </td>
+                <td>
+                    <a href="/leads/{{ lead.id }}/" class="btn btn-secondary" class="small">View</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" class="text-center">
+                    No leads assigned to you yet
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Team Leads (if manager) -->
+{% if team_leads %}
+<div class="card">
+    <h3 style="margin-bottom: 16px;">Team Leads ({{ team_members.count }} members)</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Lead</th>
+                <th>Assigned To</th>
+                <th>Status</th>
+                <th>Assigned</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for lead in team_leads %}
+            <tr>
+                <td>
+                    <div style="font-weight: 600;">{{ lead.full_name|default:"No Name" }}</div>
+                    <div class="text-muted">{{ lead.phone_number|default:"No Phone" }}</div>
+                </td>
+                <td>
+                    <div style="font-weight: 600;">{{ lead.assignment.assigned_to.name }}</div>
+                    <div class="text-muted">{{ lead.assignment.assigned_to.role }}</div>
+                </td>
+                <td>
+                    <span class="small">
+                        {{ lead.stage|title }}
+                    </span>
+                </td>
+                <td>
+                    <div class="text-muted">
+                        {{ lead.assignment.assigned_at|date:"M d, H:i" }}
+                    </div>
+                </td>
+                <td>
+                    <a href="/leads/{{ lead.id }}/" class="btn btn-secondary" class="small">View</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" class="text-center">
+                    No leads assigned to team members yet
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% endblock %}

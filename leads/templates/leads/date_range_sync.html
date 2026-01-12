@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Date Range Lead Analysis</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input, .form-group select { padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 200px; }
+        .btn { padding: 12px 24px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
+        .btn:hover { background: #0056b3; }
+        .btn-success { background: #28a745; }
+        .btn-warning { background: #ffc107; color: #212529; }
+        .results { margin-top: 30px; }
+        .card { background: white; border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .stat-item { text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px; }
+        .stat-number { font-size: 24px; font-weight: bold; color: #007bff; }
+        .stat-label { font-size: 14px; color: #666; }
+        .table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .table th, .table td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+        .table th { background: #f8f9fa; }
+        .loading { text-align: center; padding: 20px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📅 Date Range Lead Analysis & Sync</h1>
+        
+        <div class="card">
+            <h3>Select Date Range</h3>
+            <div class="d-flex">
+                <div class="form-group">
+                    <label>Start Date:</label>
+                    <input type="date" id="startDate" value="">
+                </div>
+                <div class="form-group">
+                    <label>End Date:</label>
+                    <input type="date" id="endDate" value="">
+                </div>
+                <div class="form-group">
+                    <label>Quick Select:</label>
+                    <select id="quickSelect" onchange="setQuickDate()">
+                        <option value="">Custom Range</option>
+                        <option value="today">Today</option>
+                        <option value="yesterday">Yesterday</option>
+                        <option value="last7days">Last 7 Days</option>
+                        <option value="last30days">Last 30 Days</option>
+                        <option value="thismonth">This Month</option>
+                    </select>
+                </div>
+                <div>
+                    <button class="btn" onclick="analyzeRange()">📊 Analyze Range</button>
+                    <button class="btn btn-success" onclick="syncRange()">🔄 Sync Range</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="results" class="results" style="display: none;">
+            <div class="card">
+                <h3>📈 Analysis Results</h3>
+                <div class="stats-grid" id="statsGrid">
+                    <!-- Stats will be populated here -->
+                </div>
+                
+                <h4>📋 Daily Breakdown</h4>
+                <table class="table" id="dailyTable">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Meta Leads</th>
+                            <th>Google Leads</th>
+                            <th>Total</th>
+                            <th>Top Forms</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dailyTableBody">
+                        <!-- Daily data will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="syncResults" class="results" style="display: none;">
+            <div class="card">
+                <h3>🔄 Sync Results</h3>
+                <div id="syncContent">
+                    <!-- Sync results will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Set default dates
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        
+        document.getElementById('startDate').value = yesterday.toISOString().split('T')[0];
+        document.getElementById('endDate').value = today.toISOString().split('T')[0];
+
+        function setQuickDate() {
+            const select = document.getElementById('quickSelect');
+            const startDate = document.getElementById('startDate');
+            const endDate = document.getElementById('endDate');
+            const today = new Date();
+            
+            switch(select.value) {
+                case 'today':
+                    startDate.value = today.toISOString().split('T')[0];
+                    endDate.value = today.toISOString().split('T')[0];
+                    break;
+                case 'yesterday':
+                    const yesterday = new Date(today);
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    startDate.value = yesterday.toISOString().split('T')[0];
+                    endDate.value = yesterday.toISOString().split('T')[0];
+                    break;
+                case 'last7days':
+                    const week = new Date(today);
+                    week.setDate(week.getDate() - 7);
+                    startDate.value = week.toISOString().split('T')[0];
+                    endDate.value = today.toISOString().split('T')[0];
+                    break;
+                case 'last30days':
+                    const month = new Date(today);
+                    month.setDate(month.getDate() - 30);
+                    startDate.value = month.toISOString().split('T')[0];
+                    endDate.value = today.toISOString().split('T')[0];
+                    break;
+                case 'thismonth':
+                    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+                    startDate.value = firstDay.toISOString().split('T')[0];
+                    endDate.value = today.toISOString().split('T')[0];
+                    break;
+            }
+        }
+
+        async function analyzeRange() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            if (!startDate || !endDate) {
+                alert('Please select both start and end dates');
+                return;
+            }
+            
+            const resultsDiv = document.getElementById('results');
+            const statsGrid = document.getElementById('statsGrid');
+            const tableBody = document.getElementById('dailyTableBody');
+            
+            resultsDiv.style.display = 'block';
+            statsGrid.innerHTML = '<div class="loading">Loading analysis...</div>';
+            tableBody.innerHTML = '<tr><td colspan="5" class="loading">Loading...</td></tr>';
+            
+            try {
+                const response = await fetch('/date-range-analysis/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ start_date: startDate, end_date: endDate })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Populate stats
+                    statsGrid.innerHTML = `
+                        <div class="stat-item">
+                            <div class="stat-number">${data.total_leads}</div>
+                            <div class="stat-label">Total Leads</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">${data.meta_leads}</div>
+                            <div class="stat-label">Meta Leads</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">${data.google_leads}</div>
+                            <div class="stat-label">Google Leads</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">${data.avg_daily}</div>
+                            <div class="stat-label">Daily Average</div>
+                        </div>
+                    `;
+                    
+                    // Populate daily table
+                    tableBody.innerHTML = '';
+                    data.daily_breakdown.forEach(day => {
+                        const row = tableBody.insertRow();
+                        row.innerHTML = `
+                            <td>${day.date}</td>
+                            <td>${day.meta_leads}</td>
+                            <td>${day.google_leads}</td>
+                            <td><strong>${day.total}</strong></td>
+                            <td>${day.top_forms.join(', ')}</td>
+                        `;
+                    });
+                } else {
+                    statsGrid.innerHTML = `<div style="color: red;">Error: ${data.error}</div>`;
+                }
+            } catch (error) {
+                statsGrid.innerHTML = `<div style="color: red;">Network error: ${error.message}</div>`;
+            }
+        }
+
+        async function syncRange() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            if (!startDate || !endDate) {
+                alert('Please select both start and end dates');
+                return;
+            }
+            
+            const syncDiv = document.getElementById('syncResults');
+            const syncContent = document.getElementById('syncContent');
+            
+            syncDiv.style.display = 'block';
+            syncContent.innerHTML = '<div class="loading">⏳ Syncing leads from Meta API...</div>';
+            
+            try {
+                const response = await fetch('/sync/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        since_date: startDate,
+                        until_date: endDate 
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    syncContent.innerHTML = `
+                        <div style="color: green;">
+                            <h4>✅ Sync Completed Successfully</h4>
+                            <p><strong>New Leads Synced:</strong> ${data.total_synced || 0}</p>
+                            <p><strong>Total Leads in CRM:</strong> ${data.total_leads}</p>
+                            <p><strong>Debug Info:</strong></p>
+                            <pre class="small">${data.message}</pre>
+                        </div>
+                    `;
+                } else {
+                    syncContent.innerHTML = `
+                        <div style="color: red;">
+                            <h4>❌ Sync Failed</h4>
+                            <p><strong>Error:</strong> ${data.error}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                syncContent.innerHTML = `
+                    <div style="color: red;">
+                        <h4>❌ Network Error</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,240 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}Meta Leads - Meta Leads CRM{% endblock %}
+{% block page_title %}Meta Leads{% endblock %}
+
+
+
+{% block content %}
+<!-- Source Navigation -->
+<div class="source-tabs">
+    <a href="/leads/" class="source-tab">
+        All Leads<span class="count">{{ total_meta_leads|add:total_google_leads|default:0 }}</span>
+    </a>
+    <a href="/meta-leads/" class="source-tab active">
+        Meta<span class="count">{{ total_meta_leads }}</span>
+    </a>
+    <a href="/google-leads/" class="source-tab">
+        Google<span class="count">{{ total_google_leads|default:0 }}</span>
+    </a>
+    <a href="/call-analytics/" class="source-tab">
+        IVR Panel
+    </a>
+</div>
+
+<!-- Analytics Header -->
+<div class="analytics-header">
+    <div>
+        <h2><i class="fab fa-facebook"></i> Meta Lead Analytics</h2>
+    </div>
+    <div class="analytics-actions">
+        <a href="/export/" class="btn-action"><i class="fas fa-download"></i> Export</a>
+        <a href="/sync/" class="btn-action"><i class="fas fa-calendar"></i> Sync Historical</a>
+        <button onclick="syncNewLeads()" class="btn-action"><i class="fas fa-sync"></i> Sync New</button>
+    </div>
+</div>
+
+<!-- Period Selector -->
+<div class="period-selector">
+    <strong><i class="fas fa-calendar-alt"></i> Analytics Period:</strong>
+    <select onchange="updatePeriod(this.value)" style="margin-left: 8px;">
+        <option value="30_days" {% if date_filter == '30_days' %}selected{% endif %}>Last 30 Days</option>
+        <option value="7_days" {% if date_filter == '7_days' %}selected{% endif %}>Last 7 Days</option>
+        <option value="90_days" {% if date_filter == '90_days' %}selected{% endif %}>Last 90 Days</option>
+        <option value="all_time" {% if date_filter == 'all_time' %}selected{% endif %}>All Time</option>
+    </select>
+</div>
+
+<!-- Business Analytics -->
+<div class="business-stats">
+    <h4 style="margin: 0 0 8px 0; color: var(--primary-dark);"><i class="fas fa-chart-line"></i> Business Analytics</h4>
+    <div class="stats-summary">Period: {{ recent_leads_period }} • {{ recent_leads_count }} leads analyzed</div>
+    
+    <div class="stats-grid-compact">
+        <div class="stat-compact">
+            <div class="stat-value">₹{{ total_budget_crores }}</div>
+            <div class="stat-label">Crores</div>
+            <div class="stat-sublabel">Total Business Potential</div>
+        </div>
+        <div class="stat-compact">
+            <div class="stat-value">{{ total_meta_leads }}</div>
+            <div class="stat-label">Total</div>
+            <div class="stat-sublabel">Meta Leads</div>
+        </div>
+        <div class="stat-compact">
+            <div class="stat-value">{{ budget_breakdown.100_plus.count }}</div>
+            <div class="stat-label">₹{{ budget_breakdown.100_plus.total|floatformat:0 }}L</div>
+            <div class="stat-sublabel">₹1Cr+ Budget</div>
+        </div>
+        <div class="stat-compact">
+            <div class="stat-value">{{ budget_breakdown.50_to_100.count }}</div>
+            <div class="stat-label">₹{{ budget_breakdown.50_to_100.total|floatformat:0 }}L</div>
+            <div class="stat-sublabel">₹50L-1Cr Budget</div>
+        </div>
+        <div class="stat-compact">
+            <div class="stat-value">{{ budget_breakdown.under_50.count }}</div>
+            <div class="stat-label">₹{{ budget_breakdown.under_50.total|floatformat:0 }}L</div>
+            <div class="stat-sublabel">Under ₹50L Budget</div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<form method="get">
+    <div class="filters-compact">
+        <div class="form-group-compact">
+            <label>Search</label>
+            <input type="text" name="search" value="{{ search }}" placeholder="Name, email, phone..." class="form-control-compact">
+        </div>
+        <div class="form-group-compact">
+            <label>Form</label>
+            <select name="form" class="form-control-compact">
+                <option value="">All Meta Forms</option>
+                {% for form in forms %}
+                <option value="{{ form }}" {% if form_filter == form %}selected{% endif %}>{{ form|truncatechars:15 }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group-compact">
+            <label>City</label>
+            <select name="city" class="form-control-compact">
+                <option value="">All Cities</option>
+                {% for city in cities %}
+                <option value="{{ city }}" {% if city_filter == city %}selected{% endif %}>{{ city }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group-compact">
+            <label>Config</label>
+            <select name="config" class="form-control-compact">
+                <option value="">All Configs</option>
+                {% for config in configurations %}
+                <option value="{{ config }}" {% if config_filter == config %}selected{% endif %}>{{ config|truncatechars:10 }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn-compact"><i class="fas fa-search"></i> Filter</button>
+        <a href="/meta-leads/" class="btn-compact btn-clear"><i class="fas fa-times"></i> Clear</a>
+    </div>
+</form>
+
+<!-- Leads Table -->
+<div class="leads-table-compact">
+    <div class="table-header-compact">
+        Meta Leads ({{ leads.paginator.count }})
+    </div>
+    <table class="table-compact">
+        <thead>
+            <tr>
+                <th style="width: 22%;">Name</th>
+                <th style="width: 20%;">Contact</th>
+                <th style="width: 18%;">Requirements</th>
+                <th style="width: 18%;">Meta Form</th>
+                <th style="width: 12%;">Date</th>
+                <th style="width: 10%;">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for lead in leads %}
+            <tr>
+                <td>
+                    <div class="lead-name-compact">{{ lead.full_name|default:"No Name" }}</div>
+                    {% if lead.budget %}
+                    <div class="budget-compact">Budget: {{ lead.budget }}</div>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="contact-compact">
+                        {% if lead.email %}
+                        <div>{{ lead.email|truncatechars:25 }}</div>
+                        {% endif %}
+                        {% if lead.phone_number %}
+                        <div>{{ lead.phone_number }}</div>
+                        {% endif %}
+                    </div>
+                </td>
+                <td>
+                    {% if lead.budget %}
+                    <div><strong>Budget:</strong> {{ lead.budget }}</div>
+                    {% endif %}
+                    {% if lead.city %}
+                    <div><strong>City:</strong> {{ lead.city }}</div>
+                    {% endif %}
+                    {% if lead.configuration %}
+                    <div style="font-size: 10px; color: #7c3aed;">{{ lead.configuration|truncatechars:15 }}</div>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="form-name-compact">{{ lead.form_name|truncatechars:25 }}</div>
+                </td>
+                <td>
+                    <div class="date-compact">
+                        <div>{{ lead.created_time|date:"M d, Y" }}</div>
+                        <div style="color: #6b7280;">{{ lead.created_time|date:"H:i" }}</div>
+                    </div>
+                </td>
+                <td>
+                    <a href="/leads/{{ lead.id }}/" class="btn-details">Details</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-center">
+                    <i class="fab fa-facebook" style="font-size: 48px; margin-bottom: 16px; display: block;"></i>
+                    No Meta leads found
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination -->
+{% if leads.has_other_pages %}
+<div class="pagination">
+    {% if leads.has_previous %}
+        <a href="?page=1{% if search %}&search={{ search }}{% endif %}{% if form_filter %}&form={{ form_filter }}{% endif %}{% if city_filter %}&city={{ city_filter }}{% endif %}{% if config_filter %}&config={{ config_filter }}{% endif %}">&laquo; First</a>
+        <a href="?page={{ leads.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if form_filter %}&form={{ form_filter }}{% endif %}{% if city_filter %}&city={{ city_filter }}{% endif %}{% if config_filter %}&config={{ config_filter }}{% endif %}">&lsaquo; Previous</a>
+    {% endif %}
+    
+    <span class="current">
+        Page {{ leads.number }} of {{ leads.paginator.num_pages }}
+    </span>
+    
+    {% if leads.has_next %}
+        <a href="?page={{ leads.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if form_filter %}&form={{ form_filter }}{% endif %}{% if city_filter %}&city={{ city_filter }}{% endif %}{% if config_filter %}&config={{ config_filter }}{% endif %}">Next &rsaquo;</a>
+        <a href="?page={{ leads.paginator.num_pages }}{% if search %}&search={{ search }}{% endif %}{% if form_filter %}&form={{ form_filter }}{% endif %}{% if city_filter %}&city={{ city_filter }}{% endif %}{% if config_filter %}&config={{ config_filter }}{% endif %}">Last &raquo;</a>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Business Insights -->
+<div style="background: #f0f9ff; padding: 16px; border-radius: 8px; margin-top: 20px; border-left: 4px solid var(--primary-light);">
+    <h4 style="color: var(--primary-dark); margin-bottom: 8px;">
+        <i class="fas fa-lightbulb"></i> Budget Format Insights
+    </h4>
+    <p class="text-muted">
+        Business Value ({{ recent_leads_period }}): ₹{{ total_budget_crores }} Crores from leads with valid budgets. 
+        Total Meta Leads: {{ total_meta_leads }}
+    </p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updatePeriod(period) {
+    window.location.href = `?date_filter=${period}`;
+}
+
+function syncNewLeads() {
+    if (confirm('Sync new leads from Meta?')) {
+        fetch('/sync/', {method: 'POST'})
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message || 'Sync completed');
+            location.reload();
+        });
+    }
+}
+</script>
+{% endblock %}

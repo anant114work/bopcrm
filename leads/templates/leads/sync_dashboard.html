@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>Enhanced Meta Sync Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { background: #2c3e50; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px; }
+        .stat-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .stat-value { font-size: 2em; font-weight: bold; color: #3498db; }
+        .stat-label { color: #7f8c8d; margin-top: 5px; }
+        .controls { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        .btn { padding: 10px 20px; margin: 5px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; position: relative; }
+        .btn-primary { background: #3498db; color: white; }
+        .btn-success { background: #27ae60; color: white; }
+        .btn-danger { background: #e74c3c; color: white; }
+        .btn-warning { background: #f39c12; color: white; }
+        .spinner { animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .status-indicator { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; }
+        .status-running { background: #27ae60; }
+        .status-stopped { background: #e74c3c; }
+        .logs-section { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        .log-entry { padding: 8px; border-bottom: 1px solid #ecf0f1; display: flex; justify-content: space-between; }
+        .log-time { color: #7f8c8d; font-size: 0.9em; }
+        .log-success { color: #27ae60; }
+        .log-error { color: #e74c3c; }
+        .refresh-btn { float: right; }
+        .chart-container { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        {% csrf_token %}
+        <div class="header">
+            <h1>Enhanced Meta Sync Dashboard</h1>
+            <p>Real-time monitoring for 2000+ Meta forms synchronization</p>
+        </div>
+
+        {% if error %}
+        <div style="background: #e74c3c; color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <strong>Error:</strong> {{ error }}
+        </div>
+        {% endif %}
+
+        <!-- Status and Controls -->
+        <div class="controls">
+            <h3>
+                <span class="status-indicator {% if sync_running %}status-running{% else %}status-stopped{% endif %}"></span>
+                Sync Status: {% if sync_running %}Running{% else %}Stopped{% endif %}
+            </h3>
+            
+            <div style="margin: 15px 0;">
+                {% if sync_running %}
+                    <button class="btn btn-danger" onclick="stopSync()">Stop Auto Sync</button>
+                {% else %}
+                    <button class="btn btn-success" onclick="startSync()">Start Auto Sync</button>
+                {% endif %}
+                <button class="btn btn-warning" onclick="manualSync()">Manual Sync Now</button>
+                <button class="btn btn-primary" onclick="instantSync()" id="instantSyncBtn">
+                    <span class="btn-text">Instant Sync</span>
+                    <span class="spinner" style="display: none;">⟳</span>
+                </button>
+                <button class="btn btn-primary refresh-btn" onclick="refreshStatus()">Refresh Status</button>
+            </div>
+            
+            {% if last_sync %}
+            <p><strong>Last Sync:</strong> {{ last_sync }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Statistics -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value">{{ today_leads }}</div>
+                <div class="stat-label">Leads Today</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ total_forms|default:"0" }}</div>
+                <div class="stat-label">Total Forms</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="sync-runs">{{ recent_logs|length }}</div>
+                <div class="stat-label">Recent Sync Runs</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="success-rate">
+                    {% if recent_logs %}
+                        {% with successful=recent_logs|length %}
+                            100%
+                        {% endwith %}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </div>
+                <div class="stat-label">Success Rate</div>
+            </div>
+        </div>
+
+        <!-- Recent Sync Logs -->
+        <div class="logs-section">
+            <h3>Recent Sync Activity</h3>
+            <div id="sync-logs">
+                {% for log in recent_logs %}
+                <div class="log-entry">
+                    <span>
+                        <span class="log-time">{{ log.sync_time|date:"H:i:s" }}</span>
+                        <span class="{% if log.success %}log-success{% else %}log-error{% endif %}">
+                            {% if log.success %}✓{% else %}✗{% endif %}
+                            Synced {{ log.leads_synced }} leads from {{ log.forms_processed }} forms
+                        </span>
+                    </span>
+                </div>
+                {% empty %}
+                <div class="log-entry">
+                    <span style="color: #7f8c8d;">No sync logs available</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Hourly Chart -->
+        <div class="chart-container">
+            <h3>Today's Hourly Lead Distribution</h3>
+            <div class="d-flex">
+                {% for stat in hourly_stats %}
+                <div style="flex: 1; background: #3498db; height: {% if stat.leads %}{{ stat.leads|floatformat:0 }}%{% else %}1%{% endif %}; min-height: 1px; position: relative;">
+                    <div style="position: absolute; bottom: -25px; font-size: 10px; transform: rotate(-45deg); transform-origin: left;">
+                        {{ stat.hour }}
+                    </div>
+                    {% if stat.leads %}
+                    <div style="position: absolute; top: -20px; font-size: 10px; color: #2c3e50;">
+                        {{ stat.leads }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function startSync() {
+            fetch('/leads/enhanced-sync/start/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCSRFToken(),
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Auto sync started successfully!');
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('Network error: ' + error);
+            });
+        }
+
+        function stopSync() {
+            fetch('/leads/enhanced-sync/stop/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCSRFToken(),
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Auto sync stopped successfully!');
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('Network error: ' + error);
+            });
+        }
+
+        function manualSync() {
+            console.log('Manual Sync button clicked');
+            if (!confirm('This will sync all 2000+ forms. Continue?')) return;
+            
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'Syncing...';
+            
+            fetch('/leads/enhanced-sync/manual/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCSRFToken(),
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('Network error: ' + error);
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.textContent = 'Manual Sync Now';
+            });
+        }
+
+        function refreshStatus() {
+            location.reload();
+        }
+
+        function instantSync() {
+            const btn = document.getElementById('instantSyncBtn');
+            const btnText = btn.querySelector('.btn-text');
+            const spinner = btn.querySelector('.spinner');
+            
+            btn.disabled = true;
+            btnText.style.display = 'none';
+            spinner.style.display = 'inline';
+            
+            fetch('/leads/force-sync-now/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCSRFToken(),
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Instant sync completed: ${data.total_synced} leads synced`);
+                    location.reload();
+                } else {
+                    alert('Error: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                alert('Network error: ' + error.message);
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btnText.style.display = 'inline';
+                spinner.style.display = 'none';
+            });
+        }
+
+
+
+        function getCSRFToken() {
+            // Try multiple methods to get CSRF token
+            let token = null;
+            
+            // Method 1: From cookie
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, 10) === 'csrftoken=') {
+                        token = decodeURIComponent(cookie.substring(10));
+                        break;
+                    }
+                }
+            }
+            
+            // Method 2: From meta tag
+            if (!token) {
+                const metaTag = document.querySelector('meta[name="csrf-token"]');
+                if (metaTag) {
+                    token = metaTag.getAttribute('content');
+                }
+            }
+            
+            // Method 3: From hidden input
+            if (!token) {
+                const hiddenInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+                if (hiddenInput) {
+                    token = hiddenInput.value;
+                }
+            }
+            
+            if (!token) {
+                console.error('CSRF token not found! This may cause request failures.');
+                console.log('Available cookies:', document.cookie);
+            } else {
+                console.log('CSRF token found:', token.substring(0, 10) + '...');
+            }
+            
+            return token;
+        }
+
+        // Auto refresh every 30 seconds
+        setInterval(() => {
+            fetch('/leads/enhanced-sync/status/')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update status indicator and stats
+                    const indicator = document.querySelector('.status-indicator');
+                    const statusText = document.querySelector('.controls h3');
+                    
+                    if (data.status.running) {
+                        indicator.className = 'status-indicator status-running';
+                        statusText.innerHTML = statusText.innerHTML.replace(/Stopped|Running/, 'Running');
+                    } else {
+                        indicator.className = 'status-indicator status-stopped';
+                        statusText.innerHTML = statusText.innerHTML.replace(/Stopped|Running/, 'Stopped');
+                    }
+                    
+                    // Update recent logs
+                    const logsContainer = document.getElementById('sync-logs');
+                    if (data.status.recent_logs && data.status.recent_logs.length > 0) {
+                        logsContainer.innerHTML = data.status.recent_logs.map(log => 
+                            `<div class="log-entry">
+                                <span>
+                                    <span class="log-time">${log.sync_time}</span>
+                                    <span class="${log.success ? 'log-success' : 'log-error'}">
+                                        ${log.success ? '✓' : '✗'}
+                                        Synced ${log.leads_synced} leads from ${log.forms_processed} forms
+                                    </span>
+                                </span>
+                            </div>`
+                        ).join('');
+                    }
+                }
+            })
+            .catch(error => {
+                console.log('Auto refresh error:', error);
+            });
+        }, 30000);
+    </script>
+</body>
+</html>

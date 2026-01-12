@@ -1,0 +1,149 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}Call History Dashboard{% endblock %}
+
+{% block page_title %}Call History Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-phone-alt mr-2"></i>
+                        Call History Dashboard
+                    </h3>
+                    <div class="card-tools">
+                        <a href="{% url 'call_history_upload' %}" class="btn btn-primary">
+                            <i class="fas fa-upload mr-2"></i>
+                            Upload New File
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if uploads %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead class="thead-dark">
+                                    <tr>
+                                        <th>Upload ID</th>
+                                        <th>Filename</th>
+                                        <th>Upload Date</th>
+                                        <th>Total Records</th>
+                                        <th>Matched</th>
+                                        <th>Unmatched</th>
+                                        <th>Match Rate</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for upload in uploads %}
+                                    <tr>
+                                        <td>
+                                            <span class="badge badge-primary">#{{ upload.id }}</span>
+                                        </td>
+                                        <td>
+                                            <i class="fas fa-file-excel text-success mr-2"></i>
+                                            {{ upload.filename }}
+                                        </td>
+                                        <td>
+                                            {{ upload.uploaded_at|date:"M d, Y H:i" }}
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-info">{{ upload.total_records }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-success">{{ upload.matched_records }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-warning">{{ upload.unmatched_records }}</span>
+                                        </td>
+                                        <td>
+                                            {% widthratio upload.matched_records upload.total_records 100 as match_rate %}
+                                            <div class="progress" style="width: 100px;">
+                                                <div class="progress-bar 
+                                                    {% if match_rate >= 80 %}bg-success
+                                                    {% elif match_rate >= 60 %}bg-warning
+                                                    {% else %}bg-danger{% endif %}" 
+                                                    role="progressbar" 
+                                                    style="width: {{ match_rate }}%">
+                                                    {{ match_rate }}%
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'call_history_detail' upload.id %}" class="btn btn-sm btn-info">
+                                                <i class="fas fa-eye mr-1"></i>
+                                                View Details
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-file-excel fa-3x text-muted mb-3"></i>
+                            <h4 class="text-muted">No Call History Uploads Found</h4>
+                            <p class="text-muted">Upload your first Excel file to get started.</p>
+                            <a href="{% url 'call_history_upload' %}" class="btn btn-primary">
+                                <i class="fas fa-upload mr-2"></i>
+                                Upload Excel File
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% if uploads %}
+    <div class="row mt-4">
+        <div class="col-md-3">
+            <div class="info-box bg-primary">
+                <span class="info-box-icon"><i class="fas fa-upload"></i></span>
+                <div class="info-box-content">
+                    <span class="info-box-text">Total Uploads</span>
+                    <span class="info-box-number">{{ uploads|length }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="info-box bg-info">
+                <span class="info-box-icon"><i class="fas fa-list"></i></span>
+                <div class="info-box-content">
+                    <span class="info-box-text">Total Records</span>
+                    <span class="info-box-number">
+                        {% for upload in uploads %}{{ upload.total_records|add:0 }}{% if not forloop.last %}+{% endif %}{% endfor %}
+                    </span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="info-box bg-success">
+                <span class="info-box-icon"><i class="fas fa-check"></i></span>
+                <div class="info-box-content">
+                    <span class="info-box-text">Total Matched</span>
+                    <span class="info-box-number">
+                        {% for upload in uploads %}{{ upload.matched_records|add:0 }}{% if not forloop.last %}+{% endif %}{% endfor %}
+                    </span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="info-box bg-warning">
+                <span class="info-box-icon"><i class="fas fa-exclamation"></i></span>
+                <div class="info-box-content">
+                    <span class="info-box-text">Total Unmatched</span>
+                    <span class="info-box-number">
+                        {% for upload in uploads %}{{ upload.unmatched_records|add:0 }}{% if not forloop.last %}+{% endif %}{% endfor %}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

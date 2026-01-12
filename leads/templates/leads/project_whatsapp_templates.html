@@ -1,0 +1,99 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}WhatsApp Templates - {{ project.name }}{% endblock %}
+
+{% block page_title %}📱 WhatsApp Templates - {{ project.name }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="d-flex">
+        <h3 style="margin: 0;">WhatsApp Templates - {{ project.name }}</h3>
+        <button class="btn btn-primary" onclick="document.getElementById('addTemplateForm').style.display='block'">
+            Add Template
+        </button>
+    </div>
+    
+    {% if templates %}
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <th style="padding: 1rem; text-align: left; border-bottom: 1px solid #e5e7eb; background: #f9fafb; font-weight: 600;">Template Name</th>
+                    <th style="padding: 1rem; text-align: left; border-bottom: 1px solid #e5e7eb; background: #f9fafb; font-weight: 600;">Type</th>
+                    <th style="padding: 1rem; text-align: left; border-bottom: 1px solid #e5e7eb; background: #f9fafb; font-weight: 600;">Order</th>
+                    <th style="padding: 1rem; text-align: left; border-bottom: 1px solid #e5e7eb; background: #f9fafb; font-weight: 600;">Delay (mins)</th>
+                    <th style="padding: 1rem; text-align: left; border-bottom: 1px solid #e5e7eb; background: #f9fafb; font-weight: 600;">Message Preview</th>
+                    <th style="padding: 1rem; text-align: left; border-bottom: 1px solid #e5e7eb; background: #f9fafb; font-weight: 600;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for template in templates %}
+                <tr>
+                    <td style="padding: 1rem; border-bottom: 1px solid #e5e7eb;">{{ template.name }}</td>
+                    <td style="padding: 1rem; border-bottom: 1px solid #e5e7eb;">{{ template.template_type }}</td>
+                    <td style="padding: 1rem; border-bottom: 1px solid #e5e7eb;">{{ template.order }}</td>
+                    <td style="padding: 1rem; border-bottom: 1px solid #e5e7eb;">{{ template.drip_delay_minutes }}</td>
+                    <td style="padding: 1rem; border-bottom: 1px solid #e5e7eb;">{{ template.message_text|truncatechars:50 }}</td>
+                    <td style="padding: 1rem; border-bottom: 1px solid #e5e7eb;">
+                        <button class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">View</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No WhatsApp templates configured for this project.</p>
+    {% endif %}
+</div>
+
+<!-- Add Template Form -->
+<div id="addTemplateForm" style="display: none; margin-top: 1rem;">
+    <div class="card">
+        <form method="post">
+            {% csrf_token %}
+            <div class="d-flex">
+                <h4 style="margin: 0;">Add WhatsApp Template</h4>
+                <button type="button" onclick="document.getElementById('addTemplateForm').style.display='none'" class="btn btn-secondary">Cancel</button>
+            </div>
+            
+            <div class="gap-2">
+                <div>
+                    <label class="mb-0">Template Name</label>
+                    <input type="text" name="template_name" required style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;">
+                </div>
+                <div>
+                    <label class="mb-0">Message Type</label>
+                    <select name="message_type" required style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;">
+                        <option value="TEXT">TEXT</option>
+                        <option value="IMAGE">IMAGE</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="gap-2">
+                <div>
+                    <label class="mb-0">Order</label>
+                    <input type="number" name="order" value="1" min="1" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;">
+                </div>
+                <div>
+                    <label class="mb-0">Delay (minutes)</label>
+                    <input type="number" name="delay_minutes" value="0" min="0" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;">
+                    <small style="color: #6b7280;">0 = immediate, 30 = after 30 minutes</small>
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 1rem;">
+                <label class="mb-0">API Key</label>
+                <textarea name="api_key" rows="3" required style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;"></textarea>
+            </div>
+            
+            <div style="margin-bottom: 1rem;">
+                <label class="mb-0">Message Text</label>
+                <textarea name="message_text" rows="5" required style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;"></textarea>
+                <small style="color: #6b7280;">Use {{1}} for customer name placeholder</small>
+            </div>
+            
+            <button type="submit" class="btn btn-primary">Add Template</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

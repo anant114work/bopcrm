@@ -1,0 +1,225 @@
+{% extends 'leads/base_unified.html' %}
+{% load static %}
+
+{% block title %}WhatsApp Drip Campaigns{% endblock %}
+{% block page_title %}WhatsApp Drip Campaigns{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-paper-plane"></i> WhatsApp Drip Campaigns</h2>
+        <div>
+            <a href="{% url 'bulk_subscribe_view' %}" class="btn btn-primary">
+                <i class="fas fa-users"></i> Bulk Subscribe
+            </a>
+            <button class="btn btn-secondary" onclick="createGaurYamunaCampaign()">
+                <i class="fas fa-plus"></i> Create Campaign
+            </button>
+            <button class="btn btn-primary" onclick="processPendingMessages()">
+                <i class="fas fa-play"></i> Process Pending
+            </button>
+        </div>
+    </div>
+    <div class="card-content">
+
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-number">{{ analytics.total_campaigns }}</div>
+                <div class="stat-label">Total Campaigns</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">{{ analytics.active_campaigns }}</div>
+                <div class="stat-label">Active Campaigns</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">{{ analytics.total_subscribers }}</div>
+                <div class="stat-label">Active Subscribers</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">{{ analytics.pending_messages }}</div>
+                <div class="stat-label">Pending Messages</div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-list"></i> Drip Campaigns</h2>
+    </div>
+    <div class="card-content">
+        {% if campaigns %}
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #f9fafb;">
+                            <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Campaign Name</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Project</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Status</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Subscribers</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Messages Sent</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Created</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for campaign in campaigns %}
+                        <tr>
+                            <td style="padding: 12px; border-bottom: 1px solid #f3f4f6;">
+                                <strong>{{ campaign.name }}</strong>
+                                <br><small style="color: #6b7280;">{{ campaign.description|truncatechars:50 }}</small>
+                            </td>
+                            <td style="padding: 12px; border-bottom: 1px solid #f3f4f6;">
+                                <span class="small">{{ campaign.project.name }}</span>
+                            </td>
+                            <td style="padding: 12px; border-bottom: 1px solid #f3f4f6;">
+                                {% if campaign.status == 'active' %}
+                                    <span class="small">Active</span>
+                                {% elif campaign.status == 'paused' %}
+                                    <span class="small">Paused</span>
+                                {% elif campaign.status == 'completed' %}
+                                    <span class="small">Completed</span>
+                                {% else %}
+                                    <span class="small">Draft</span>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 12px; border-bottom: 1px solid #f3f4f6;">{{ campaign.total_subscribers }}</td>
+                            <td style="padding: 12px; border-bottom: 1px solid #f3f4f6;">{{ campaign.total_messages_sent }}</td>
+                            <td style="padding: 12px; border-bottom: 1px solid #f3f4f6;">{{ campaign.created_at|date:"M d, Y" }}</td>
+                            <td style="padding: 12px; border-bottom: 1px solid #f3f4f6;">
+                                <a href="{% url 'drip_campaign_detail' campaign.id %}" class="btn btn-primary" style="margin-right: 8px;">
+                                    <i class="fas fa-eye"></i> View
+                                </a>
+                                <button class="btn btn-secondary" onclick="subscribeLeadModal({{ campaign.id }})">
+                                    <i class="fas fa-user-plus"></i> Subscribe
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center">
+                <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+                <h5>No Drip Campaigns Yet</h5>
+                <p>Create your first drip campaign to start automated WhatsApp sequences.</p>
+                <button class="btn btn-primary" onclick="createGaurYamunaCampaign()">
+                    <i class="fas fa-plus"></i> Create Gaur Yamuna Campaign
+                </button>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Subscribe Lead Modal -->
+<div id="subscribeLeadModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 8px; padding: 24px; max-width: 400px; width: 90%;">
+        <h3 style="margin-bottom: 16px;">Subscribe Lead to Drip Campaign</h3>
+        <div class="form-group">
+            <label>Lead ID:</label>
+            <input type="number" class="form-control" id="leadId" placeholder="Enter Lead ID" required>
+        </div>
+        <input type="hidden" id="campaignId">
+        <div class="d-flex">
+            <button class="btn btn-secondary" onclick="document.getElementById('subscribeLeadModal').style.display='none'">Cancel</button>
+            <button class="btn btn-primary" onclick="subscribeLeadToCampaign()">Subscribe Lead</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function createGaurYamunaCampaign() {
+    if (confirm('Create Gaur Yamuna drip campaign with 5 predefined messages?')) {
+        fetch('{% url "create_gaur_yamuna_campaign" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Gaur Yamuna campaign created successfully!');
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            // For now, just reload the page since the view returns a redirect
+            location.reload();
+        });
+    }
+}
+
+function processPendingMessages() {
+    if (confirm('Process all pending drip messages now?')) {
+        fetch('{% url "process_pending_messages" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`Processed ${data.processed} messages. ${data.successful} successful, ${data.failed} failed.`);
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error processing messages');
+        });
+    }
+}
+
+function subscribeLeadModal(campaignId) {
+    document.getElementById('campaignId').value = campaignId;
+    document.getElementById('subscribeLeadModal').style.display = 'flex';
+}
+
+function subscribeLeadToCampaign() {
+    const leadId = document.getElementById('leadId').value;
+    const campaignId = document.getElementById('campaignId').value;
+    
+    if (!leadId) {
+        alert('Please enter a Lead ID');
+        return;
+    }
+    
+    fetch('{% url "subscribe_lead_to_drip" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            lead_id: leadId,
+            campaign_id: campaignId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            document.getElementById('subscribeLeadModal').style.display = 'none';
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error subscribing lead');
+    });
+}
+</script>
+{% endblock %}

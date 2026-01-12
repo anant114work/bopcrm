@@ -1,0 +1,344 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}AI Assistant - Lead Analytics{% endblock %}
+{% block page_title %}AI-Powered Lead Analytics{% endblock %}
+
+
+
+{% block content %}
+<!-- AI Overview -->
+<div class="ai-card">
+    <h2><i class="fas fa-robot"></i> AI Lead Intelligence</h2>
+    <div class="d-flex">
+        <div>
+            <div style="font-size: 24px; font-weight: bold;">{{ total_leads }}</div>
+            <div class="small">Total Leads</div>
+        </div>
+        <div>
+            <div style="font-size: 24px; font-weight: bold;">{{ total_areas }}</div>
+            <div class="small">Areas Covered</div>
+        </div>
+        <div>
+            <div style="font-size: 24px; font-weight: bold;">{{ total_groups }}</div>
+            <div class="small">Project Groups</div>
+        </div>
+    </div>
+</div>
+
+<!-- Area and Group Analysis -->
+<div class="grid-2">
+    <!-- Areas Analysis -->
+    <div class="card">
+        <div class="card-header">
+            <h2><i class="fas fa-map-marker-alt"></i> Analysis by Areas</h2>
+        </div>
+        <div class="card-content">
+            {% for area, data in area_analysis.items %}
+            <div class="area-group-card" onclick="viewAreaLeads('{{ area }}')" style="cursor: pointer;">
+                <div class="area-header">
+                    <h4>{{ area }}</h4>
+                    <div class="avg-quality">{{ data.avg_quality|floatformat:1 }}/10</div>
+                </div>
+                <div style="margin-bottom: 8px;">
+                    <strong>Total Leads:</strong> {{ data.total_leads }}
+                </div>
+                <div class="quality-distribution">
+                    <span class="quality-badge quality-high">High: {{ data.high_quality|length }}</span>
+                    <span class="quality-badge quality-medium">Medium: {{ data.medium_quality|length }}</span>
+                    <span class="quality-badge quality-low">Low: {{ data.low_quality|length }}</span>
+                </div>
+                <div class="small">
+                    <i class="fas fa-mouse-pointer"></i> Click to view leads
+                </div>
+            </div>
+            {% empty %}
+            <p>No area data available</p>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- Groups Analysis -->
+    <div class="card">
+        <div class="card-header">
+            <h2><i class="fas fa-layer-group"></i> Analysis by Project Groups</h2>
+        </div>
+        <div class="card-content">
+            {% for group, data in group_analysis.items %}
+            <div class="area-group-card" onclick="viewGroupLeads('{{ group }}')" style="cursor: pointer;">
+                <div class="area-header">
+                    <h4>{{ group|truncatechars:30 }}</h4>
+                    <div class="avg-quality">{{ data.avg_quality|floatformat:1 }}/10</div>
+                </div>
+                <div style="margin-bottom: 8px;">
+                    <strong>Total Leads:</strong> {{ data.total_leads }}
+                </div>
+                <div class="quality-distribution">
+                    <span class="quality-badge quality-high">High: {{ data.high_quality|length }}</span>
+                    <span class="quality-badge quality-medium">Medium: {{ data.medium_quality|length }}</span>
+                    <span class="quality-badge quality-low">Low: {{ data.low_quality|length }}</span>
+                </div>
+                <div class="small">
+                    <i class="fas fa-mouse-pointer"></i> Click to view leads
+                </div>
+            </div>
+            {% empty %}
+            <p>No group data available</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Sample Lead Analysis Results -->
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-chart-line"></i> Sample Lead Analysis</h2>
+    </div>
+    <div class="card-content">
+        {% if sample_analyses %}
+            {% for item in sample_analyses %}
+            <div class="lead-analysis-card">
+                <div class="d-flex">
+                    <div>
+                        <h4 style="margin: 0; color: var(--primary-dark);">{{ item.lead.full_name }}</h4>
+                        <div class="small">
+                            {{ item.lead.phone_number }} • {{ item.lead.city }} • {{ item.lead.form_name|truncatechars:30 }}
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <span class="quality-score score-{% if item.analysis.quality_score >= 8 %}high{% elif item.analysis.quality_score >= 6 %}medium{% else %}low{% endif %}">
+                            Score: {{ item.analysis.quality_score }}/10
+                        </span>
+                        <br>
+                        <span class="priority-badge priority-{{ item.analysis.priority }}">
+                            {{ item.analysis.priority }}
+                        </span>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 12px;">
+                    <strong>Budget:</strong> {{ item.lead.budget|default:"Not specified" }} •
+                    <strong>Config:</strong> {{ item.lead.configuration|default:"Not specified" }}
+                </div>
+                
+                <div style="margin-bottom: 12px;">
+                    <strong>AI Recommendations:</strong>
+                    <ul style="margin: 4px 0; padding-left: 20px;">
+                        {% for rec in item.analysis.recommendations %}
+                        <li class="small">{{ rec }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                
+                <div style="margin-bottom: 12px;">
+                    <strong>Lead Type:</strong> {{ item.analysis.lead_type|title }} •
+                    <strong>Next Action:</strong> {{ item.analysis.next_action|title }}
+                </div>
+                
+                <div class="ai-actions">
+                    <button class="btn-ai" onclick="generateFollowUp({{ item.lead.id }})">
+                        <i class="fas fa-message"></i> Generate Message
+                    </button>
+                    <button class="btn-ai" onclick="suggestCallTime({{ item.lead.id }})">
+                        <i class="fas fa-clock"></i> Best Call Time
+                    </button>
+                    <button class="btn-ai" onclick="refreshAIInsights()">
+                        <i class="fas fa-sync"></i> Refresh AI
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="text-center">
+                <i class="fas fa-robot" style="font-size: 48px; margin-bottom: 16px; display: block;"></i>
+                {% if error %}
+                <p>{{ error }}</p>
+                {% else %}
+                <p>No AI analysis available. Start by analyzing some leads!</p>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- AI Controls -->
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-cogs"></i> AI Controls</h2>
+    </div>
+    <div class="card-content">
+        <div class="d-flex">
+            <button class="btn-ai" onclick="refreshAIInsights()" style="background: #10b981;">
+                <i class="fas fa-sync"></i> Refresh All Insights
+            </button>
+            <button class="btn-ai" onclick="generateScenarioRecommendations('low_conversion')">
+                <i class="fas fa-chart-line"></i> Low Conversion Help
+            </button>
+            <button class="btn-ai" onclick="generateScenarioRecommendations('high_volume')">
+                <i class="fas fa-users"></i> High Volume Help
+            </button>
+            <button class="btn-ai" onclick="generateScenarioRecommendations('quality_issues')">
+                <i class="fas fa-exclamation-triangle"></i> Quality Issues Help
+            </button>
+        </div>
+        
+        <div id="ai-recommendations" style="display: none; background: #f0f9ff; padding: 16px; border-radius: 8px; border-left: 4px solid #0ea5e9;">
+            <h4 style="margin: 0 0 12px 0; color: #0ea5e9;">AI Recommendations</h4>
+            <ul id="recommendations-list" style="margin: 0; padding-left: 20px;"></ul>
+        </div>
+    </div>
+</div>
+
+<script>
+function refreshAIInsights() {
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+    btn.disabled = true;
+    
+    fetch('/ai/refresh-insights/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({})
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('AI insights refreshed successfully!', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showNotification('Error: ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        showNotification('Network error: ' + error.message, 'error');
+    })
+    .finally(() => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    });
+}
+
+function generateScenarioRecommendations(scenario) {
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
+    btn.disabled = true;
+    
+    fetch('/ai/generate-recommendations/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({scenario: scenario})
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            displayRecommendations(data.recommendations, scenario);
+        } else {
+            showNotification('Error: ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        showNotification('Network error: ' + error.message, 'error');
+    })
+    .finally(() => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    });
+}
+
+function displayRecommendations(recommendations, scenario) {
+    const container = document.getElementById('ai-recommendations');
+    const list = document.getElementById('recommendations-list');
+    
+    list.innerHTML = '';
+    recommendations.forEach(rec => {
+        const li = document.createElement('li');
+        li.textContent = rec;
+        li.style.marginBottom = '8px';
+        list.appendChild(li);
+    });
+    
+    container.style.display = 'block';
+    container.scrollIntoView({behavior: 'smooth'});
+}
+
+function generateFollowUp(leadId) {
+    showNotification('Generating personalized follow-up message...', 'info');
+}
+
+function suggestCallTime(leadId) {
+    showNotification('AI suggests calling between 10:00 AM - 12:00 PM for best results', 'info');
+}
+
+function viewAreaLeads(area) {
+    window.location.href = `/leads/?city=${encodeURIComponent(area)}`;
+}
+
+function viewGroupLeads(group) {
+    window.location.href = `/leads/?form=${encodeURIComponent(group)}`;
+}
+
+function showNotification(message, type) {
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        border-radius: 6px;
+        color: white;
+        font-weight: 500;
+        z-index: 10000;
+        max-width: 400px;
+    `;
+    
+    if (type === 'success') {
+        notification.style.backgroundColor = '#10b981';
+    } else if (type === 'error') {
+        notification.style.backgroundColor = '#ef4444';
+    } else {
+        notification.style.backgroundColor = '#3b82f6';
+    }
+    
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 5000);
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Auto-refresh insights every 5 minutes
+setInterval(() => {
+    fetch('/ai/insights-api/')
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.high_priority_leads > 0) {
+            showNotification(`${data.high_priority_leads} high-priority leads need attention!`, 'info');
+        }
+    })
+    .catch(() => {});
+}, 300000); // 5 minutes
+</script>
+{% endblock %}

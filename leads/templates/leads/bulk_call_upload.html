@@ -1,0 +1,263 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}Bulk Call Upload - Meta Leads CRM{% endblock %}
+{% block page_title %}📞 Bulk Call Upload{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-upload"></i> Upload CSV/Excel for Bulk Calling</h2>
+    </div>
+    <div class="card-content">
+        <div style="background: #e0f2fe; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
+            <h4 style="margin: 0 0 8px 0; color: #0277bd;">📋 File Format Requirements</h4>
+            <ul style="margin: 0; color: #0277bd;">
+                <li><strong>Supported formats:</strong> CSV, Excel (.xlsx, .xls)</li>
+                <li><strong>Required columns:</strong> Name, Phone (or variations like Mobile, Contact)</li>
+                <li><strong>Example:</strong> Name: "John Doe", Phone: "9999999999"</li>
+            </ul>
+        </div>
+
+        <form id="uploadForm" enctype="multipart/form-data" style="max-width: 600px;">
+            {% csrf_token %}
+            
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 500;">
+                    Select AI Agent <span style="color: #dc3545;">*</span>
+                </label>
+                {% if agents %}
+                <select id="agentSelect" required 
+                    style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="">Choose CallKaro AI Agent...</option>
+                    {% for agent in agents %}
+                    <option value="{{ agent.agent_id }}">
+                        {{ agent.name }} (ID: {{ agent.agent_id }})
+                        {% if agent.assigned_team_member %}
+                            - {{ agent.assigned_team_member.name }}
+                        {% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+                <small class="text-muted">Campaign name will be auto-generated</small>
+                {% else %}
+                <div style="background: #fef3c7; color: #92400e; padding: 16px; border-radius: 6px; margin-bottom: 16px;">
+                    <h4 style="margin: 0 0 8px 0;">⚠️ No CallKaro Agents Found</h4>
+                    <p style="margin: 0;">Please add CallKaro agents first:</p>
+                    <ol style="margin: 8px 0 0 20px;">
+                        <li>Go to Django Admin</li>
+                        <li>Navigate to "Call Karo Agents"</li>
+                        <li>Add your real CallKaro agent ID and name</li>
+                        <li>Set as active</li>
+                    </ol>
+                </div>
+                <input type="text" disabled value="No agents available" 
+                    style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: #f3f4f6; color: #6b7280;">
+                {% endif %}
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 500;">
+                    Upload File <span style="color: #dc3545;">*</span>
+                </label>
+                <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" required
+                    style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                <small class="text-muted">Supported: CSV, Excel (.xlsx, .xls)</small>
+            </div>
+            
+            <div class="d-flex">
+                {% if agents %}
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-upload"></i> Upload & Create Campaign
+                </button>
+                {% else %}
+                <button type="button" disabled class="btn" style="background: #6b7280; color: white;">
+                    <i class="fas fa-exclamation-triangle"></i> Add CallKaro Agents First
+                </button>
+                {% endif %}
+                <button type="button" onclick="downloadSample()" class="btn btn-secondary">
+                    <i class="fas fa-download"></i> Download Sample CSV
+                </button>
+            </div>
+        </form>
+        
+        <div id="uploadResults" style="margin-top: 24px;"></div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-list"></i> Recent Campaigns</h2>
+    </div>
+    <div class="card-content">
+        {% if campaigns %}
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #f9fafb;">
+                            <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Campaign</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Total Numbers</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Status</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Success Rate</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Created</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for campaign in campaigns %}
+                        <tr>
+                            <td style="padding: 12px; border-bottom: 1px solid #f3f4f6;">
+                                <strong>{{ campaign.name }}</strong><br>
+                                <small style="color: #6b7280;">{{ campaign.file_name }}</small>
+                            </td>
+                            <td style="padding: 12px; border-bottom: 1px solid #f3f4f6;">{{ campaign.total_numbers }}</td>
+                            <td style="padding: 12px; border-bottom: 1px solid #f3f4f6;">
+                                {% if campaign.status == 'pending' %}
+                                    <span class="small">Pending</span>
+                                {% elif campaign.status == 'running' %}
+                                    <span class="small">Running</span>
+                                {% elif campaign.status == 'completed' %}
+                                    <span class="small">Completed</span>
+                                {% elif campaign.status == 'paused' %}
+                                    <span class="small">Paused</span>
+                                {% else %}
+                                    <span class="small">Failed</span>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 12px; border-bottom: 1px solid #f3f4f6;">
+                                {% if campaign.completed_calls > 0 %}
+                                    {{ campaign.successful_calls|floatformat:0 }}/{{ campaign.completed_calls }} 
+                                    ({% widthratio campaign.successful_calls campaign.completed_calls 100 %}%)
+                                {% else %}
+                                    0%
+                                {% endif %}
+                            </td>
+                            <td style="padding: 12px; border-bottom: 1px solid #f3f4f6;">
+                                {{ campaign.created_at|date:"M d, Y H:i" }}
+                            </td>
+                            <td style="padding: 12px; border-bottom: 1px solid #f3f4f6;">
+                                <a href="/bulk-call/{{ campaign.id }}/" class="btn btn-sm btn-primary" style="margin-right: 8px;">
+                                    <i class="fas fa-eye"></i> View Dashboard
+                                </a>
+                                <button onclick="deleteCampaign({{ campaign.id }}, '{{ campaign.name }}')" class="btn btn-sm btn-danger">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center">
+                <i class="fas fa-phone" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+                <h6>No Campaigns Yet</h6>
+                <p>Upload a CSV/Excel file to create your first bulk calling campaign.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const agentId = document.getElementById('agentSelect').value;
+    const fileInput = document.getElementById('fileInput');
+    const resultsDiv = document.getElementById('uploadResults');
+    
+    if (!agentId || !fileInput.files[0]) {
+        alert('Please select an AI agent and file');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('agent_id', agentId);
+    formData.append('file', fileInput.files[0]);
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    
+    resultsDiv.innerHTML = '<div style="background: #fef3c7; color: #92400e; padding: 16px; border-radius: 6px;">Processing file...</div>';
+    
+    try {
+        const response = await fetch('/bulk-call/upload/', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            resultsDiv.innerHTML = `
+                <div style="background: #ecfdf5; color: #065f46; padding: 16px; border-radius: 6px;">
+                    ✅ Campaign created successfully!<br>
+                    <strong>${data.total_numbers}</strong> numbers uploaded.<br>
+                    <a href="/bulk-call/${data.campaign_id}/" class="btn btn-success" style="margin-top: 8px;">
+                        <i class="fas fa-play"></i> Start Calling Campaign
+                    </a>
+                </div>
+            `;
+            
+            // Reset form
+            document.getElementById('uploadForm').reset();
+            
+            // Reload page after 2 seconds to show new campaign
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            resultsDiv.innerHTML = `
+                <div style="background: #fef2f2; color: #991b1b; padding: 16px; border-radius: 6px;">
+                    ❌ Error: ${data.error}
+                </div>
+            `;
+        }
+    } catch (error) {
+        resultsDiv.innerHTML = `
+            <div style="background: #fef2f2; color: #991b1b; padding: 16px; border-radius: 6px;">
+                ❌ Upload failed: ${error.message}
+            </div>
+        `;
+    }
+});
+
+function downloadSample() {
+    // Create sample CSV content
+    const csvContent = "Name,Phone\nJohn Doe,9999999999\nJane Smith,8888888888\nRavi Kumar,7777777777";
+    
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'sample_bulk_call.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+}
+
+async function deleteCampaign(campaignId, campaignName) {
+    if (!confirm(`Are you sure you want to delete campaign "${campaignName}"?\n\nThis will permanently delete all call records and cannot be undone.`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/bulk-call/${campaignId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (error) {
+        alert('Delete failed: ' + error.message);
+    }
+}
+</script>
+{% endblock %}

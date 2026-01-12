@@ -1,0 +1,118 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}{{ team_member.name }} - Profile{% endblock %}
+{% block page_title %}My Profile{% endblock %}
+
+
+
+{% block content %}
+<div class="profile-container">
+    <!-- Profile Information -->
+    <div class="card">
+        <div class="card-header">
+            <h2>Profile Information</h2>
+        </div>
+        <div class="card-content">
+            <div class="profile-avatar">
+                {{ team_member.name|first|upper }}
+            </div>
+            
+            {% if messages %}
+                {% for message in messages %}
+                <div class="alert alert-{% if message.tags == 'error' %}error{% else %}success{% endif %}">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            {% endif %}
+            
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" name="name" value="{{ team_member.name }}" required class="form-control">
+                </div>
+                
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" name="email" value="{{ team_member.email }}" required class="form-control">
+                </div>
+                
+                <div class="form-group">
+                    <label>Phone Number (Login Password)</label>
+                    <input type="tel" name="phone" value="{{ team_member.phone }}" required class="form-control">
+                </div>
+                
+                <div class="form-group">
+                    <label>Role</label>
+                    <input type="text" value="{{ team_member.role }}" disabled class="form-control">
+                </div>
+                
+                {% if team_member.parent_user %}
+                <div class="form-group">
+                    <label>Reports To</label>
+                    <input type="text" value="{{ team_member.parent_user.name }} - {{ team_member.parent_user.role }}" disabled class="form-control">
+                </div>
+                {% endif %}
+                
+                <div class="form-group">
+                    <label>Member Since</label>
+                    <input type="text" value="{{ team_member.created_at|date:'M d, Y' }}" disabled class="form-control">
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Update Profile</button>
+            </form>
+        </div>
+    </div>
+        
+    <!-- Performance Stats -->
+    <div class="card">
+        <div class="card-header">
+            <h2>My Performance</h2>
+        </div>
+        <div class="card-content">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-number">{{ stats.total_assigned|default:0 }}</div>
+                    <div class="stat-label">Total Assigned</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{ stats.completed|default:0 }}</div>
+                    <div class="stat-label">Completed</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{ stats.pending|default:0 }}</div>
+                    <div class="stat-label">Pending</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{ stats.conversion_rate|default:0 }}%</div>
+                    <div class="stat-label">Conversion Rate</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        
+    <!-- Team Information (if has subordinates) -->
+    {% if subordinates %}
+    <div class="card">
+        <div class="card-header">
+            <h2>My Team ({{ subordinates.count }} members)</h2>
+        </div>
+        <div class="card-content">
+            {% for subordinate in subordinates %}
+            <div class="team-member-item">
+                <div class="team-member-info">
+                    <div class="team-member-name">{{ subordinate.name }}</div>
+                    <div class="team-member-role">{{ subordinate.role }}</div>
+                </div>
+                <div class="team-member-stats">
+                    <div class="team-member-count">{{ subordinate.assigned_leads.count|default:0 }}</div>
+                    <div class="team-member-label">Assigned Leads</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

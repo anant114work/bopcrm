@@ -1,0 +1,6 @@
+version: "2"
+authtoken: 2pGJZZiZe8QLzjhZQKuCJhJZQKu_7KqG8QLzjhZQKuCJhJZQKu
+tunnels:
+  crm:
+    proto: http
+    addr: 8000

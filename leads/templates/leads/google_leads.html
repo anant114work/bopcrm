@@ -1,0 +1,213 @@
+{% extends 'leads/base_unified.html' %}
+{% load lead_filters %}
+
+{% block title %}Google Form Leads - Meta Leads CRM{% endblock %}
+{% block page_title %}Google Leads{% endblock %}
+
+
+
+{% block content %}
+<!-- Source Navigation -->
+<div class="source-tabs">
+    <a href="/leads/" class="source-tab">
+        All Leads<span class="count">{{ total_google_leads|add:2393|default:0 }}</span>
+    </a>
+    <a href="/meta-leads/" class="source-tab">
+        Meta<span class="count">2393</span>
+    </a>
+    <a href="/google-leads/" class="source-tab active">
+        Google<span class="count">{{ total_google_leads }}</span>
+    </a>
+    <a href="/call-analytics/" class="source-tab">
+        IVR Panel
+    </a>
+</div>
+
+<!-- Analytics Header -->
+<div class="analytics-header">
+    <div>
+        <h2><i class="fab fa-google"></i> Google Form Leads</h2>
+    </div>
+    <div class="analytics-actions">
+        <button onclick="refreshGoogleLeads()" class="btn-action"><i class="fas fa-sync"></i> Refresh from Google Sheet</button>
+    </div>
+</div>
+
+<!-- Filters -->
+<form method="get">
+    <div class="filters-compact">
+        <div class="form-group-compact">
+            <label>Search</label>
+            <input type="text" name="search" placeholder="Name, email, phone..." value="{{ search }}" class="form-control-compact">
+        </div>
+        <div class="form-group-compact">
+            <label>Project</label>
+            <select name="project" class="form-control-compact">
+                <option value="">All Projects</option>
+                {% for project in projects %}
+                <option value="{{ project }}" {% if project_filter == project %}selected{% endif %}>
+                    {{ project|truncatechars:20 }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group-compact">
+            <label>Configuration</label>
+            <select name="config" class="form-control-compact">
+                <option value="">All Configs</option>
+                {% for config in configurations %}
+                <option value="{{ config }}" {% if config_filter == config %}selected{% endif %}>
+                    {{ config }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn-compact"><i class="fas fa-search"></i> Filter</button>
+        <a href="/google-leads/" class="btn-compact btn-clear"><i class="fas fa-times"></i> Clear</a>
+    </div>
+</form>
+
+<!-- Leads Table -->
+<div class="leads-table-compact">
+    <div class="table-header-compact">
+        Google Form Leads ({{ leads.paginator.count }})
+    </div>
+    <table class="table-compact">
+        <thead>
+            <tr>
+                <th style="width: 22%;">Name</th>
+                <th style="width: 20%;">Contact</th>
+                <th style="width: 18%;">Project Details</th>
+                <th style="width: 15%;">Source</th>
+                <th style="width: 12%;">Date</th>
+                <th style="width: 13%;">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for lead in leads %}
+            <tr>
+                <td>
+                    <div class="lead-name-compact">
+                        <a href="/leads/{{ lead.id }}/" style="color: #1f2937; text-decoration: none;">
+                            {{ lead.full_name|default:"No Name" }}
+                        </a>
+                    </div>
+                    <span class="google-badge">Google Form</span>
+                </td>
+                <td>
+                    <div class="contact-compact">
+                        {% if lead.email %}
+                        <div style="margin-bottom: 2px;">
+                            <a href="mailto:{{ lead.email }}" style="color: #3b82f6; text-decoration: none;">
+                                {{ lead.email|truncatechars:20 }}
+                            </a>
+                        </div>
+                        {% endif %}
+                        {% if lead.phone_number %}
+                        <div>
+                            <a href="tel:{{ lead.phone_number }}" style="color: #10b981; text-decoration: none;">
+                                {% maskable_number lead.phone_number "phone" %}
+                            </a>
+                        </div>
+                        {% endif %}
+                        {% if not lead.email and not lead.phone_number %}
+                        <span class="text-muted">No contact info</span>
+                        {% endif %}
+                    </div>
+                </td>
+                <td>
+                    {% if lead.configuration %}
+                    <span class="config-badge">{{ lead.configuration }}</span><br>
+                    {% endif %}
+                    {% if lead.form_name %}
+                    <div class="project-info">
+                        Project: {{ lead.form_name|truncatechars:20 }}
+                    </div>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="source-info">
+                        <div>📝 Google Form</div>
+                        <div style="font-size: 9px; color: #9ca3af;">
+                            ID: {{ lead.lead_id|slice:":10" }}...
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div class="date-compact">
+                        <div>{{ lead.created_time|date:"M d, Y" }}</div>
+                        <div style="color: #6b7280;">{{ lead.created_time|date:"H:i" }}</div>
+                    </div>
+                </td>
+                <td>
+                    <a href="/leads/{{ lead.id }}/" class="btn-details">
+                        👁️ Details
+                    </a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-center">
+                    <div style="font-size: 18px; margin-bottom: 8px;">No Google Form leads found</div>
+                    <div class="small">Leads from Google Forms will appear here automatically</div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination -->
+{% if leads.has_other_pages %}
+<div class="pagination">
+    {% if leads.has_previous %}
+        <a href="?page=1{% if search %}&search={{ search }}{% endif %}{% if project_filter %}&project={{ project_filter }}{% endif %}{% if config_filter %}&config={{ config_filter }}{% endif %}">« First</a>
+        <a href="?page={{ leads.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if project_filter %}&project={{ project_filter }}{% endif %}{% if config_filter %}&config={{ config_filter }}{% endif %}">‹ Previous</a>
+    {% endif %}
+    
+    <span class="current">Page {{ leads.number }} of {{ leads.paginator.num_pages }}</span>
+    
+    {% if leads.has_next %}
+        <a href="?page={{ leads.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if project_filter %}&project={{ project_filter }}{% endif %}{% if config_filter %}&config={{ config_filter }}{% endif %}">Next ›</a>
+        <a href="?page={{ leads.paginator.num_pages }}{% if search %}&search={{ search }}{% endif %}{% if project_filter %}&project={{ project_filter }}{% endif %}{% if config_filter %}&config={{ config_filter }}{% endif %}">Last »</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+function refreshGoogleLeads() {
+    const btn = document.querySelector('button[onclick="refreshGoogleLeads()"]');
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Syncing...';
+    btn.style.backgroundColor = '#6b7280';
+    
+    fetch('/refresh-google-leads/', {method: 'POST'})
+    .then(response => response.json())
+    .then(data => {
+        alert(data.message || data.error);
+        if(data.success) {
+            location.reload();
+        } else {
+            btn.disabled = false;
+            btn.textContent = originalText;
+            btn.style.backgroundColor = '#10b981';
+        }
+    })
+    .catch(error => {
+        alert('Sync failed: ' + error);
+        btn.disabled = false;
+        btn.textContent = originalText;
+        btn.style.backgroundColor = '#10b981';
+    });
+}
+
+function toggleMask(element) {
+    const isCurrentlyMasked = element.textContent === element.dataset.masked;
+    element.textContent = isCurrentlyMasked ? element.dataset.original : element.dataset.masked;
+    element.style.color = isCurrentlyMasked ? '#10b981' : '#6b7280';
+}
+</script>
+{% endblock %}

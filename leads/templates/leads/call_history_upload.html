@@ -1,0 +1,144 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}Call History Upload{% endblock %}
+
+{% block page_title %}Call History Upload{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-phone-alt mr-2"></i>
+                        Upload Call History Excel File
+                    </h3>
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="close" data-dismiss="alert">
+                                    <span>&times;</span>
+                                </button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <div class="row">
+                        <div class="col-md-8">
+                            <form method="post" enctype="multipart/form-data" id="uploadForm">
+                                {% csrf_token %}
+                                <div class="form-group">
+                                    <label for="excel_file">Select Excel File</label>
+                                    <div class="custom-file">
+                                        <input type="file" class="custom-file-input" id="excel_file" name="excel_file" accept=".xlsx,.xls" required>
+                                        <label class="custom-file-label" for="excel_file">Choose file...</label>
+                                    </div>
+                                    <small class="form-text text-muted">
+                                        Upload Excel file with call history data. File must contain a "Phone Number" column.
+                                    </small>
+                                </div>
+                                
+                                <button type="submit" class="btn btn-primary" id="uploadBtn">
+                                    <i class="fas fa-upload mr-2"></i>
+                                    Upload & Process
+                                </button>
+                                
+                                <a href="{% url 'call_history_dashboard' %}" class="btn btn-secondary ml-2">
+                                    <i class="fas fa-list mr-2"></i>
+                                    View Previous Uploads
+                                </a>
+                            </form>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-header">
+                                    <h5 class="mb-0">Expected Excel Format</h5>
+                                </div>
+                                <div class="card-body">
+                                    <p class="mb-2"><strong>Required Column:</strong></p>
+                                    <ul class="list-unstyled">
+                                        <li><i class="fas fa-check text-success mr-2"></i>Phone Number</li>
+                                    </ul>
+                                    
+                                    <p class="mb-2 mt-3"><strong>Optional Columns:</strong></p>
+                                    <ul class="list-unstyled small">
+                                        <li><i class="fas fa-circle text-muted mr-2" style="font-size: 6px;"></i>ID</li>
+                                        <li><i class="fas fa-circle text-muted mr-2" style="font-size: 6px;"></i>Type</li>
+                                        <li><i class="fas fa-circle text-muted mr-2" style="font-size: 6px;"></i>Agent</li>
+                                        <li><i class="fas fa-circle text-muted mr-2" style="font-size: 6px;"></i>Call Date</li>
+                                        <li><i class="fas fa-circle text-muted mr-2" style="font-size: 6px;"></i>Call Time</li>
+                                        <li><i class="fas fa-circle text-muted mr-2" style="font-size: 6px;"></i>Disposition</li>
+                                        <li><i class="fas fa-circle text-muted mr-2" style="font-size: 6px;"></i>Call Duration</li>
+                                        <li><i class="fas fa-circle text-muted mr-2" style="font-size: 6px;"></i>Call Recording</li>
+                                        <li><i class="fas fa-circle text-muted mr-2" style="font-size: 6px;"></i>Call Transcript</li>
+                                        <li><i class="fas fa-circle text-muted mr-2" style="font-size: 6px;"></i>And more...</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card bg-info">
+                                <div class="card-body">
+                                    <h5 class="text-white mb-3">
+                                        <i class="fas fa-info-circle mr-2"></i>
+                                        Phone Number Matching Logic
+                                    </h5>
+                                    <div class="row text-white">
+                                        <div class="col-md-6">
+                                            <p class="mb-2"><strong>Priority 1:</strong> Last 4 digits match</p>
+                                            <p class="mb-2"><strong>Priority 2:</strong> Full 10 digits match</p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <p class="mb-2">System will find the best match for each phone number</p>
+                                            <p class="mb-0">All Excel data will be stored against matched CRM leads</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" tabindex="-1" role="dialog" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-body text-center">
+                <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="sr-only">Loading...</span>
+                </div>
+                <h5>Processing Excel File...</h5>
+                <p class="text-muted">Please wait while we match phone numbers with your CRM data.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    // Update file input label
+    $('.custom-file-input').on('change', function() {
+        let fileName = $(this).val().split('\\').pop();
+        $(this).siblings('.custom-file-label').addClass('selected').html(fileName);
+    });
+    
+    // Show loading modal on form submit
+    $('#uploadForm').on('submit', function() {
+        $('#loadingModal').modal('show');
+        $('#uploadBtn').prop('disabled', true);
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,177 @@
+{% extends 'leads/base_unified.html' %}
+{% load lead_filters %}
+
+{% block title %}Bulk WhatsApp - {{ project.name }}{% endblock %}
+{% block page_title %}📢 Bulk WhatsApp - {{ project.name }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h3>Send WhatsApp to Project Leads</h3>
+    <p style="color: #6b7280; margin-bottom: 2rem;">Send WhatsApp messages to all leads in {{ project.name }}</p>
+    
+    <div class="gap-2">
+        <div>
+            <h4>📊 Project Stats</h4>
+            <div style="background: #f0f9ff; padding: 1rem; border-radius: 6px;">
+                <div><strong>Total Leads:</strong> {{ project.lead_count }}</div>
+                <div><strong>With Phone:</strong> {{ leads_with_phone }}</div>
+                <div><strong>Available Templates:</strong> {{ templates.count }}</div>
+            </div>
+        </div>
+        
+        <div>
+            <h4>📱 Select Campaign</h4>
+            <select id="campaignSelect" class="form-control" onchange="updatePreview()">
+                <option value="">Choose a campaign...</option>
+                {% for template in templates %}
+                <option value="{{ template.id }}" data-payload="{{ template.api_key }}">{{ template.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+    
+    <div id="messagePreview" style="display: none; background: #f0f9ff; padding: 1rem; border-radius: 6px; margin-bottom: 2rem;">
+        <h4>Message Preview:</h4>
+        <div id="previewContent"></div>
+    </div>
+    
+    <div class="d-flex">
+        <button class="btn btn-success" onclick="sendBulkMessages()" id="sendBtn" disabled>
+            📢 Send to All Leads ({{ leads_with_phone }})
+        </button>
+        <button class="btn btn-primary" onclick="sendToSelected()">
+            📋 Send to Selected Leads
+        </button>
+    </div>
+    
+    <div id="sendResults" style="margin-bottom: 2rem;"></div>
+</div>
+
+<div class="card">
+    <h3>Project Leads with Phone Numbers</h3>
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 40px;"><input type="checkbox" id="selectAll" onchange="toggleAll()"></th>
+                <th>Name</th>
+                <th>Phone</th>
+                <th>Email</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for lead in leads %}
+            <tr>
+                <td><input type="checkbox" class="lead-checkbox" value="{{ lead.id }}"></td>
+                <td>{{ lead.full_name|default:"No Name" }}</td>
+                <td>{% maskable_number lead.phone_number "phone" %}</td>
+                <td>{{ lead.email|default:"-" }}</td>
+                <td>{{ lead.created_time|date:"M d, Y" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" class="text-center">No leads with phone numbers found</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+function updatePreview() {
+    const select = document.getElementById('campaignSelect');
+    const preview = document.getElementById('messagePreview');
+    const sendBtn = document.getElementById('sendBtn');
+    
+    if (select.value) {
+        preview.style.display = 'block';
+        sendBtn.disabled = false;
+        document.getElementById('previewContent').innerHTML = 'Campaign selected: ' + select.options[select.selectedIndex].text;
+    } else {
+        preview.style.display = 'none';
+        sendBtn.disabled = true;
+    }
+}
+
+function toggleAll() {
+    const selectAll = document.getElementById('selectAll');
+    const checkboxes = document.querySelectorAll('.lead-checkbox');
+    checkboxes.forEach(cb => cb.checked = selectAll.checked);
+}
+
+function sendBulkMessages() {
+    const templateId = document.getElementById('campaignSelect').value;
+    if (!templateId) {
+        alert('Please select a campaign');
+        return;
+    }
+    
+    const resultsDiv = document.getElementById('sendResults');
+    resultsDiv.innerHTML = '<div style="background: #fef3c7; color: #92400e; padding: 1rem; border-radius: 6px;">Sending messages to all leads...</div>';
+    
+    fetch('/projects/{{ project.id }}/send-bulk-whatsapp/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            template_id: templateId,
+            send_to_all: true
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            resultsDiv.innerHTML = `<div style="background: #ecfdf5; color: #065f46; padding: 1rem; border-radius: 6px;">✅ ${data.message}</div>`;
+        } else {
+            resultsDiv.innerHTML = `<div style="background: #fef2f2; color: #991b1b; padding: 1rem; border-radius: 6px;">❌ ${data.error}</div>`;
+        }
+    });
+}
+
+function sendToSelected() {
+    const templateId = document.getElementById('campaignSelect').value;
+    const selectedLeads = Array.from(document.querySelectorAll('.lead-checkbox:checked')).map(cb => cb.value);
+    
+    if (!templateId) {
+        alert('Please select a campaign');
+        return;
+    }
+    
+    if (selectedLeads.length === 0) {
+        alert('Please select at least one lead');
+        return;
+    }
+    
+    const resultsDiv = document.getElementById('sendResults');
+    resultsDiv.innerHTML = `<div style="background: #fef3c7; color: #92400e; padding: 1rem; border-radius: 6px;">Sending messages to ${selectedLeads.length} selected leads...</div>`;
+    
+    fetch('/projects/{{ project.id }}/send-bulk-whatsapp/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            template_id: templateId,
+            lead_ids: selectedLeads
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            resultsDiv.innerHTML = `<div style="background: #ecfdf5; color: #065f46; padding: 1rem; border-radius: 6px;">✅ ${data.message}</div>`;
+        } else {
+            resultsDiv.innerHTML = `<div style="background: #fef2f2; color: #991b1b; padding: 1rem; border-radius: 6px;">❌ ${data.error}</div>`;
+        }
+    });
+}
+
+function toggleMask(element) {
+    const isCurrentlyMasked = element.textContent === element.dataset.masked;
+    element.textContent = isCurrentlyMasked ? element.dataset.original : element.dataset.masked;
+    element.style.color = isCurrentlyMasked ? '#10b981' : '#6b7280';
+}
+</script>
+{% endblock %}

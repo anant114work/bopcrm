@@ -1,0 +1,456 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}WhatsApp Messaging - Meta Leads CRM{% endblock %}
+{% block page_title %}WhatsApp Messaging{% endblock %}
+
+{% block content %}
+<div class="whatsapp-container">
+    <!-- Header -->
+    <div class="page-header">
+        <div class="header-top">
+            <div class="header-title">
+                <div class="title-icon">
+                    <i class="fab fa-whatsapp"></i>
+                </div>
+                <div>
+                    <h1>WhatsApp Messaging</h1>
+                    <p class="text-muted mt-2">Send campaigns to your leads</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="selection-info">
+            <div>
+                <span class="selection-count" id="selectedCount">0</span>
+                <span class="text-muted ml-2">leads selected</span>
+            </div>
+            <div class="text-muted small">
+                {{ total_leads }} leads with phone numbers
+            </div>
+        </div>
+    </div>
+
+    <!-- Control Panel -->
+    <div class="control-panel">
+        <!-- Project & Template Selection -->
+        <div class="panel-section">
+            <h3 class="section-title">
+                <i class="fas fa-project-diagram"></i>
+                Project & Message Configuration
+            </h3>
+            
+            <div class="form-group">
+                <label class="form-label">Select Project:</label>
+                <select id="projectSelect" class="form-control" onchange="loadProjectTemplates()">
+                    <option value="">All Projects</option>
+                    {% for project in projects %}
+                    <option value="{{ project.id }}">{{ project.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Select Template:</label>
+                <select id="templateSelect" class="form-control" onchange="updateTemplatePreview()">
+                    <option value="">Select a template...</option>
+                    {% for template in templates %}
+                    <option value="{{ template.id }}" data-project="{{ template.project.id }}" data-delay="{{ template.drip_delay_minutes }}">
+                        {{ template.name }} (Day {{ template.order|default:1 }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Template Preview:</label>
+                <div id="templatePreview" class="template-preview">
+                    Select a template to see preview...
+                </div>
+            </div>
+        </div>
+
+        <!-- Drip Campaign Selection -->
+        <div class="panel-section">
+            <h3 class="section-title">
+                <i class="fas fa-paper-plane"></i>
+                Drip Campaign (10-Day Sequence)
+            </h3>
+            
+            <div class="form-group">
+                <label class="form-label">Available Drip Campaigns:</label>
+                <div class="campaign-list">
+                    {% for campaign in drip_campaigns %}
+                    <div class="campaign-item">
+                        <input type="radio" id="drip-{{ campaign.id }}" name="drip_campaign" value="{{ campaign.id }}" class="drip-checkbox">
+                        <label for="drip-{{ campaign.id }}">
+                            <strong>{{ campaign.name }}</strong>
+                            <br><small class="text-muted">{{ campaign.messages.count }} messages over {{ campaign.duration_days }} days</small>
+                        </label>
+                    </div>
+                    {% empty %}
+                    <div class="text-center p-3">
+                        <a href="/drip-campaigns/" class="btn btn-info">
+                            <i class="fas fa-plus"></i> Create Drip Campaign
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div class="d-flex gap-3 mt-4">
+                <button id="sendSingleBtn" class="btn btn-primary flex-1" onclick="sendSingleMessage()" disabled>
+                    <i class="fab fa-whatsapp"></i> Send Single Message
+                </button>
+                <button id="sendDripBtn" class="btn btn-success flex-1" onclick="startDripCampaign()" disabled>
+                    <i class="fas fa-paper-plane"></i> Start Drip Campaign
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-section">
+        <form method="get" class="filter-grid">
+            <div class="form-group mb-0">
+                <label class="form-label">Search:</label>
+                <input type="text" name="search" class="form-control" placeholder="Name, phone, email..." value="{{ search }}">
+            </div>
+            
+            <div class="form-group mb-0">
+                <label class="form-label">Form:</label>
+                <select name="form" class="form-control">
+                    <option value="">All Forms</option>
+                    {% for form in forms %}
+                    <option value="{{ form }}" {% if form_filter == form %}selected{% endif %}>
+                        {{ form|truncatechars:40 }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search"></i> Filter
+                </button>
+                <a href="/whatsapp/" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Clear
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Table -->
+    <div class="table-section">
+        <div class="table-header">
+            <h3 class="d-flex align-items-center gap-2 mb-0">
+                <i class="fas fa-table"></i>
+                WhatsApp Leads Database
+            </h3>
+            <div class="d-flex align-items-center gap-3">
+                <input type="checkbox" id="selectAllCheckbox" onchange="toggleAll()" class="checkbox-lg">
+                <label for="selectAllCheckbox" class="mb-0 font-weight-500">Select All</label>
+            </div>
+        </div>
+        
+        <table class="leads-table">
+            <thead>
+                <tr>
+                    <th style="width: 40px;">Select</th>
+                    <th>Name</th>
+                    <th>Contact</th>
+                    <th>Requirements</th>
+                    <th>Form</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for lead in leads %}
+                <tr>
+                    <td>
+                        <input type="checkbox" class="lead-checkbox" value="{{ lead.id }}" onchange="updateCount()">
+                    </td>
+                    <td>
+                        <div class="lead-name">
+                            <a href="/leads/{{ lead.id }}/" class="text-dark text-decoration-none">
+                                {{ lead.full_name|default:"No Name" }}
+                            </a>
+                        </div>
+                        {% if lead.budget %}
+                        <div class="lead-budget">Budget: {{ lead.budget }}</div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="tel:{{ lead.phone_number }}" class="contact-phone">
+                            {{ lead.phone_number }}
+                        </a>
+                        {% if lead.email %}
+                        <a href="mailto:{{ lead.email }}" class="contact-email">
+                            {{ lead.email|truncatechars:25 }}
+                        </a>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if lead.configuration %}
+                        <div class="requirement-badge">
+                            {{ lead.configuration }}
+                        </div>
+                        {% endif %}
+                        {% if lead.city %}
+                        <div class="small text-muted">{{ lead.city }}</div>
+                        {% endif %}
+                        {% if not lead.configuration and not lead.city %}
+                        <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="small text-muted">
+                            {{ lead.form_name|truncatechars:25 }}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="small text-muted">
+                            {{ lead.created_time|date:"M d, Y" }}<br>
+                            <span class="smaller">{{ lead.created_time|date:"H:i" }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <span id="status-{{ lead.id }}" class="status-badge status-ready">
+                            Ready
+                        </span>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted p-5">
+                        <i class="fas fa-search mb-3" style="font-size: 3rem; opacity: 0.3;"></i>
+                        <h3>No leads found</h3>
+                        <p>Try adjusting your filters or sync new leads</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if leads.has_other_pages %}
+    <div class="pagination-section">
+        <div class="text-muted small">
+            Showing {{ leads.start_index }} to {{ leads.end_index }} of {{ leads.paginator.count }} leads
+        </div>
+        
+        <div class="d-flex gap-2 align-items-center">
+            {% if leads.has_previous %}
+            <a href="?page=1{% if search %}&search={{ search }}{% endif %}{% if form_filter %}&form={{ form_filter }}{% endif %}" class="page-btn">
+                <i class="fas fa-angle-double-left"></i>
+            </a>
+            <a href="?page={{ leads.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if form_filter %}&form={{ form_filter }}{% endif %}" class="page-btn">
+                <i class="fas fa-angle-left"></i>
+            </a>
+            {% endif %}
+            
+            <span class="page-btn active">{{ leads.number }}</span>
+            
+            {% if leads.has_next %}
+            <a href="?page={{ leads.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if form_filter %}&form={{ form_filter }}{% endif %}" class="page-btn">
+                <i class="fas fa-angle-right"></i>
+            </a>
+            <a href="?page={{ leads.paginator.num_pages }}{% if search %}&search={{ search }}{% endif %}{% if form_filter %}&form={{ form_filter }}{% endif %}" class="page-btn">
+                <i class="fas fa-angle-double-right"></i>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Template previews
+const templates = {
+    'crm3': 'Hi [name],<br><br>Thank you for reaching out to us! 🙌<br><br>We\'ll get in touch with you shortly to assist you further.',
+    'followupcampaign': 'Hi [name], just checking in! 😊<br>If you\'re still exploring [property] in [location], we\'ve added new photos, videos, and updated offers just for you.<br><br>📲 View all details here below<br><br>Homes here are selling fast — don\'t miss your chance to own a space you\'ll love! ❤️'
+};
+
+// Update selection count
+function updateCount() {
+    const checkboxes = document.querySelectorAll('.lead-checkbox:checked');
+    const count = checkboxes.length;
+    document.getElementById('selectedCount').textContent = count;
+    updateButtons();
+}
+
+// Toggle all checkboxes
+function toggleAll() {
+    const selectAll = document.getElementById('selectAllCheckbox');
+    const checkboxes = document.querySelectorAll('.lead-checkbox');
+    checkboxes.forEach(cb => cb.checked = selectAll.checked);
+    updateCount();
+}
+
+// Update template preview
+function updateTemplatePreview() {
+    const templateSelect = document.getElementById('templateSelect');
+    const templatePreview = document.getElementById('templatePreview');
+    const selectedOption = templateSelect.options[templateSelect.selectedIndex];
+    
+    if (selectedOption && selectedOption.value) {
+        const delay = selectedOption.getAttribute('data-delay') || 0;
+        templatePreview.innerHTML = `
+            <strong>Template:</strong> ${selectedOption.text}<br>
+            <strong>Delay:</strong> ${delay} minutes after previous message<br><br>
+            <em>Template content will be loaded from database...</em>
+        `;
+    } else {
+        templatePreview.innerHTML = 'Select a template to see preview...';
+    }
+    
+    updateButtons();
+}
+
+// Load project templates
+function loadProjectTemplates() {
+    const projectId = document.getElementById('projectSelect').value;
+    const templateSelect = document.getElementById('templateSelect');
+    
+    // Show/hide templates based on project
+    const options = templateSelect.querySelectorAll('option');
+    options.forEach(option => {
+        if (option.value === '') {
+            option.style.display = 'block';
+        } else {
+            const templateProject = option.getAttribute('data-project');
+            option.style.display = (!projectId || templateProject === projectId) ? 'block' : 'none';
+        }
+    });
+    
+    templateSelect.value = '';
+    updateTemplatePreview();
+    updateButtons();
+}
+
+// Update buttons based on selections
+function updateButtons() {
+    const leadCount = document.querySelectorAll('.lead-checkbox:checked').length;
+    const templateSelected = document.getElementById('templateSelect').value;
+    const dripSelected = document.querySelector('.drip-checkbox:checked');
+    
+    document.getElementById('sendSingleBtn').disabled = leadCount === 0 || !templateSelected;
+    document.getElementById('sendDripBtn').disabled = leadCount === 0 || !dripSelected;
+}
+
+// Send single message
+function sendSingleMessage() {
+    const leadCheckboxes = document.querySelectorAll('.lead-checkbox:checked');
+    const leadIds = Array.from(leadCheckboxes).map(cb => cb.value);
+    const templateId = document.getElementById('templateSelect').value;
+    
+    if (leadIds.length === 0 || !templateId) {
+        alert('Please select leads and a template');
+        return;
+    }
+    
+    const btn = document.getElementById('sendSingleBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Sending...';
+    
+    fetch('/send-whatsapp-message/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            lead_ids: leadIds,
+            template_id: templateId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Messages sent successfully!\n${data.message}`);
+            // Reset selections
+            leadCheckboxes.forEach(cb => cb.checked = false);
+            document.getElementById('selectAllCheckbox').checked = false;
+            updateCount();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fab fa-whatsapp"></i> Send Single Message';
+        updateButtons();
+    });
+}
+
+// Start drip campaign
+function startDripCampaign() {
+    const leadCheckboxes = document.querySelectorAll('.lead-checkbox:checked');
+    const leadIds = Array.from(leadCheckboxes).map(cb => cb.value);
+    const dripCampaignId = document.querySelector('.drip-checkbox:checked')?.value;
+    
+    if (leadIds.length === 0 || !dripCampaignId) {
+        alert('Please select leads and a drip campaign');
+        return;
+    }
+    
+    const btn = document.getElementById('sendDripBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Starting Campaign...';
+    
+    fetch('/drip-campaigns/bulk-subscribe/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            lead_ids: leadIds,
+            campaign_id: dripCampaignId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Drip campaign started!\n${data.message}`);
+            // Reset selections
+            leadCheckboxes.forEach(cb => cb.checked = false);
+            document.getElementById('selectAllCheckbox').checked = false;
+            updateCount();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-paper-plane"></i> Start Drip Campaign';
+        updateButtons();
+    });
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    const templateSelect = document.getElementById('templateSelect');
+    templateSelect.addEventListener('change', updateTemplatePreview);
+    updateTemplatePreview();
+});
+</script>
+{% endblock %}

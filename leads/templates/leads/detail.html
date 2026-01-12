@@ -1,0 +1,703 @@
+{% extends 'leads/base_unified.html' %}
+{% load lead_filters %}
+
+{% block title %}{{ lead.full_name|default:"Lead Details" }} - CRM{% endblock %}
+
+{% block page_title %}{{ lead.full_name|default:"Lead Details" }}{% endblock %}
+
+
+
+{% block content %}
+{% csrf_token %}
+<div class="gap-2">
+    <!-- Main Lead Information -->
+    <div>
+        <!-- Lead Header -->
+        <div class="lead-header" style="margin-bottom: 24px; padding: 24px;">
+            <div class="d-flex">
+                <div>
+                    <h1 style="font-size: 28px; color: var(--primary-dark); margin-bottom: 6px; font-weight: 700;">
+                        {{ lead.full_name|default:"Unnamed Lead" }}
+                    </h1>
+                    <div class="d-flex">
+                        <span class="stage-badge stage-{{ lead.stage }}">
+                            <i class="fas fa-circle" style="font-size: 6px;"></i>
+                            {{ lead.stage|title }}
+                        </span>
+                        <span class="text-muted">
+                            ID: {{ lead.lead_id }}
+                        </span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        
+        <!-- Compact Information Grid -->
+        <div class="gap-2">
+            <div class="info-card" style="padding: 20px;">
+                <h3 style="margin-bottom: 12px; font-size: 15px;"><i class="fas fa-address-card"></i> Contact Information</h3>
+                <div class="contact-links">
+                    <div style="margin-bottom: 10px;">
+                        <label class="field-label" style="margin-bottom: 3px;">Email</label>
+                        <div class="field-value" style="font-size: 13px;">
+                            {% if lead.email %}
+                                <a href="mailto:{{ lead.email }}"><i class="fas fa-envelope" style="margin-right: 4px; color: #3b82f6;"></i>{{ lead.email }}</a>
+                            {% else %}
+                                <span style="color: #9ca3af;">Not provided</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 10px;">
+                        <label class="field-label" style="margin-bottom: 3px;">Phone Number</label>
+                        <div class="field-value" style="font-size: 13px;">
+                            {% if lead.phone_number %}
+                                <a href="tel:{{ lead.phone_number }}"><i class="fas fa-phone" style="margin-right: 4px; color: #10b981;"></i>{% maskable_number lead.phone_number "phone" %}</a>
+                            {% else %}
+                                <span style="color: #9ca3af;">Not provided</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="field-label" style="margin-bottom: 3px;">City</label>
+                        <div class="field-value" style="font-size: 13px;">
+                            <i class="fas fa-map-marker-alt" style="margin-right: 4px; color: #f59e0b;"></i>
+                            {{ lead.city|default:"Not provided" }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="info-card" style="padding: 20px;">
+                <h3 style="margin-bottom: 12px; font-size: 15px;"><i class="fas fa-clipboard-list"></i> Requirements</h3>
+                <div style="margin-bottom: 10px;">
+                    <label class="field-label" style="margin-bottom: 3px;">Budget</label>
+                    <div class="field-value" style="font-size: 13px;">
+                        {% if lead.budget %}
+                            <span class="small">
+                                <i class="fas fa-rupee-sign" style="margin-right: 2px;"></i>{{ lead.budget }}
+                            </span>
+                        {% else %}
+                            <span style="color: #9ca3af;">Not provided</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 10px;">
+                    <label class="field-label" style="margin-bottom: 3px;">Configuration</label>
+                    <div class="field-value" style="font-size: 13px;">
+                        {% if lead.configuration %}
+                            <span class="small">
+                                <i class="fas fa-home" style="margin-right: 2px;"></i>{{ lead.configuration }}
+                            </span>
+                        {% else %}
+                            <span style="color: #9ca3af;">Not provided</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="field-label" style="margin-bottom: 3px;">Preferred Contact Time</label>
+                    <div class="field-value" style="font-size: 13px;">
+                        <i class="fas fa-clock" style="margin-right: 4px; color: #8b5cf6;"></i>
+                        {{ lead.preferred_time|default:"Not provided" }}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="info-card" style="padding: 20px;">
+                <h3 style="margin-bottom: 12px; font-size: 15px;"><i class="fas fa-chart-line"></i> Lead Status</h3>
+                <div style="margin-bottom: 10px;">
+                    <label class="field-label" style="margin-bottom: 3px;">Current Stage</label>
+                    <div class="field-value" style="font-size: 13px;">
+                        <span class="stage-badge stage-{{ lead.stage }}" class="small">
+                            <i class="fas fa-circle" style="font-size: 6px;"></i>
+                            {{ lead.get_stage_display }}
+                        </span>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 10px;">
+                    <label class="field-label" style="margin-bottom: 3px;">Assigned To</label>
+                    <div class="field-value" style="font-size: 13px;">
+                        {% if lead.assigned_to %}
+                            <i class="fas fa-user-check" style="color: #10b981; margin-right: 4px;"></i>
+                            {{ lead.assigned_to.name }}
+                        {% else %}
+                            <i class="fas fa-user-times" style="color: #ef4444; margin-right: 4px;"></i>
+                            Unassigned
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="field-label" style="margin-bottom: 3px;">Lead Source</label>
+                    <div class="field-value" style="font-size: 13px;">
+                        {% if lead.lead_id|slice:':7' == 'MANUAL_' %}
+                            <i class="fas fa-edit" style="color: #f59e0b; margin-right: 4px;"></i> Manual Entry
+                        {% elif lead.lead_id|slice:':3' == 'GF_' or lead.lead_id|slice:':3' == 'GS_' %}
+                            <i class="fas fa-table" style="color: #10b981; margin-right: 4px;"></i> Google Form
+                        {% else %}
+                            <i class="fab fa-facebook" style="color: #3b82f6; margin-right: 4px;"></i> Meta Lead
+                        {% endif %}
+                    </div>
+                </div>
+                
+                {% if lead.form_name %}
+                <div style="margin-top: 10px;">
+                    <label class="field-label" style="margin-bottom: 3px;">Form Name</label>
+                    <div class="field-value" style="font-size: 13px;">
+                        <i class="fas fa-file-alt" style="color: #8b5cf6; margin-right: 4px;"></i>
+                        {{ lead.form_name }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Additional Information -->
+        {% if lead.extra_fields %}
+        <div class="info-card" style="padding: 20px; margin-bottom: 24px;">
+            <h3 style="color: var(--primary-dark); margin-bottom: 12px; font-size: 15px;"><i class="fas fa-info-circle"></i> Additional Information</h3>
+            <div class="gap-2">
+                {% for key, value in lead.extra_fields.items %}
+                <div style="background: #f8fafc; padding: 12px; border-radius: 6px; border-left: 3px solid var(--primary-dark);">
+                    <label class="field-label" style="margin-bottom: 4px;">{{ key|title }}</label>
+                    <div class="field-value" class="small">{{ value }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Call History Section -->
+        <div class="info-card" style="padding: 20px; margin-bottom: 24px;">
+            <h3 style="color: var(--primary-dark); margin-bottom: 16px; font-size: 16px; font-weight: 600;">
+                <i class="fas fa-phone-alt"></i> Call History
+            </h3>
+            
+            <div id="callHistoryContainer">
+                {% if call_records %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Agent</th>
+                                    <th>Duration</th>
+                                    <th>Disposition</th>
+                                    <th>Recording</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for record in call_records %}
+                                <tr>
+                                    <td>{{ record.call_date|default:"-" }}</td>
+                                    <td>{{ record.agent|default:"-" }}</td>
+                                    <td>{{ record.call_duration|default:"-" }}</td>
+                                    <td>
+                                        {% if record.disposition %}
+                                            <span class="badge badge-sm {% if 'interested' in record.disposition|lower %}badge-success{% elif 'not interested' in record.disposition|lower %}badge-danger{% else %}badge-secondary{% endif %}">
+                                                {{ record.disposition }}
+                                            </span>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if record.call_recording %}
+                                            <a href="{{ record.call_recording }}" target="_blank" class="btn btn-xs btn-outline-primary">
+                                                <i class="fas fa-play"></i>
+                                            </a>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center">
+                        <i class="fas fa-phone-slash" style="font-size: 24px; margin-bottom: 8px; opacity: 0.5;"></i>
+                        <div class="small">No call history found for this lead.</div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Notes Section -->
+        <div class="info-card" style="padding: 20px;">
+            <h3 style="color: var(--primary-dark); margin-bottom: 16px; font-size: 16px; font-weight: 600;">
+                <i class="fas fa-sticky-note"></i> Notes & Follow-ups
+            </h3>
+            
+            <!-- Add Note -->
+            <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-radius: 8px; padding: 16px; margin-bottom: 20px; border: 1px solid #bae6fd;">
+                <label class="field-label" style="color: #0369a1; margin-bottom: 8px; font-weight: 600;">Add New Note</label>
+                <textarea id="noteText" rows="3" placeholder="Enter your note or follow-up comment..." class="form-control-modern" class="small"></textarea>
+                <button onclick="addNote()" class="btn-modern" style="background: linear-gradient(135deg, #0ea5e9, #0284c7); color: white; padding: 10px 20px; font-weight: 600; border-radius: 6px; box-shadow: 0 2px 4px rgba(14, 165, 233, 0.3);">
+                    <i class="fas fa-plus"></i> Add Note
+                </button>
+            </div>
+            
+            <!-- Notes List -->
+            <div style="max-height: 400px; overflow-y: auto;">
+                {% for note in notes %}
+                <div style="background: #f8fafc; border-radius: 8px; padding: 16px; margin-bottom: 12px; border-left: 4px solid var(--primary-dark); box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                    <div class="d-flex">
+                        <div class="d-flex">
+                            <i class="fas fa-user-circle" style="color: var(--primary-dark); font-size: 16px;"></i>
+                            <strong class="small">{{ note.team_member.name }}</strong>
+                        </div>
+                        <span class="text-muted">
+                            <i class="fas fa-clock" style="margin-right: 4px;"></i>{{ note.created_at|date:"M d, H:i" }}
+                        </span>
+                    </div>
+                    <p class="small">{{ note.note }}</p>
+                </div>
+                {% empty %}
+                <div class="text-center">
+                    <i class="fas fa-comment-slash" style="font-size: 24px; margin-bottom: 8px; opacity: 0.5;"></i>
+                    <div class="small">No notes yet. Add the first note above.</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sidebar -->
+    <div>
+        <!-- Quick Actions -->
+        <div class="sidebar-card" style="padding: 20px; margin-bottom: 20px;">
+            <h3 style="color: var(--primary-dark); margin-bottom: 16px; font-size: 16px; font-weight: 600;">
+                <i class="fas fa-bolt"></i> Quick Actions
+            </h3>
+            <div class="d-flex">
+                {% if lead.phone_number %}
+                <button onclick="initiateCall({{ lead.id }})" class="btn-modern" class="text-center">
+                    <i class="fas fa-phone"></i> Call via Acefone
+                </button>
+                {% endif %}
+                {% if lead.email %}
+                <a href="mailto:{{ lead.email }}" class="btn-modern" class="text-center">
+                    <i class="fas fa-envelope"></i> Send Email
+                </a>
+                {% endif %}
+                <button onclick="analyzeLeadAI()" class="btn-modern" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 12px 16px; font-weight: 600; border-radius: 8px; box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3); width: 100%;">
+                    <i class="fas fa-robot"></i> AI Analysis
+                </button>
+                <button onclick="generateFollowUpAI()" class="btn-modern" style="background: linear-gradient(135deg, #f093fb, #f5576c); color: white; padding: 12px 16px; font-weight: 600; border-radius: 8px; box-shadow: 0 2px 4px rgba(240, 147, 251, 0.3); width: 100%;">
+                    <i class="fas fa-magic"></i> Generate Message
+                </button>
+            </div>
+        </div>
+        
+        <!-- Timeline -->
+        <div class="sidebar-card" style="padding: 20px; margin-bottom: 20px;">
+            <h3 class="small">
+                <i class="fas fa-clock"></i> Timeline
+            </h3>
+            <div class="d-flex">
+                <div class="timeline-dot created" style="width: 8px; height: 8px;"></div>
+                <div>
+                    <div style="font-weight: 600; color: var(--primary-dark); font-size: 13px;">Lead Created</div>
+                    <div class="text-muted">{{ lead.created_time|date:"M d, Y H:i" }}</div>
+                    {% if lead.created_by %}
+                    <div style="font-size: 10px; color: var(--secondary); font-weight: 500;">
+                        <i class="fas fa-user" style="margin-right: 2px;"></i>{{ lead.created_by.username }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="d-flex">
+                <div class="timeline-dot synced" style="width: 8px; height: 8px;"></div>
+                <div>
+                    <div style="font-weight: 600; color: var(--primary-dark); font-size: 13px;">Synced to CRM</div>
+                    <div class="text-muted">{{ lead.synced_at|date:"M d, Y H:i" }}</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Assignment Section -->
+        <div class="sidebar-card" style="padding: 20px; margin-bottom: 20px;">
+            <h3 class="small">
+                <i class="fas fa-user-tie"></i> Assignment
+            </h3>
+            
+            <div style="margin-bottom: 12px;">
+                <label class="field-label" style="margin-bottom: 4px;">Assigned To</label>
+                <div class="field-value" class="d-flex">
+                    {% if lead.assigned_to %}
+                        <i class="fas fa-user-check" class="small"></i>
+                        <span style="font-weight: 600;">{{ lead.assigned_to.name }}</span>
+                        <span style="background: #e5e7eb; color: #6b7280; padding: 1px 6px; border-radius: 10px; font-size: 10px;">{{ lead.assigned_to.role }}</span>
+                    {% else %}
+                        <i class="fas fa-user-times" class="small"></i>
+                        <span class="text-muted">Unassigned</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 12px;">
+                <label class="field-label" style="margin-bottom: 4px;">Current Stage</label>
+                <div class="field-value">
+                    <span class="stage-badge stage-{{ lead.stage }}" style="padding: 4px 8px; font-size: 11px;">
+                        <i class="fas fa-circle" style="font-size: 5px;"></i>
+                        {{ lead.stage|title }}
+                    </span>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            {% if lead.assigned_to %}
+                <button onclick="showReassignModal()" class="btn-modern" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; width: 100%; margin-bottom: 10px; padding: 8px 12px; font-size: 13px;">
+                    <i class="fas fa-exchange-alt"></i> Reassign Lead
+                </button>
+            {% else %}
+                <select id="assignMember" class="form-control-modern" style="margin-bottom: 10px; padding: 8px; font-size: 13px;">
+                    <option value="">Select team member...</option>
+                    {% for member in team_members %}
+                    <option value="{{ member.id }}">{{ member.name }} - {{ member.role }}</option>
+                    {% endfor %}
+                </select>
+                <button onclick="assignLead()" class="btn-modern" style="background: linear-gradient(135deg, #10b981, #059669); color: white; width: 100%; margin-bottom: 10px; padding: 8px 12px; font-size: 13px;">
+                    <i class="fas fa-user-plus"></i> Assign Lead
+                </button>
+            {% endif %}
+            
+            <select id="leadStage" class="form-control-modern" style="margin-bottom: 10px; padding: 8px; font-size: 13px;">
+                {% for stage_key, stage_label in stage_choices %}
+                <option value="{{ stage_key }}" {% if lead.stage == stage_key %}selected{% endif %}>{{ stage_label }}</option>
+                {% endfor %}
+            </select>
+            <button onclick="updateStage()" class="btn-modern" style="background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; width: 100%; padding: 8px 12px; font-size: 13px;">
+                <i class="fas fa-edit"></i> Update Stage
+            </button>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- Reassign Modal -->
+<div class="modal fade" id="reassignModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" style="border-radius: 12px; border: none; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
+            <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-dark), var(--secondary)); color: white; border-radius: 12px 12px 0 0;">
+                <h5 class="modal-title" style="font-weight: 600;"><i class="fas fa-exchange-alt"></i> Reassign Lead</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding: 24px;">
+                <form id="reassignForm">
+                    <div class="mb-3">
+                        <label class="field-label">Assign to:</label>
+                        <select id="reassignMember" class="form-control-modern" required>
+                            <option value="">Select team member...</option>
+                            {% for member in team_members %}
+                            <option value="{{ member.id }}">{{ member.name }} - {{ member.role }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="field-label">Reason (optional):</label>
+                        <textarea id="reassignReason" class="form-control-modern" rows="3" placeholder="Enter reason for reassignment..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer" style="padding: 16px 24px; border-top: 1px solid #e5e7eb;">
+                <button type="button" class="btn-modern" style="background: #6b7280; color: white;" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <button type="button" class="btn-modern" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white;" onclick="performReassignment()">
+                    <i class="fas fa-exchange-alt"></i> Reassign
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- AI Analysis Modal -->
+<div id="aiAnalysisModal" style="display: none;">
+    <div style="background: white; border-radius: 12px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);">
+        <div class="d-flex">
+            <h5 style="font-weight: 600; margin: 0;"><i class="fas fa-robot"></i> AI Lead Analysis</h5>
+            <button onclick="closeAIModal()" style="background: none; border: none; color: white; font-size: 20px; cursor: pointer;">&times;</button>
+        </div>
+        <div style="padding: 24px;">
+                <div class="gap-2">
+                    <div class="text-center">
+                        <div style="font-size: 24px; font-weight: bold; color: #0369a1;" id="aiScore">-/10</div>
+                        <div class="text-muted">Quality Score</div>
+                    </div>
+                    <div class="text-center">
+                        <div style="font-size: 16px; font-weight: bold; color: #92400e; text-transform: capitalize;" id="aiPriority">-</div>
+                        <div class="text-muted">Priority Level</div>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <h6 style="color: #374151; margin-bottom: 8px; font-weight: 600;"><i class="fas fa-bullseye"></i> Recommended Next Action</h6>
+                    <div style="background: #f8fafc; padding: 12px; border-radius: 6px; border-left: 4px solid #667eea;">
+                        <span id="aiAction" style="color: #1e293b; font-weight: 500;">-</span>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <h6 style="color: #374151; margin-bottom: 8px; font-weight: 600;"><i class="fas fa-lightbulb"></i> AI Insights</h6>
+                    <div style="background: #f0f9ff; padding: 12px; border-radius: 6px; border-left: 4px solid #3b82f6;">
+                        <p id="aiInsights" style="margin: 0; color: #1e293b; line-height: 1.5;">-</p>
+                    </div>
+                </div>
+                
+                <div>
+                    <h6 style="color: #374151; margin-bottom: 8px; font-weight: 600;"><i class="fas fa-list-check"></i> Recommendations</h6>
+                    <ul id="aiRecommendations" style="margin: 0; padding-left: 20px; color: #374151;"></ul>
+                </div>
+        </div>
+        <div class="d-flex">
+            <button onclick="closeAIModal()" class="btn-modern" style="background: #6b7280; color: white; padding: 8px 16px;">
+                <i class="fas fa-times"></i> Close
+            </button>
+            <button onclick="updateStage()" class="btn-modern" style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 8px 16px;">
+                <i class="fas fa-arrow-right"></i> Take Action
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+        function assignLead() {
+            const memberId = document.getElementById('assignMember').value;
+            if (!memberId) {
+                alert('Please select a team member');
+                return;
+            }
+            
+            fetch('/assign-lead/', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: `lead_id={{ lead.id }}&member_id=${memberId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert(data.error);
+                }
+            });
+        }
+        
+        function updateStage() {
+            const stage = document.getElementById('leadStage').value;
+            
+            fetch('/update-stage/', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: `lead_id={{ lead.id }}&stage=${stage}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert(data.error);
+                }
+            });
+        }
+        
+        function addNote() {
+            const note = document.getElementById('noteText').value;
+            if (!note.trim()) {
+                alert('Please enter a note');
+                return;
+            }
+            
+            fetch('/add-note/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: `lead_id={{ lead.id }}&note=${encodeURIComponent(note)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('noteText').value = '';
+                    location.reload();
+                } else {
+                    alert(data.error);
+                }
+            });
+        }
+        
+        function toggleMask(element) {
+            const isCurrentlyMasked = element.textContent === element.dataset.masked;
+            element.textContent = isCurrentlyMasked ? element.dataset.original : element.dataset.masked;
+            element.style.color = isCurrentlyMasked ? '#10b981' : '#6b7280';
+        }
+        
+
+        
+        function showReassignModal() {
+            new bootstrap.Modal(document.getElementById('reassignModal')).show();
+        }
+        
+        function performReassignment() {
+            const memberId = document.getElementById('reassignMember').value;
+            const reason = document.getElementById('reassignReason').value;
+            
+            if (!memberId) {
+                alert('Please select a team member');
+                return;
+            }
+            
+            fetch('/reassign-lead/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: `lead_id={{ lead.id }}&new_assignee_id=${memberId}&reason=${encodeURIComponent(reason)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert(data.error);
+                }
+            })
+            .catch(error => {
+                alert('Error performing reassignment');
+            });
+        }
+        
+        // AI Assistant Functions
+        function analyzeLeadAI() {
+            fetch('/ai/analyze-lead/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify({lead_id: {{ lead.id }}})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAIAnalysisModal(data.analysis);
+                } else {
+                    alert('AI Analysis Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('Error connecting to AI: ' + error);
+            });
+        }
+        
+        function showAIAnalysisModal(analysis) {
+            document.getElementById('aiScore').textContent = analysis.quality_score + '/10';
+            document.getElementById('aiPriority').textContent = analysis.priority;
+            document.getElementById('aiAction').textContent = analysis.next_action;
+            document.getElementById('aiInsights').textContent = analysis.ai_insights;
+            
+            const recList = document.getElementById('aiRecommendations');
+            recList.innerHTML = '';
+            analysis.recommendations.forEach(rec => {
+                const li = document.createElement('li');
+                li.textContent = rec;
+                li.style.marginBottom = '8px';
+                recList.appendChild(li);
+            });
+            
+            const modal = document.getElementById('aiAnalysisModal');
+            modal.style.display = 'flex';
+            modal.style.alignItems = 'center';
+            modal.style.justifyContent = 'center';
+            modal.style.position = 'fixed';
+            modal.style.top = '0';
+            modal.style.left = '0';
+            modal.style.width = '100%';
+            modal.style.height = '100%';
+            modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
+            modal.style.zIndex = '9999';
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeAIModal() {
+            const modal = document.getElementById('aiAnalysisModal');
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+        
+        function generateFollowUpAI() {
+            fetch('/ai/generate-follow-up/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify({
+                    lead_id: {{ lead.id }},
+                    context: 'Follow-up message for lead engagement'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const message = data.message;
+                    if (confirm(`AI Generated Message:\n\n"${message}"\n\nWould you like to copy this message?`)) {
+                        navigator.clipboard.writeText(message).then(() => {
+                            alert('Message copied to clipboard!');
+                        });
+                    }
+                } else {
+                    alert('AI Message Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('Error generating message: ' + error);
+            });
+        }
+        
+        function initiateCall(leadId) {
+            // Use Acefone API for actual call
+            fetch('/acefone-call/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify({
+                    lead_id: leadId,
+                    phone: '{{ lead.phone_number }}'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Call initiated successfully via Acefone! Call ID: ' + data.call_id);
+                    location.reload(); // Refresh to show updated stage
+                } else {
+                    alert('Call failed: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                alert('Error initiating call: ' + error);
+            });
+        }
+</script>
+{% endblock %}

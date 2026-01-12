@@ -1,0 +1,167 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}Call Console - CRM{% endblock %}
+{% block page_title %}Call Console{% endblock %}
+
+
+
+{% block content %}
+<div style="max-width: 1200px; margin: 0 auto; padding: 20px;">
+    
+    <!-- Test Panel -->
+    <div class="test-panel">
+        <h3 style="color: #1f2937; margin-bottom: 20px;">🤖 Call Karo AI Test Panel</h3>
+        
+        <div class="gap-2">
+            <div>
+                <div class="form-group">
+                    <label for="testLeadId">Lead ID:</label>
+                    <input type="number" id="testLeadId" class="form-control" value="5354" placeholder="Enter Lead ID">
+                </div>
+                
+                <div class="form-group">
+                    <label for="testPhone">Phone Number:</label>
+                    <input type="text" id="testPhone" class="form-control" value="9876543210" placeholder="Enter Phone Number">
+                </div>
+                
+                <button onclick="testCallKaroAPI()" class="btn-test">
+                    📞 Test Call Karo AI
+                </button>
+                
+                <button onclick="testAgent()" class="btn-test" style="background: #f59e0b;">
+                    🤖 Test Agent Config
+                </button>
+                
+                <button onclick="clearConsole()" class="btn-test" style="background: #6b7280;">
+                    🗑️ Clear Console
+                </button>
+            </div>
+            
+            <div>
+                <h4 style="color: #374151; margin-bottom: 10px;">API Configuration:</h4>
+                <div class="small">
+                    <div><strong>API Key:</strong> bc422db39aa327234a911dd901accfcfa975623ee84c65c83aae9c4f844ffdb8</div>
+                    <div><strong>Gaur Yamuna Agent:</strong> 6923ff797a5d5a94d5a5dfcf</div>
+                    <div><strong>AU Realty Agent 1:</strong> 692d5b6ad10e948b7bbfc2db</div>
+                    <div><strong>AU Realty Agent 2:</strong> 69294d3d2cc1373b1f3a3972</div>
+                    <div><strong>Endpoint:</strong> https://api.callkaro.ai/call/outbound</div>
+                    <div style="margin-top: 8px; color: #059669;"><strong>Auto-selection:</strong> Agent chosen based on lead's project/form</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Console -->
+    <div class="console-container" id="console">
+        <div class="console-header">
+            🖥️ CALL KARO AI CONSOLE - Real-time API Monitoring
+        </div>
+        <div id="consoleOutput">
+            <div class="log-info">[SYSTEM] Console initialized. Ready for API calls...</div>
+        </div>
+    </div>
+    
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let consoleOutput = document.getElementById('consoleOutput');
+
+function addLogEntry(message, type) {
+    type = type || 'info';
+    const timestamp = new Date().toLocaleTimeString();
+    const entry = document.createElement('div');
+    entry.className = 'log-entry log-' + type;
+    entry.innerHTML = '[' + timestamp + '] ' + message;
+    
+    consoleOutput.appendChild(entry);
+    
+    const console = document.getElementById('console');
+    console.scrollTop = console.scrollHeight;
+}
+
+function clearConsole() {
+    consoleOutput.innerHTML = '<div class="log-info">[SYSTEM] Console cleared.</div>';
+}
+
+function testCallKaroAPI() {
+    const leadId = document.getElementById('testLeadId').value;
+    const phone = document.getElementById('testPhone').value;
+    
+    if (!leadId || !phone) {
+        addLogEntry('ERROR: Please enter both Lead ID and Phone Number', 'error');
+        return;
+    }
+    
+    addLogEntry('INITIATING CALL - Lead ID: ' + leadId + ', Phone: ' + phone, 'info');
+    addLogEntry('Sending request to Call Karo AI API...', 'info');
+    
+    fetch('/acefone-call/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            lead_id: parseInt(leadId),
+            phone: phone
+        })
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            addLogEntry('SUCCESS: Call initiated successfully!', 'success');
+            addLogEntry('Call ID: ' + result.call_id, 'success');
+            addLogEntry('Lead: ' + result.lead_name, 'info');
+            
+            if (result.api_response) {
+                addLogEntry('API Response: ' + JSON.stringify(result.api_response), 'info');
+            }
+        } else {
+            addLogEntry('FAILED: ' + (result.error || 'Unknown error'), 'error');
+            if (result.status_code) {
+                addLogEntry('Status Code: ' + result.status_code, 'error');
+            }
+        }
+    })
+    .catch(error => {
+        addLogEntry('EXCEPTION: ' + error.message, 'error');
+    })
+    .finally(() => {
+        addLogEntry('------------------------------------------------------------', 'info');
+    });
+}
+
+function testAgent() {
+    addLogEntry('TESTING AGENT CONFIGURATION...', 'info');
+    addLogEntry('Verifying API key and agent ID with Call Karo AI', 'info');
+    
+    fetch('/test-callkaro-agent/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            addLogEntry('AGENT TEST SUCCESS: Configuration is valid!', 'success');
+            addLogEntry('Agent can receive calls successfully', 'success');
+        } else {
+            addLogEntry('AGENT TEST FAILED: ' + result.error, 'error');
+            addLogEntry('Check your API key and agent ID configuration', 'warning');
+        }
+    })
+    .catch(error => {
+        addLogEntry('AGENT TEST ERROR: ' + error.message, 'error');
+    })
+    .finally(() => {
+        addLogEntry('------------------------------------------------------------', 'info');
+    });
+}
+</script>
+
+{% csrf_token %}
+{% endblock %}

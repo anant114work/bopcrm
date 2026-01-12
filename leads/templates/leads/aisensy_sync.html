@@ -1,0 +1,107 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}AI Sensy Sync{% endblock %}
+{% block page_title %}🔄 AI Sensy Sync{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h3>Sync Templates & Campaigns from AI Sensy</h3>
+    <p style="color: #6b7280; margin-bottom: 2rem;">Pull your templates and campaigns from AI Sensy dashboard into CRM</p>
+    
+    <div class="gap-2">
+        <div>
+            <h4>📋 Templates</h4>
+            <p class="small">Sync WhatsApp templates from AI Sensy</p>
+            <button class="btn btn-primary" onclick="syncTemplates()" style="width: 100%;">
+                🔄 Sync Templates
+            </button>
+        </div>
+        
+        <div>
+            <h4>📊 Campaigns</h4>
+            <p class="small">Sync campaign data and statistics</p>
+            <a href="/add-campaign/" class="btn btn-success" style="width: 100%; text-decoration: none;">
+                ➕ Add Campaign
+            </a>
+        </div>
+    </div>
+    
+    <div id="syncResult" style="margin-top: 2rem;"></div>
+</div>
+
+<div class="card">
+    <h3>Synced Templates</h3>
+    <div id="templatesList">
+        {% for template in templates %}
+        <div style="border: 1px solid #e5e7eb; border-radius: 6px; padding: 1rem; margin-bottom: 1rem;">
+            <div class="d-flex">
+                <div>
+                    <h4>{{ template.name }}</h4>
+                    <p class="small">{{ template.message_text|truncatechars:100 }}</p>
+                </div>
+                <div style="text-align: right;">
+                    <div class="small">{{ template.project.name }}</div>
+                    <div class="small">{{ template.get_template_type_display }}</div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center">
+            No templates synced yet. Click "Sync Templates" to get started.
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+function syncTemplates() {
+    const resultDiv = document.getElementById('syncResult');
+    resultDiv.innerHTML = '<div style="background: #fef3c7; color: #92400e; padding: 1rem; border-radius: 6px;">Syncing templates from AI Sensy...</div>';
+    
+    fetch('/whatsapp/sync-aisensy/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            resultDiv.innerHTML = `<div style="background: #ecfdf5; color: #065f46; padding: 1rem; border-radius: 6px;">✅ ${data.message}</div>`;
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            resultDiv.innerHTML = `<div style="background: #fef2f2; color: #991b1b; padding: 1rem; border-radius: 6px;">❌ Sync failed: ${data.error}</div>`;
+        }
+    })
+    .catch(error => {
+        resultDiv.innerHTML = `<div style="background: #fef2f2; color: #991b1b; padding: 1rem; border-radius: 6px;">❌ Error: ${error.message}</div>`;
+    });
+}
+
+function syncCampaigns() {
+    const resultDiv = document.getElementById('syncResult');
+    resultDiv.innerHTML = '<div style="background: #fef3c7; color: #92400e; padding: 1rem; border-radius: 6px;">Syncing campaigns from AI Sensy...</div>';
+    
+    fetch('/whatsapp/sync-campaigns/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            resultDiv.innerHTML = `<div style="background: #ecfdf5; color: #065f46; padding: 1rem; border-radius: 6px;">✅ ${data.message}</div>`;
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            resultDiv.innerHTML = `<div style="background: #fef2f2; color: #991b1b; padding: 1rem; border-radius: 6px;">❌ Sync failed: ${data.error}</div>`;
+        }
+    })
+    .catch(error => {
+        resultDiv.innerHTML = `<div style="background: #fef2f2; color: #991b1b; padding: 1rem; border-radius: 6px;">❌ Error: ${error.message}</div>`;
+    });
+}
+</script>
+{% endblock %}

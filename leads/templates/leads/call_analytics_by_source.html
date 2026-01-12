@@ -1,0 +1,238 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}Call Analytics by Source - Meta Leads CRM{% endblock %}
+{% block page_title %}Call Analytics by Source{% endblock %}
+
+
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-chart-bar"></i> Call Analytics by Source
+        {% if project %} - {{ project.name }}{% endif %}
+        </h2>
+    </div>
+    <div class="card-content">
+        
+        <!-- Date Filter -->
+        <div style="margin-bottom: 20px;">
+            <div class="d-flex">
+                <label><strong>Date Range:</strong></label>
+                <select id="dateFilter" onchange="filterByDate()" class="form-control" style="width: auto;">
+                    <option value="today" {% if date_filter == 'today' %}selected{% endif %}>Today</option>
+                    <option value="week" {% if date_filter == 'week' %}selected{% endif %}>Last 7 Days</option>
+                    <option value="month" {% if date_filter == 'month' %}selected{% endif %}>Last 30 Days</option>
+                </select>
+                {% if project %}
+                <a href="/projects/{{ project.id }}/" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Project
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="gap-2">
+            
+            <!-- Meta Leads Stats -->
+            <div style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; padding: 20px; border-radius: 12px;">
+                <div class="d-flex">
+                    <i class="fab fa-meta" style="font-size: 24px; margin-right: 10px;"></i>
+                    <h3 style="margin: 0;">Meta Leads Calls</h3>
+                </div>
+                <div style="font-size: 32px; font-weight: bold; margin-bottom: 10px;">{{ meta_stats.total }}</div>
+                <div class="small">
+                    Auto Daily: {{ meta_stats.auto_daily_meta }} | Manual: {{ meta_stats.manual }}
+                </div>
+            </div>
+
+            <!-- Google Sheets Stats -->
+            <div style="background: linear-gradient(135deg, #10b981, #047857); color: white; padding: 20px; border-radius: 12px;">
+                <div class="d-flex">
+                    <i class="fab fa-google" style="font-size: 24px; margin-right: 10px;"></i>
+                    <h3 style="margin: 0;">Google Sheets Calls</h3>
+                </div>
+                <div style="font-size: 32px; font-weight: bold; margin-bottom: 10px;">{{ google_stats.total }}</div>
+                <div class="small">
+                    Auto Daily: {{ google_stats.auto_daily_google }} | Manual: {{ google_stats.manual }}
+                </div>
+            </div>
+
+            <!-- Total Stats -->
+            <div style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; padding: 20px; border-radius: 12px;">
+                <div class="d-flex">
+                    <i class="fas fa-phone" style="font-size: 24px; margin-right: 10px;"></i>
+                    <h3 style="margin: 0;">Total Calls</h3>
+                </div>
+                <div style="font-size: 32px; font-weight: bold; margin-bottom: 10px;">{{ total_calls }}</div>
+                <div class="small">
+                    {{ start_date|date:"M d" }} - {{ end_date|date:"M d, Y" }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="gap-2">
+            
+            <!-- Source Distribution Chart -->
+            <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                <h3 style="margin-bottom: 20px;"><i class="fas fa-pie-chart"></i> Calls by Source</h3>
+                <canvas id="sourceChart" width="400" height="300"></canvas>
+            </div>
+
+            <!-- Daily Trend Chart -->
+            <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                <h3 style="margin-bottom: 20px;"><i class="fas fa-line-chart"></i> Daily Trend</h3>
+                <canvas id="trendChart" width="400" height="300"></canvas>
+            </div>
+        </div>
+
+        <!-- Recent Calls Tables -->
+        <div class="gap-2">
+            
+            <!-- Recent Meta Calls -->
+            <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                <h3 style="margin-bottom: 20px; color: #3b82f6;">
+                    <i class="fab fa-meta"></i> Recent Meta Calls
+                </h3>
+                <div style="overflow-x: auto;">
+                    <table class="table" class="small">
+                        <thead>
+                            <tr>
+                                <th>Lead</th>
+                                <th>Phone</th>
+                                <th>Type</th>
+                                <th>Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for call in recent_meta_calls %}
+                            <tr>
+                                <td>{{ call.lead.full_name|default:"No Name"|truncatechars:15 }}</td>
+                                <td>{{ call.phone_number|truncatechars:12 }}</td>
+                                <td>
+                                    <span style="background: #dbeafe; color: #1d4ed8; padding: 2px 6px; border-radius: 4px; font-size: 11px;">
+                                        {{ call.call_type }}
+                                    </span>
+                                </td>
+                                <td>{{ call.initiated_at|date:"H:i" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center">No Meta calls found</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Recent Google Calls -->
+            <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                <h3 style="margin-bottom: 20px; color: #10b981;">
+                    <i class="fab fa-google"></i> Recent Google Calls
+                </h3>
+                <div style="overflow-x: auto;">
+                    <table class="table" class="small">
+                        <thead>
+                            <tr>
+                                <th>Lead</th>
+                                <th>Phone</th>
+                                <th>Type</th>
+                                <th>Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for call in recent_google_calls %}
+                            <tr>
+                                <td>{{ call.lead.full_name|default:"No Name"|truncatechars:15 }}</td>
+                                <td>{{ call.phone_number|truncatechars:12 }}</td>
+                                <td>
+                                    <span style="background: #d1fae5; color: #047857; padding: 2px 6px; border-radius: 4px; font-size: 11px;">
+                                        {{ call.call_type }}
+                                    </span>
+                                </td>
+                                <td>{{ call.initiated_at|date:"H:i" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center">No Google calls found</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Source Distribution Pie Chart
+const sourceCtx = document.getElementById('sourceChart').getContext('2d');
+new Chart(sourceCtx, {
+    type: 'pie',
+    data: {
+        labels: ['Meta Leads', 'Google Sheets'],
+        datasets: [{
+            data: [{{ meta_stats.total }}, {{ google_stats.total }}],
+            backgroundColor: ['#3b82f6', '#10b981'],
+            borderWidth: 2,
+            borderColor: '#ffffff'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+// Daily Trend Line Chart
+const trendCtx = document.getElementById('trendChart').getContext('2d');
+new Chart(trendCtx, {
+    type: 'line',
+    data: {
+        labels: [{% for day in daily_meta %}'{{ day.date }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+        datasets: [{
+            label: 'Meta Calls',
+            data: [{% for day in daily_meta %}{{ day.count }}{% if not forloop.last %},{% endif %}{% endfor %}],
+            borderColor: '#3b82f6',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            tension: 0.4
+        }, {
+            label: 'Google Calls',
+            data: [{% for day in daily_google %}{{ day.count }}{% if not forloop.last %},{% endif %}{% endfor %}],
+            borderColor: '#10b981',
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            tension: 0.4
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        },
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+function filterByDate() {
+    const dateFilter = document.getElementById('dateFilter').value;
+    const currentUrl = new URL(window.location);
+    currentUrl.searchParams.set('date', dateFilter);
+    window.location.href = currentUrl.toString();
+}
+</script>
+{% endblock %}

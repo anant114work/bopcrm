@@ -1,0 +1,597 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}Analytics - CRM{% endblock %}
+{% block page_title %}📊 Analytics Dashboard{% endblock %}
+
+
+
+{% block content %}
+<div class="analytics-wrapper">
+    <!-- Stats Overview -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-number">{{ total_leads|default:"3161" }}</div>
+            <div class="stat-label">Total Leads</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ meta_leads|default:"2391" }}</div>
+            <div class="stat-label">Meta Leads</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ google_leads|default:"770" }}</div>
+            <div class="stat-label">Google Leads</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ conversion_rate|default:"0.0" }}%</div>
+            <div class="stat-label">Conversion Rate</div>
+        </div>
+    </div>
+
+    <!-- AI Insights Section -->
+    {% if ai_insights %}
+    <div class="card" style="margin-bottom: 25px;">
+        <div class="card-header">
+            <h2><i class="fas fa-robot"></i> AI-Powered City Insights</h2>
+        </div>
+        <div class="card-content">
+            <div class="gap-2">
+                {% for insight in ai_insights %}
+                <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);">
+                    <div class="d-flex">
+                        <h4 style="margin: 0; color: var(--primary-dark);">{{ insight.city }}</h4>
+                        <span class="small">{{ insight.quality_score }}/10</span>
+                    </div>
+                    <div class="text-muted">
+                        <strong>{{ insight.lead_count }}</strong> leads
+                    </div>
+                    <div style="font-size: 13px; color: #475569;">
+                        <strong>AI Recommendation:</strong> {{ insight.recommendations.0|default:"Focus on lead qualification" }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Charts Section -->
+    <div class="charts-grid">
+        <div class="chart-card" onclick="openModal('projectsModal')">
+            <div class="expand-icon"><i class="fas fa-expand"></i></div>
+            <div class="chart-title">📊 Top Projects by Leads</div>
+            <div class="chart-area">
+                <div class="sample-chart">
+                    <ul class="data-list" style="width: 100%;">
+                        <li class="data-item">
+                            <span class="data-label">Migsun Avenue 9</span>
+                            <span class="data-value">755 leads</span>
+                        </li>
+                        <div class="bar-visual" style="width: 100%;"></div>
+                        <li class="data-item">
+                            <span class="data-label">EBC Form</span>
+                            <span class="data-value">481 leads</span>
+                        </li>
+                        <div class="bar-visual" style="width: 64%;"></div>
+                        <li class="data-item">
+                            <span class="data-label">SPJ Gurgaon</span>
+                            <span class="data-value">287 leads</span>
+                        </li>
+                        <div class="bar-visual" style="width: 38%;"></div>
+                        <li class="data-item">
+                            <span class="data-label">SPJ Form 2</span>
+                            <span class="data-value">121 leads</span>
+                        </li>
+                        <div class="bar-visual" style="width: 16%;"></div>
+                        <li class="data-item">
+                            <span class="data-label">Lodha Vrindawan</span>
+                            <span class="data-value">94 leads</span>
+                        </li>
+                        <div class="bar-visual" style="width: 12%;"></div>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-card" onclick="openModal('sourcesModal')">
+            <div class="expand-icon"><i class="fas fa-expand"></i></div>
+            <div class="chart-title">🥧 Lead Sources Distribution</div>
+            <div class="chart-area">
+                <div class="sample-chart">
+                    <div class="d-flex">
+                        <div class="text-center">
+                            <div class="d-flex">75.6%</div>
+                            <div style="color: var(--primary-dark); font-weight: 600;">Meta Ads</div>
+                            <div class="text-muted">2,391 leads</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="d-flex">24.4%</div>
+                            <div style="color: #10b981; font-weight: 600;">Google Forms</div>
+                            <div class="text-muted">770 leads</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="charts-grid" style="margin-top: 25px;">
+        <div class="chart-card" onclick="openModal('pipelineModal')">
+            <div class="expand-icon"><i class="fas fa-expand"></i></div>
+            <div class="chart-title">📈 Lead Pipeline Stages</div>
+            <div class="chart-area">
+                <div class="sample-chart">
+                    <ul class="data-list" style="width: 100%;">
+                        <li class="data-item">
+                            <span class="data-label">🆕 New Leads</span>
+                            <span class="data-value">3,160 (99.97%)</span>
+                        </li>
+                        <div class="bar-visual" style="width: 100%; height: 30px;"></div>
+                        <li class="data-item">
+                            <span class="data-label">📞 Contacted</span>
+                            <span class="data-value">1 (0.03%)</span>
+                        </li>
+                        <div class="bar-visual" style="width: 2%; height: 15px; background: rgba(96, 4, 93, 0.7);"></div>
+                        <li class="data-item">
+                            <span class="data-label">🔥 Hot Leads</span>
+                            <span class="data-value">0 (0%)</span>
+                        </li>
+                        <li class="data-item">
+                            <span class="data-label">✅ Converted</span>
+                            <span class="data-value">0 (0%)</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-card" onclick="openModal('aiInsightsModal')">
+            <div class="expand-icon"><i class="fas fa-expand"></i></div>
+            <div class="chart-title">🤖 AI Lead Quality Analysis</div>
+            <div class="chart-area">
+                <div class="sample-chart">
+                    <div class="d-flex">
+                        <div style="font-size: 48px; color: var(--primary-dark); margin-bottom: 16px;">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div class="text-center">
+                            <div style="font-size: 18px; font-weight: 600; color: var(--primary-dark); margin-bottom: 8px;">AI-Powered Insights</div>
+                            <div class="text-muted">Quality scoring, recommendations, and predictive analysis</div>
+                            <div class="d-flex">
+                                <span class="small">High Quality: {{ ai_insights|length }}</span>
+                                <span class="small">AI Analyzed</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modals for detailed views -->
+<!-- Projects Modal -->
+<div id="projectsModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>📊 Detailed Project Analytics</h3>
+            <button class="close-btn" onclick="closeModal('projectsModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="filter-section">
+                <div class="filter-group">
+                    <label class="filter-label">Time Period</label>
+                    <select class="filter-select" onchange="updateProjectData()">
+                        <option value="7">Last 7 days</option>
+                        <option value="30" selected>Last 30 days</option>
+                        <option value="90">Last 90 days</option>
+                        <option value="all">All time</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Team Member</label>
+                    <select class="filter-select" onchange="updateProjectData()">
+                        <option value="all">All Team Members</option>
+                        <option value="1140">ABHIMANYU MEHRA</option>
+                        <option value="1141">AJAY PAL SINGH</option>
+                        <option value="1142">AMIT KOHLI</option>
+                    </select>
+                </div>
+            </div>
+            <div class="detailed-chart">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Project Name</th>
+                            <th>Total Leads</th>
+                            <th>Converted</th>
+                            <th>Conversion Rate</th>
+                            <th>Avg. Budget</th>
+                        </tr>
+                    </thead>
+                    <tbody id="projectTableBody">
+                        <tr>
+                            <td>Migsun Avenue 9</td>
+                            <td>755</td>
+                            <td>12</td>
+                            <td>1.6%</td>
+                            <td>₹85L</td>
+                        </tr>
+                        <tr>
+                            <td>EBC Form</td>
+                            <td>481</td>
+                            <td>8</td>
+                            <td>1.7%</td>
+                            <td>₹92L</td>
+                        </tr>
+                        <tr>
+                            <td>SPJ Gurgaon</td>
+                            <td>287</td>
+                            <td>5</td>
+                            <td>1.7%</td>
+                            <td>₹78L</td>
+                        </tr>
+                        <tr>
+                            <td>SPJ Form 2</td>
+                            <td>121</td>
+                            <td>2</td>
+                            <td>1.7%</td>
+                            <td>₹65L</td>
+                        </tr>
+                        <tr>
+                            <td>Lodha Vrindawan</td>
+                            <td>94</td>
+                            <td>1</td>
+                            <td>1.1%</td>
+                            <td>₹72L</td>
+                        </tr>
+                        <tr>
+                            <td>Godrej Avenue 9 New form</td>
+                            <td>89</td>
+                            <td>0</td>
+                            <td>0%</td>
+                            <td>₹0</td>
+                        </tr>
+                        <tr>
+                            <td>Majesty g noida - Form 1</td>
+                            <td>67</td>
+                            <td>1</td>
+                            <td>1.5%</td>
+                            <td>₹58L</td>
+                        </tr>
+                        <tr>
+                            <td>SPJ Vedatam 1 form</td>
+                            <td>45</td>
+                            <td>0</td>
+                            <td>0%</td>
+                            <td>₹0</td>
+                        </tr>
+                        <tr>
+                            <td>Chrysalis form</td>
+                            <td>32</td>
+                            <td>0</td>
+                            <td>0%</td>
+                            <td>₹0</td>
+                        </tr>
+                        <tr>
+                            <td>SPJ VEDATAM - Google Sheet</td>
+                            <td>28</td>
+                            <td>0</td>
+                            <td>0%</td>
+                            <td>₹0</td>
+                        </tr>
+                        <tr>
+                            <td>Manual Entry</td>
+                            <td>15</td>
+                            <td>0</td>
+                            <td>0%</td>
+                            <td>₹0</td>
+                        </tr>
+                        <tr>
+                            <td>Test Campaign A</td>
+                            <td>8</td>
+                            <td>0</td>
+                            <td>0%</td>
+                            <td>₹0</td>
+                        </tr>
+                        <tr>
+                            <td>Test Campaign B</td>
+                            <td>5</td>
+                            <td>0</td>
+                            <td>0%</td>
+                            <td>₹0</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sources Modal -->
+<div id="sourcesModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>🥧 Lead Sources Breakdown</h3>
+            <button class="close-btn" onclick="closeModal('sourcesModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="filter-section">
+                <div class="filter-group">
+                    <label class="filter-label">Date Range</label>
+                    <select class="filter-select">
+                        <option value="today">Today</option>
+                        <option value="week" selected>This Week</option>
+                        <option value="month">This Month</option>
+                    </select>
+                </div>
+            </div>
+            <div class="detailed-chart">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Source</th>
+                            <th>Leads</th>
+                            <th>Percentage</th>
+                            <th>Quality Score</th>
+                            <th>Cost per Lead</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Meta Ads</td>
+                            <td>2,391</td>
+                            <td>75.6%</td>
+                            <td>8.2/10</td>
+                            <td>₹45</td>
+                        </tr>
+                        <tr>
+                            <td>Google Forms</td>
+                            <td>770</td>
+                            <td>24.4%</td>
+                            <td>9.1/10</td>
+                            <td>₹32</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Pipeline Modal -->
+<div id="pipelineModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>📈 Pipeline Stage Analysis</h3>
+            <button class="close-btn" onclick="closeModal('pipelineModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="filter-section">
+                <div class="filter-group">
+                    <label class="filter-label">Team Member</label>
+                    <select class="filter-select">
+                        <option value="all">All Members</option>
+                        <option value="team1">Sales Team 1</option>
+                        <option value="team2">Sales Team 2</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Project</label>
+                    <select class="filter-select">
+                        <option value="all">All Projects</option>
+                        <option value="migsun">Migsun Avenue 9</option>
+                        <option value="ebc">EBC Form</option>
+                    </select>
+                </div>
+            </div>
+            <div class="detailed-chart">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Stage</th>
+                            <th>Count</th>
+                            <th>Percentage</th>
+                            <th>Avg. Time in Stage</th>
+                            <th>Conversion Rate</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>🆕 New</td>
+                            <td>3,160</td>
+                            <td>99.97%</td>
+                            <td>2.3 days</td>
+                            <td>0.03%</td>
+                        </tr>
+                        <tr>
+                            <td>📞 Contacted</td>
+                            <td>1</td>
+                            <td>0.03%</td>
+                            <td>1.2 days</td>
+                            <td>0%</td>
+                        </tr>
+                        <tr>
+                            <td>🔥 Hot</td>
+                            <td>0</td>
+                            <td>0%</td>
+                            <td>-</td>
+                            <td>-</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- AI Insights Modal -->
+<div id="aiInsightsModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>🤖 AI Lead Quality Analysis</h3>
+            <button class="close-btn" onclick="closeModal('aiInsightsModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="filter-section">
+                <div class="filter-group">
+                    <label class="filter-label">Analysis Type</label>
+                    <select class="filter-select" id="aiAnalysisType" onchange="updateAIData()">
+                        <option value="city" selected>By City</option>
+                        <option value="project">By Project</option>
+                        <option value="source">By Source</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Quality Filter</label>
+                    <select class="filter-select" id="qualityFilter" onchange="updateAIData()">
+                        <option value="all">All Quality Levels</option>
+                        <option value="high">High Quality (8-10)</option>
+                        <option value="medium">Medium Quality (6-7)</option>
+                        <option value="low">Low Quality (1-5)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="detailed-chart">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Location/Project</th>
+                            <th>Total Leads</th>
+                            <th>AI Quality Score</th>
+                            <th>Conversion Potential</th>
+                            <th>AI Recommendation</th>
+                        </tr>
+                    </thead>
+                    <tbody id="aiInsightsTableBody">
+                        {% for insight in ai_insights %}
+                        <tr>
+                            <td>{{ insight.city }}</td>
+                            <td>{{ insight.lead_count }}</td>
+                            <td>
+                                <span class="small">
+                                    {{ insight.quality_score }}/10
+                                </span>
+                            </td>
+                            <td>{% if insight.quality_score >= 8 %}High{% elif insight.quality_score >= 6 %}Medium{% else %}Low{% endif %}</td>
+                            <td>{{ insight.recommendations.0|default:"Focus on lead qualification" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center">No AI insights available</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div style="margin-top: 20px; padding: 16px; background: #f8fafc; border-radius: 8px;">
+                <h4 style="margin: 0 0 12px 0; color: var(--primary-dark);"><i class="fas fa-lightbulb"></i> AI Recommendations</h4>
+                <ul style="margin: 0; padding-left: 20px; color: #475569;">
+                    <li>Focus on high-quality leads from top-performing cities</li>
+                    <li>Implement targeted campaigns for medium-quality segments</li>
+                    <li>Review and optimize low-performing lead sources</li>
+                    <li>Use AI-generated follow-up messages for better engagement</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+window.openModal = function(modalId) {
+    document.getElementById(modalId).style.display = 'block';
+};
+
+window.closeModal = function(modalId) {
+    document.getElementById(modalId).style.display = 'none';
+};
+
+window.onclick = function(event) {
+    if (event.target.classList.contains('modal')) {
+        event.target.style.display = 'none';
+    }
+};
+
+window.updateProjectData = function() {
+    console.log('Updating project data');
+};
+
+window.updateAIData = window.updateAIData || function() {
+    console.log('AI data update function loaded');
+};
+
+window.updateAIData = function() {
+    const analysisType = document.getElementById('aiAnalysisType').value;
+    const qualityFilter = document.getElementById('qualityFilter').value;
+    const tbody = document.getElementById('aiInsightsTableBody');
+    
+    let data = [];
+    
+    if (analysisType === 'city') {
+        data = [
+            ['Gurgaon', 1250, 8.2, 'High', 'Focus on premium properties'],
+            ['Noida', 890, 7.8, 'High', 'Increase follow-up frequency'],
+            ['Delhi', 650, 6.5, 'Medium', 'Qualify budget requirements'],
+            ['Faridabad', 420, 5.8, 'Medium', 'Improve lead nurturing'],
+            ['Ghaziabad', 280, 4.2, 'Low', 'Review lead sources']
+        ];
+    } else if (analysisType === 'project') {
+        data = [
+            ['Migsun Avenue 9', 755, 8.5, 'High', 'Prioritize immediate follow-up'],
+            ['EBC Form', 481, 7.9, 'High', 'Schedule site visits'],
+            ['SPJ Gurgaon', 287, 6.8, 'Medium', 'Send project brochures'],
+            ['Lodha Vrindawan', 94, 5.5, 'Medium', 'Clarify pricing queries'],
+            ['Test Campaign', 13, 3.2, 'Low', 'Discontinue campaign']
+        ];
+    } else if (analysisType === 'source') {
+        data = [
+            ['Meta Ads', 2391, 7.6, 'High', 'Optimize high-performing ads'],
+            ['Google Forms', 770, 8.1, 'High', 'Expand Google campaigns'],
+            ['Direct Website', 45, 6.2, 'Medium', 'Improve website UX'],
+            ['Referrals', 28, 9.1, 'High', 'Incentivize referral program'],
+            ['Cold Calls', 12, 4.8, 'Low', 'Review calling strategy']
+        ];
+    }
+    
+    // Filter by quality if needed
+    if (qualityFilter !== 'all') {
+        data = data.filter(row => {
+            const score = row[2];
+            if (qualityFilter === 'high') return score >= 8;
+            if (qualityFilter === 'medium') return score >= 6 && score < 8;
+            if (qualityFilter === 'low') return score < 6;
+            return true;
+        });
+    }
+    
+    tbody.innerHTML = '';
+    data.forEach(row => {
+        const score = row[2];
+        let scoreClass = 'background: #fef2f2; color: #dc2626';
+        if (score >= 8) scoreClass = 'background: #dcfce7; color: #166534';
+        else if (score >= 6) scoreClass = 'background: #fef3c7; color: #d97706';
+        
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${row[0]}</td>
+            <td>${row[1]}</td>
+            <td><span class="small">${row[2]}/10</span></td>
+            <td>${row[3]}</td>
+            <td>${row[4]}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+};
+
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        const modals = document.querySelectorAll('.modal');
+        modals.forEach(modal => {
+            if (modal.style.display === 'block') {
+                modal.style.display = 'none';
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
+

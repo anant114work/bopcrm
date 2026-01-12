@@ -1,0 +1,135 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}Source Mapping - Meta Leads CRM{% endblock %}
+
+{% block page_title %}🔗 WhatsApp Source Mapping{% endblock %}
+
+{% block content %}
+<div class="card" style="margin-bottom: 30px;">
+    <h2 style="margin-bottom: 20px; color: #1e293b;">Map Lead Sources to Project Names & Locations</h2>
+    
+    <form id="mappingForm" class="gap-2">
+        <div>
+            <label style="display: block; font-weight: 500; margin-bottom: 8px;">Lead Source:</label>
+            <select id="sourceSelect" class="form-input" style="width: 100%;" required>
+                <option value="">Select Source</option>
+                {% for source in unique_sources %}
+                <option value="{{ source }}">{{ source|truncatechars:40 }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div>
+            <label style="display: block; font-weight: 500; margin-bottom: 8px;">Project Name:</label>
+            <input type="text" id="projectName" class="form-input" style="width: 100%;" placeholder="e.g., SPJ Vedatam" required>
+        </div>
+        
+        <div>
+            <label style="display: block; font-weight: 500; margin-bottom: 8px;">Location:</label>
+            <input type="text" id="locationInput" class="form-input" style="width: 100%;" placeholder="e.g., Gurgaon" required>
+        </div>
+        
+        <button type="submit" class="btn btn-primary" style="padding: 10px 20px;">
+            Save Mapping
+        </button>
+    </form>
+    
+    <div style="background: #f0f9ff; padding: 16px; border-radius: 8px; border-left: 4px solid #3b82f6;">
+        <h4 style="color: #1e40af; margin-bottom: 8px;">How it works:</h4>
+        <p class="small">When sending WhatsApp messages with the "Follow-up Campaign" template:</p>
+        <ul class="small">
+            <li>The message will use your mapped <strong>Project Name</strong> instead of the raw form name</li>
+            <li>The message will use your mapped <strong>Location</strong> instead of the lead's city</li>
+            <li>Example: "If you're still exploring <strong>SPJ Vedatam</strong> in <strong>Gurgaon</strong>..."</li>
+        </ul>
+    </div>
+</div>
+
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>Lead Source</th>
+                <th>Project Name</th>
+                <th>Location</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="mappingsTable">
+            {% for mapping in mappings %}
+            <tr data-id="{{ mapping.id }}">
+                <td style="font-size: 13px;">{{ mapping.source_name|truncatechars:40 }}</td>
+                <td style="font-weight: 600;">{{ mapping.project_name }}</td>
+                <td class="text-muted">{{ mapping.location }}</td>
+                <td>
+                    <span class="small">
+                        Active
+                    </span>
+                </td>
+                <td>
+                    <button class="btn btn-secondary" class="small" onclick="editMapping('{{ mapping.source_name }}', '{{ mapping.project_name }}', '{{ mapping.location }}')">
+                        Edit
+                    </button>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" class="text-center">
+                    <div style="font-size: 18px; margin-bottom: 8px;">No source mappings configured</div>
+                    <div class="small">Create mappings above to customize WhatsApp message content</div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('mappingForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const sourceSelect = document.getElementById('sourceSelect');
+        const projectName = document.getElementById('projectName');
+        const locationInput = document.getElementById('locationInput');
+        
+        if (!sourceSelect.value || !projectName.value || !locationInput.value) {
+            alert('Please fill all fields');
+            return;
+        }
+        
+        const formData = new FormData();
+        formData.append('source_name', sourceSelect.value);
+        formData.append('project_name', projectName.value);
+        formData.append('location', locationInput.value);
+        
+        fetch('/save-source-mapping/', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                window.location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Error: ' + error);
+        });
+    });
+    
+    function editMapping(sourceName, projectName, locationName) {
+        document.getElementById('sourceSelect').value = sourceName;
+        document.getElementById('projectName').value = projectName;
+        document.getElementById('locationInput').value = locationName;
+        
+        // Scroll to form
+        document.getElementById('mappingForm').scrollIntoView({ behavior: 'smooth' });
+    }
+</script>
+{% endblock %}

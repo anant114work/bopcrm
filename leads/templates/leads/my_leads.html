@@ -1,0 +1,96 @@
+{% extends 'leads/base_unified.html' %}
+{% load lead_filters %}
+
+{% block title %}My Leads - CRM{% endblock %}
+{% block page_title %}My Assigned Leads{% endblock %}
+
+{% block content %}
+<div class="card">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Contact</th>
+                <th>Stage</th>
+                <th>SLA Status</th>
+                <th>Date Assigned</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for lead in leads %}
+            <tr>
+                <td>
+                    <div>
+                        <a href="/leads/{{ lead.id }}/" class="lead-name">
+                            {{ lead.full_name|default:"No Name" }}
+                        </a>
+                        {% if lead.budget %}
+                        <div class="lead-budget">
+                            Budget: {{ lead.budget }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </td>
+                <td>
+                    <div>
+                        <div class="mb-1">
+                            <a href="tel:{{ lead.phone_number }}" class="contact-phone">
+                                {% maskable_number lead.phone_number "phone" %}
+                            </a>
+                        </div>
+                        {% if lead.email %}
+                        <div>
+                            <a href="mailto:{{ lead.email }}" class="contact-email">
+                                {{ lead.email }}
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </td>
+                <td>
+                    <span class="stage-badge stage-{{ lead.stage }}">
+                        {{ lead.stage|title }}
+                    </span>
+                </td>
+                <td>
+                    {% if lead.is_overdue %}
+                        <span class="text-danger">Overdue</span>
+                    {% else %}
+                        <span class="text-success">On Time</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="text-muted small">
+                        {{ lead.created_time|date:"M d, Y" }}<br>
+                        <span class="smaller">{{ lead.created_time|date:"H:i" }}</span>
+                    </div>
+                </td>
+                <td>
+                    <a href="/leads/{{ lead.id }}/" class="btn btn-primary btn-sm">
+                        View Details
+                    </a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-center text-muted p-5">
+                    <div class="mb-2">No leads assigned to you</div>
+                    <div class="small">New leads will appear here when assigned</div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function toggleMask(element) {
+        const isCurrentlyMasked = element.textContent === element.dataset.masked;
+        element.textContent = isCurrentlyMasked ? element.dataset.original : element.dataset.masked;
+        element.style.color = isCurrentlyMasked ? '#10b981' : '#6b7280';
+    }
+</script>
+{% endblock %}

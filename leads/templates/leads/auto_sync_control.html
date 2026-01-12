@@ -1,0 +1,119 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}Auto Sync Control{% endblock %}
+{% block page_title %}Auto Sync Control{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-sync-alt"></i> Automatic Lead Sync</h2>
+    </div>
+    <div class="card-content">
+        <div class="text-center">
+            <div id="syncStatus" style="font-size: 18px; margin-bottom: 20px;">
+                <i class="fas fa-spinner fa-spin"></i> Checking status...
+            </div>
+            
+            <div class="d-flex">
+                <button id="startBtn" class="btn btn-success" onclick="startAutoSync()">
+                    <i class="fas fa-play"></i> Start Auto Sync
+                </button>
+                <button id="stopBtn" class="btn btn-danger" onclick="stopAutoSync()">
+                    <i class="fas fa-stop"></i> Stop Auto Sync
+                </button>
+                <button class="btn btn-primary" onclick="manualSync()">
+                    <i class="fas fa-sync"></i> Manual Sync Now
+                </button>
+            </div>
+        </div>
+        
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-top: 20px;">
+            <h4>How it works:</h4>
+            <ul>
+                <li>Auto sync runs every <strong>5 minutes</strong></li>
+                <li>Checks Meta API for new leads</li>
+                <li>Automatically imports new leads to CRM</li>
+                <li>Runs in background - no manual intervention needed</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function checkStatus() {
+    fetch('/auto-sync-status-api/')
+        .then(response => response.json())
+        .then(data => {
+            const statusDiv = document.getElementById('syncStatus');
+            const startBtn = document.getElementById('startBtn');
+            const stopBtn = document.getElementById('stopBtn');
+            
+            if (data.running) {
+                statusDiv.innerHTML = '<i class="fas fa-check-circle" style="color: green;"></i> Auto sync is running';
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+            } else {
+                statusDiv.innerHTML = '<i class="fas fa-times-circle" style="color: red;"></i> Auto sync is stopped';
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+            }
+        });
+}
+
+function startAutoSync() {
+    fetch('/start-auto-sync/', {
+        method: 'POST',
+        headers: {'X-CSRFToken': getCookie('csrftoken')}
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert(data.message);
+        checkStatus();
+    });
+}
+
+function stopAutoSync() {
+    fetch('/stop-auto-sync/', {
+        method: 'POST',
+        headers: {'X-CSRFToken': getCookie('csrftoken')}
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert(data.message);
+        checkStatus();
+    });
+}
+
+function manualSync() {
+    fetch('/sync/', {
+        method: 'POST',
+        headers: {'X-CSRFToken': getCookie('csrftoken')}
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert(data.message || 'Manual sync completed');
+    });
+}
+
+// Check status on page load
+checkStatus();
+
+// Auto refresh status every 30 seconds
+setInterval(checkStatus, 30000);
+</script>
+{% endblock %}

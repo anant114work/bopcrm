@@ -1,0 +1,364 @@
+{% extends 'leads/base_unified.html' %}
+{% load lead_filters %}
+
+{% block title %}Meta Leads - Meta Leads CRM{% endblock %}
+
+{% block page_title %}📘 Meta Leads{% endblock %}
+
+{% block content %}
+<div class="card" style="margin-bottom: 20px;">
+    <div class="d-flex">
+        <h3 style="margin: 0;">Facebook Lead Ads</h3>
+        <div>
+            <button class="btn btn-secondary" onclick="exportMetaLeads()" style="margin-right: 0.5rem;">
+                📊 Export
+            </button>
+            <button class="btn btn-secondary" onclick="syncHistoricalMeta()" style="margin-right: 0.5rem;">
+                📅 Sync Historical
+            </button>
+            <button class="btn btn-success" onclick="syncLeads()">
+                🔄 Sync New Leads
+            </button>
+        </div>
+    </div>
+    
+    <!-- Date Filter Controls -->
+    <div style="background: #f8fafc; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+        <div class="d-flex">
+            <div style="font-weight: 600; color: #374151;">📅 Analytics Period:</div>
+            
+            <select id="dateFilter" onchange="updateDateFilter()" style="padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; background: white;">
+                <option value="7_days" {% if date_filter == '7_days' %}selected{% endif %}>Last 7 Days</option>
+                <option value="30_days" {% if date_filter == '30_days' %}selected{% endif %}>Last 30 Days</option>
+                <option value="90_days" {% if date_filter == '90_days' %}selected{% endif %}>Last 90 Days</option>
+                <option value="this_month" {% if date_filter == 'this_month' %}selected{% endif %}>This Month</option>
+                <option value="all_time" {% if date_filter == 'all_time' %}selected{% endif %}>All Time</option>
+                <option value="custom" {% if start_date and end_date %}selected{% endif %}>Custom Range</option>
+            </select>
+            
+            <div id="customDateRange" class="gap-2">
+                <input type="date" id="startDate" value="{{ start_date }}" style="padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
+                <span style="color: #6b7280;">to</span>
+                <input type="date" id="endDate" value="{{ end_date }}" style="padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
+                <button onclick="applyCustomRange()" style="padding: 8px 16px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer;">Apply</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enhanced Budget Analytics -->
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 24px; border-radius: 12px; color: white; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <div class="text-center">
+            <h2 style="margin: 0 0 8px 0; font-size: 28px; font-weight: 700;">💰 Business Analytics</h2>
+            <p style="margin: 0; opacity: 0.9; font-size: 16px;">Period: {{ recent_leads_period|title }} • {{ recent_leads_count }} leads analyzed</p>
+        </div>
+        
+        <div class="gap-2">
+            <div class="text-center">
+                <div style="font-size: 32px; font-weight: 800; margin-bottom: 4px;">₹{{ total_budget_crores }}</div>
+                <div style="font-size: 18px; font-weight: 600; margin-bottom: 2px;">Crores</div>
+                <div class="small">Total Business Potential</div>
+            </div>
+            
+            <div class="text-center">
+                <div style="font-size: 32px; font-weight: 800; margin-bottom: 4px;">{{ total_meta_leads }}</div>
+                <div style="font-size: 18px; font-weight: 600; margin-bottom: 2px;">Total</div>
+                <div class="small">Meta Leads</div>
+            </div>
+            
+            <div class="text-center">
+                <div style="font-size: 24px; font-weight: 700; margin-bottom: 4px;">{{ budget_breakdown.100_plus.count }}</div>
+                <div style="font-size: 16px; font-weight: 600; margin-bottom: 2px;">₹{{ budget_breakdown.100_plus.total|floatformat:0 }}L</div>
+                <div class="small">₹1Cr+ Budget</div>
+            </div>
+            
+            <div class="text-center">
+                <div style="font-size: 24px; font-weight: 700; margin-bottom: 4px;">{{ budget_breakdown.50_to_100.count }}</div>
+                <div style="font-size: 16px; font-weight: 600; margin-bottom: 2px;">₹{{ budget_breakdown.50_to_100.total|floatformat:0 }}L</div>
+                <div class="small">₹50L-1Cr Budget</div>
+            </div>
+            
+            <div class="text-center">
+                <div style="font-size: 24px; font-weight: 700; margin-bottom: 4px;">{{ budget_breakdown.under_50.count }}</div>
+                <div style="font-size: 16px; font-weight: 600; margin-bottom: 2px;">₹{{ budget_breakdown.under_50.total|floatformat:0 }}L</div>
+                <div class="small">Under ₹50L Budget</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card" style="margin-bottom: 20px;">
+    <form method="get" class="gap-2">
+        <div class="form-group" class="mb-0">
+            <label>Search</label>
+            <input type="text" name="search" placeholder="Search name, email, phone..." value="{{ search }}">
+        </div>
+        <div class="form-group" class="mb-0">
+            <label>Form</label>
+            <select name="form">
+                <option value="">All Meta Forms</option>
+                {% for form in forms %}
+                <option value="{{ form }}" {% if form_filter == form %}selected{% endif %}>
+                    {{ form|truncatechars:25 }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group" class="mb-0">
+            <label>City</label>
+            <select name="city">
+                <option value="">All Cities</option>
+                {% for city in cities %}
+                <option value="{{ city }}" {% if city_filter == city %}selected{% endif %}>
+                    {{ city }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group" class="mb-0">
+            <label>Config</label>
+            <select name="config">
+                <option value="">All Configs</option>
+                {% for config in configurations %}
+                <option value="{{ config }}" {% if config_filter == config %}selected{% endif %}>
+                    {{ config }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">🔍 Filter</button>
+        <a href="/meta-leads/" class="btn btn-secondary">✖️ Clear</a>
+    </form>
+</div>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Contact</th>
+                <th>Requirements</th>
+                <th>Meta Form</th>
+                <th>Date</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for lead in leads %}
+            <tr>
+                <td>
+                    <div>
+                        <a href="/leads/{{ lead.id }}/" class="lead-link" style="font-weight: 600;">
+                            {{ lead.full_name|default:"No Name" }}
+                        </a>
+                        {% if lead.budget %}
+                        <div class="text-muted">
+                            Budget: {{ lead.budget }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </td>
+                <td>
+                    <div>
+                        {% if lead.email %}
+                        <div style="margin-bottom: 4px;">
+                            <a href="mailto:{{ lead.email }}" class="small">
+                                {{ lead.email }}
+                            </a>
+                        </div>
+                        {% endif %}
+                        {% if lead.phone_number %}
+                        <div>
+                            <a href="tel:{{ lead.phone_number }}" class="small">
+                                {% maskable_number lead.phone_number "phone" %}
+                            </a>
+                        </div>
+                        {% endif %}
+                        {% if not lead.email and not lead.phone_number %}
+                        <span class="text-muted">No contact info</span>
+                        {% endif %}
+                    </div>
+                </td>
+                <td>
+                    {% if lead.configuration %}
+                    <div class="small">
+                        {{ lead.configuration }}
+                    </div>
+                    {% endif %}
+                    {% if lead.preferred_time %}
+                    <div class="text-muted">
+                        Preferred: {{ lead.preferred_time }}
+                    </div>
+                    {% endif %}
+                    {% if not lead.configuration and not lead.preferred_time %}
+                    <span class="text-muted">—</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <span class="text-muted">
+                        {{ lead.form_name|truncatechars:25 }}
+                    </span>
+                </td>
+                <td>
+                    <div class="text-muted">
+                        {{ lead.created_time|date:"M d, Y" }}<br>
+                        <span style="font-size: 11px;">{{ lead.created_time|date:"H:i" }}</span>
+                    </div>
+                </td>
+                <td>
+                    <a href="/leads/{{ lead.id }}/" class="btn btn-secondary" class="small">
+                        Details
+                    </a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-center">
+                    <div style="font-size: 18px; margin-bottom: 8px;">No Meta leads found</div>
+                    <div class="small">Click "Sync New Leads" to fetch from Facebook</div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Budget Insights -->
+<div class="card" style="margin-top: 20px;">
+    <h3 style="margin-bottom: 16px;">💡 Budget Format Insights</h3>
+    <div class="text-muted">
+        <p><strong>Common Budget Formats Found:</strong></p>
+        <div class="gap-2">
+            <div>• "2 cr", "1 crore" → ₹2 Crores</div>
+            <div>• "50 lakh", "75 lac" → ₹50-75 Lakhs</div>
+            <div>• "9889008008" → Phone as Budget</div>
+            <div>• "ok", "good", "yass" → Unspecified</div>
+            <div>• "50-75 lac" → Range Format</div>
+            <div>• "1shkskdkkn" → Invalid Entry</div>
+        </div>
+        <p style="margin-top: 12px;"><strong>Business Value ({{ recent_leads_period }}):</strong> ₹{{ total_budget_crores }} Crores from leads with valid budgets. <strong>Total Meta Leads:</strong> {{ total_meta_leads }}</p>
+    </div>
+</div>
+
+{% if leads.has_other_pages %}
+<div class="pagination">
+    {% if leads.has_previous %}
+        <a href="?page=1{% if search %}&search={{ search }}{% endif %}{% if form_filter %}&form={{ form_filter }}{% endif %}{% if city_filter %}&city={{ city_filter }}{% endif %}{% if config_filter %}&config={{ config_filter }}{% endif %}">« First</a>
+        <a href="?page={{ leads.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if form_filter %}&form={{ form_filter }}{% endif %}{% if city_filter %}&city={{ city_filter }}{% endif %}{% if config_filter %}&config={{ config_filter }}{% endif %}">‹ Previous</a>
+    {% endif %}
+    
+    <span class="current">Page {{ leads.number }} of {{ leads.paginator.num_pages }}</span>
+    
+    {% if leads.has_next %}
+        <a href="?page={{ leads.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if form_filter %}&form={{ form_filter }}{% endif %}{% if city_filter %}&city={{ city_filter }}{% endif %}{% if config_filter %}&config={{ config_filter }}{% endif %}">Next ›</a>
+        <a href="?page={{ leads.paginator.num_pages }}{% if search %}&search={{ search }}{% endif %}{% if form_filter %}&form={{ form_filter }}{% endif %}{% if city_filter %}&city={{ city_filter }}{% endif %}{% if config_filter %}&config={{ config_filter }}{% endif %}">Last »</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function exportMetaLeads() {
+        window.open('/ivr-webhooks/export-leads/', '_blank');
+    }
+    
+    function syncHistoricalMeta() {
+        if (confirm('This will sync Meta leads from the last 3 months. This may take a while. Continue?')) {
+            const btn = document.querySelector('button[onclick="syncHistoricalMeta()"]');
+            const originalText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'Syncing Historical...';
+            btn.style.backgroundColor = '#6b7280';
+            
+            fetch('/ivr-webhooks/sync-historical-meta/', {method: 'POST'})
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message || data.error);
+                btn.disabled = false;
+                btn.textContent = originalText;
+                btn.style.backgroundColor = '#6b7280';
+                if(data.message && !data.error) {
+                    location.reload();
+                }
+            })
+            .catch(error => {
+                alert('Historical sync failed: ' + error);
+                btn.disabled = false;
+                btn.textContent = originalText;
+                btn.style.backgroundColor = '#6b7280';
+            });
+        }
+    }
+    
+    function syncLeads() {
+        const btn = document.querySelector('button[onclick="syncLeads()"]');
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = 'Syncing...';
+        btn.style.backgroundColor = '#6b7280';
+        
+        fetch('/sync/', {method: 'POST'})
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message || data.error);
+            if(data.success) {
+                location.reload();
+            } else {
+                btn.disabled = false;
+                btn.textContent = originalText;
+                btn.style.backgroundColor = '#10b981';
+            }
+        })
+        .catch(error => {
+            alert('Sync failed: ' + error);
+            btn.disabled = false;
+            btn.textContent = originalText;
+            btn.style.backgroundColor = '#10b981';
+        });
+    }
+    
+    function toggleMask(element) {
+        const isCurrentlyMasked = element.textContent === element.dataset.masked;
+        element.textContent = isCurrentlyMasked ? element.dataset.original : element.dataset.masked;
+        element.style.color = isCurrentlyMasked ? '#10b981' : '#6b7280';
+    }
+    
+    function updateDateFilter() {
+        const filter = document.getElementById('dateFilter').value;
+        const customRange = document.getElementById('customDateRange');
+        
+        if (filter === 'custom') {
+            customRange.style.display = 'flex';
+        } else {
+            customRange.style.display = 'none';
+            // Apply filter immediately for preset ranges
+            const url = new URL(window.location);
+            url.searchParams.set('date_filter', filter);
+            url.searchParams.delete('start_date');
+            url.searchParams.delete('end_date');
+            window.location.href = url.toString();
+        }
+    }
+    
+    function applyCustomRange() {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        
+        if (!startDate || !endDate) {
+            alert('Please select both start and end dates');
+            return;
+        }
+        
+        if (new Date(startDate) > new Date(endDate)) {
+            alert('Start date must be before end date');
+            return;
+        }
+        
+        const url = new URL(window.location);
+        url.searchParams.set('date_filter', 'custom');
+        url.searchParams.set('start_date', startDate);
+        url.searchParams.set('end_date', endDate);
+        window.location.href = url.toString();
+    }
+</script>
+{% endblock %}

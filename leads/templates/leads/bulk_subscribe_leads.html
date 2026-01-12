@@ -1,0 +1,331 @@
+{% extends 'leads/base_unified.html' %}
+{% load static %}
+
+{% block title %}Bulk Subscribe Leads - Drip Campaign{% endblock %}
+{% block page_title %}Bulk Subscribe Leads{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-users text-success"></i> Bulk Subscribe Leads</h2>
+                <a href="{% url 'drip_campaigns_dashboard' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Campaigns
+                </a>
+            </div>
+
+            <div class="row">
+                <!-- Lead Selection -->
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-search"></i> Select Leads</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <input type="text" class="form-control" id="leadSearch" placeholder="Search by name, phone, or email...">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <button class="btn btn-sm btn-outline-primary" onclick="selectAll()">Select All</button>
+                                <button class="btn btn-sm btn-outline-secondary" onclick="clearSelection()">Clear All</button>
+                                <span class="ml-3 text-muted">Selected: <span id="selectedCount">0</span></span>
+                            </div>
+                            
+                            <div id="leadsContainer" style="max-height: 400px; overflow-y: auto;">
+                                <!-- Leads will be loaded here -->
+                            </div>
+                            
+                            <div class="text-center mt-3">
+                                <button id="loadMoreBtn" class="btn btn-outline-primary" onclick="loadMoreLeads()" style="display: none;">
+                                    Load More
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Campaign & Timing Configuration -->
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-cog"></i> Campaign Settings</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label>Campaign</label>
+                                <select class="form-control" id="campaignSelect">
+                                    <option value="">Select Campaign...</option>
+                                    {% for campaign in campaigns %}
+                                    <option value="{{ campaign.id }}">{{ campaign.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div id="timingConfig" style="display: none;">
+                                <h6 class="mt-4"><i class="fas fa-clock"></i> Message Timing</h6>
+                                <small class="text-muted">Customize delays between messages</small>
+                                
+                                <div id="messageTimings">
+                                    <!-- Message timing controls will be loaded here -->
+                                </div>
+                                
+                                <div class="mt-3">
+                                    <h6>Quick Presets:</h6>
+                                    <button class="btn btn-sm btn-outline-info" onclick="setPreset('test')">Test (0.5 min)</button>
+                                    <button class="btn btn-sm btn-outline-success" onclick="setPreset('production')">Production (1 day)</button>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-4">
+                                <button class="btn btn-success btn-block" onclick="bulkSubscribe()" disabled id="subscribeBtn">
+                                    <i class="fas fa-paper-plane"></i> Subscribe Selected Leads
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let selectedLeads = new Set();
+let currentPage = 1;
+let hasMore = true;
+let campaigns = [];
+
+// Load leads on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadLeads();
+    
+    // Search functionality
+    document.getElementById('leadSearch').addEventListener('input', function() {
+        currentPage = 1;
+        hasMore = true;
+        document.getElementById('leadsContainer').innerHTML = '';
+        loadLeads();
+    });
+    
+    // Campaign selection
+    document.getElementById('campaignSelect').addEventListener('change', function() {
+        const campaignId = this.value;
+        if (campaignId) {
+            loadCampaignTimings(campaignId);
+            document.getElementById('timingConfig').style.display = 'block';
+        } else {
+            document.getElementById('timingConfig').style.display = 'none';
+        }
+        updateSubscribeButton();
+    });
+});
+
+function loadLeads() {
+    const search = document.getElementById('leadSearch').value;
+    
+    fetch(`{% url 'drip_leads_api' %}?search=${encodeURIComponent(search)}&page=${currentPage}`)
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById('leadsContainer');
+            
+            data.leads.forEach(lead => {
+                const leadDiv = document.createElement('div');
+                leadDiv.className = 'border rounded p-2 mb-2 lead-item';
+                leadDiv.innerHTML = `
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="lead_${lead.id}" 
+                               onchange="toggleLead(${lead.id})" ${selectedLeads.has(lead.id) ? 'checked' : ''}>
+                        <label class="form-check-label" for="lead_${lead.id}">
+                            <strong>${lead.name}</strong><br>
+                            <small class="text-muted">${lead.phone} • ${lead.email}</small><br>
+                            <small class="text-muted">Created: ${lead.created}</small>
+                        </label>
+                    </div>
+                `;
+                container.appendChild(leadDiv);
+            });
+            
+            hasMore = data.has_next;
+            document.getElementById('loadMoreBtn').style.display = hasMore ? 'block' : 'none';
+            
+            updateSelectedCount();
+        })
+        .catch(error => {
+            console.error('Error loading leads:', error);
+        });
+}
+
+function loadMoreLeads() {
+    currentPage++;
+    loadLeads();
+}
+
+function toggleLead(leadId) {
+    if (selectedLeads.has(leadId)) {
+        selectedLeads.delete(leadId);
+    } else {
+        selectedLeads.add(leadId);
+    }
+    updateSelectedCount();
+    updateSubscribeButton();
+}
+
+function selectAll() {
+    const checkboxes = document.querySelectorAll('.lead-item input[type="checkbox"]');
+    checkboxes.forEach(cb => {
+        cb.checked = true;
+        const leadId = parseInt(cb.id.replace('lead_', ''));
+        selectedLeads.add(leadId);
+    });
+    updateSelectedCount();
+    updateSubscribeButton();
+}
+
+function clearSelection() {
+    selectedLeads.clear();
+    const checkboxes = document.querySelectorAll('.lead-item input[type="checkbox"]');
+    checkboxes.forEach(cb => cb.checked = false);
+    updateSelectedCount();
+    updateSubscribeButton();
+}
+
+function updateSelectedCount() {
+    document.getElementById('selectedCount').textContent = selectedLeads.size;
+}
+
+function updateSubscribeButton() {
+    const btn = document.getElementById('subscribeBtn');
+    const campaignSelected = document.getElementById('campaignSelect').value;
+    btn.disabled = selectedLeads.size === 0 || !campaignSelected;
+}
+
+function loadCampaignTimings(campaignId) {
+    // 9-message campaign sequence
+    const messages = [
+        {day: 1, name: 'Welcome Message', hours: 0, minutes: 0},
+        {day: 2, name: 'Location Benefits', hours: 24, minutes: 0},
+        {day: 3, name: 'Payment Plan', hours: 24, minutes: 0},
+        {day: 4, name: 'Pricing Advantage', hours: 24, minutes: 0},
+        {day: 5, name: 'Project Features', hours: 24, minutes: 0},
+        {day: 6, name: 'Clubhouse Features', hours: 24, minutes: 0},
+        {day: 7, name: 'Premium Amenities', hours: 24, minutes: 0},
+        {day: 8, name: 'Investment ROI', hours: 24, minutes: 0},
+        {day: 9, name: 'Final Call', hours: 24, minutes: 0}
+    ];
+    
+    const container = document.getElementById('messageTimings');
+    container.innerHTML = '';
+    
+    messages.forEach(msg => {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'mb-3 p-2 border rounded';
+        msgDiv.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <strong>Day ${msg.day}: ${msg.name}</strong>
+            </div>
+            <div class="row">
+                <div class="col-6">
+                    <label class="small">Hours</label>
+                    <input type="number" class="form-control form-control-sm" 
+                           id="hours_${msg.day}" value="${msg.hours}" min="0">
+                </div>
+                <div class="col-6">
+                    <label class="small">Minutes</label>
+                    <input type="number" class="form-control form-control-sm" 
+                           id="minutes_${msg.day}" value="${msg.minutes}" min="0" max="59">
+                </div>
+            </div>
+        `;
+        container.appendChild(msgDiv);
+    });
+}
+
+function setPreset(type) {
+    const messages = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+    
+    if (type === 'test') {
+        // Test preset: 0.5 minutes between messages
+        messages.forEach((day, index) => {
+            document.getElementById(`hours_${day}`).value = 0;
+            document.getElementById(`minutes_${day}`).value = index === 0 ? 0 : 0.5;
+        });
+    } else if (type === 'production') {
+        // Production preset: 1 day between messages
+        messages.forEach((day, index) => {
+            document.getElementById(`hours_${day}`).value = index === 0 ? 0 : 24;
+            document.getElementById(`minutes_${day}`).value = 0;
+        });
+    }
+}
+
+function bulkSubscribe() {
+    const campaignId = document.getElementById('campaignSelect').value;
+    const leadIds = Array.from(selectedLeads);
+    
+    // Collect custom delays
+    const customDelays = {};
+    [1, 2, 3, 4, 5, 6, 7, 8, 9].forEach(day => {
+        const hoursEl = document.getElementById(`hours_${day}`);
+        const minutesEl = document.getElementById(`minutes_${day}`);
+        if (hoursEl && minutesEl) {
+            customDelays[day] = {
+                hours: parseInt(hoursEl.value) || 0,
+                minutes: parseInt(minutesEl.value) || 0
+            };
+        }
+    });
+    
+    if (leadIds.length === 0 || !campaignId) {
+        alert('Please select leads and a campaign');
+        return;
+    }
+    
+    const btn = document.getElementById('subscribeBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Subscribing...';
+    
+    fetch('/drip-campaigns/bulk-subscribe/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            lead_ids: leadIds,
+            campaign_id: campaignId,
+            custom_delays: customDelays
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Success! Subscribed ${data.subscribed} leads. ${data.already_subscribed} were already subscribed.`);
+            clearSelection();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error subscribing leads');
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-paper-plane"></i> Subscribe Selected Leads';
+        updateSubscribeButton();
+    });
+}
+</script>
+
+<style>
+.lead-item:hover {
+    background-color: #f8f9fa;
+}
+
+.lead-item input:checked + label {
+    color: #007bff;
+}
+</style>
+{% endblock %}

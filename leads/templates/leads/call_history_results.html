@@ -1,0 +1,345 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}Call History Results{% endblock %}
+
+{% block page_title %}Call History Results{% endblock %}
+
+
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-chart-line mr-2"></i>
+                        Call History Matching Results
+                    </h3>
+                    <div class="card-tools">
+                        <button type="button" class="btn btn-success" id="saveAllBtn">
+                            <i class="fas fa-save mr-2"></i>
+                            Save All Matches
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Summary Stats -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="info-box bg-success">
+                                <span class="info-box-icon"><i class="fas fa-check"></i></span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Matched Records</span>
+                                    <span class="info-box-number">{{ matches_count }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="info-box bg-warning">
+                                <span class="info-box-icon"><i class="fas fa-exclamation"></i></span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">No Matches</span>
+                                    <span class="info-box-number">{{ no_matches_count }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="info-box bg-info">
+                                <span class="info-box-icon"><i class="fas fa-file-excel"></i></span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Total Processed</span>
+                                    <span class="info-box-number">{{ total_processed }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="info-box bg-primary">
+                                <span class="info-box-icon"><i class="fas fa-percentage"></i></span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Match Rate</span>
+                                    <span class="info-box-number">{{ matches_count|floatformat:0 }}%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabs for Matches and No Matches -->
+                    <ul class="nav nav-tabs" id="resultTabs" role="tablist">
+                        <li class="nav-item">
+                            <a class="nav-link active" id="matches-tab" data-toggle="tab" href="#matches" role="tab">
+                                <i class="fas fa-check text-success mr-2"></i>
+                                Matched Records ({{ matches_count }})
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="no-matches-tab" data-toggle="tab" href="#no-matches" role="tab">
+                                <i class="fas fa-times text-warning mr-2"></i>
+                                Unmatched Records ({{ no_matches_count }})
+                            </a>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content mt-3" id="resultTabContent">
+                        <!-- Matched Records Tab -->
+                        <div class="tab-pane fade show active" id="matches" role="tabpanel">
+                            {% if matches %}
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-hover" id="matchesTable">
+                                        <thead class="thead-dark">
+                                            <tr>
+                                                <th>Excel Phone</th>
+                                                <th>CRM Lead</th>
+                                                <th>CRM Phone</th>
+                                                <th>Match Type</th>
+                                                <th>Call Date</th>
+                                                <th>Agent</th>
+                                                <th>Disposition</th>
+                                                <th>Duration</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for match in matches %}
+                                            <tr>
+                                                <td>
+                                                    <strong>{{ match.excel_phone }}</strong>
+                                                </td>
+                                                <td>
+                                                    <a href="{% url 'lead_detail' match.crm_lead.id %}" target="_blank">
+                                                        {{ match.crm_lead.full_name }}
+                                                    </a>
+                                                    <br>
+                                                    <small class="text-muted">{{ match.crm_lead.email }}</small>
+                                                </td>
+                                                <td>{{ match.crm_lead.phone_number }}</td>
+                                                <td>
+                                                    {% if match.match_score == 1 %}
+                                                        <span class="badge badge-success">Match (10 digits)</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>{{ match.excel_data.Call_Date|default:"-" }}</td>
+                                                <td>{{ match.excel_data.Agent|default:"-" }}</td>
+                                                <td>{{ match.excel_data.Disposition|default:"-" }}</td>
+                                                <td>{{ match.excel_data.Call_Duration|default:"-" }}</td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-info" onclick="viewDetails({{ forloop.counter0 }})">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle mr-2"></i>
+                                    No matched records found.
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Unmatched Records Tab -->
+                        <div class="tab-pane fade" id="no-matches" role="tabpanel">
+                            {% if no_matches %}
+                                <div class="table-responsive">
+                                    <table class="table table-striped" id="noMatchesTable">
+                                        <thead class="thead-light">
+                                            <tr>
+                                                <th>Phone Number</th>
+                                                <th>Call Date</th>
+                                                <th>Agent</th>
+                                                <th>Disposition</th>
+                                                <th>Duration</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for no_match in no_matches %}
+                                            <tr>
+                                                <td><strong>{{ no_match.excel_phone }}</strong></td>
+                                                <td>{{ no_match.excel_data.Call_Date|default:"-" }}</td>
+                                                <td>{{ no_match.excel_data.Agent|default:"-" }}</td>
+                                                <td>{{ no_match.excel_data.Disposition|default:"-" }}</td>
+                                                <td>{{ no_match.excel_data.Call_Duration|default:"-" }}</td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-warning" onclick="viewUnmatchedDetails({{ forloop.counter0 }})">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-success">
+                                    <i class="fas fa-check-circle mr-2"></i>
+                                    All records were successfully matched!
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Details Modal -->
+<div class="modal fade" id="detailsModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Call History Details</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Details will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" tabindex="-1" role="dialog" data-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-body text-center">
+                <div class="spinner-border text-primary mb-3" role="status"></div>
+                <h5>Saving Records...</h5>
+                <p class="text-muted">Please wait while we save the matched records to your CRM.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const matchesData = JSON.parse('{{ results.matches|default:"[]"|escapejs }}');
+const noMatchesData = JSON.parse('{{ results.no_matches|default:"[]"|escapejs }}');
+
+function viewDetails(index) {
+    const match = matchesData[index];
+    let html = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6>CRM Lead Information</h6>
+                <table class="table table-sm">
+                    <tr><td><strong>Name:</strong></td><td>${match.crm_lead.full_name}</td></tr>
+                    <tr><td><strong>Email:</strong></td><td>${match.crm_lead.email}</td></tr>
+                    <tr><td><strong>Phone:</strong></td><td>${match.crm_lead.phone_number}</td></tr>
+                    <tr><td><strong>Form:</strong></td><td>${match.crm_lead.form_name}</td></tr>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <h6>Excel Call Data</h6>
+                <table class="table table-sm">
+    `;
+    
+    for (const [key, value] of Object.entries(match.excel_data)) {
+        if (value && value !== 'nan') {
+            html += `<tr><td><strong>${key}:</strong></td><td>${value}</td></tr>`;
+        }
+    }
+    
+    html += `
+                </table>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('modalBody').innerHTML = html;
+    $('#detailsModal').modal('show');
+}
+
+function viewUnmatchedDetails(index) {
+    const noMatch = noMatchesData[index];
+    let html = `
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle mr-2"></i>
+            No matching CRM lead found for phone number: <strong>${noMatch.excel_phone}</strong>
+        </div>
+        <h6>Excel Call Data</h6>
+        <table class="table table-sm">
+    `;
+    
+    for (const [key, value] of Object.entries(noMatch.excel_data)) {
+        if (value && value !== 'nan') {
+            html += `<tr><td><strong>${key}:</strong></td><td>${value}</td></tr>`;
+        }
+    }
+    
+    html += `</table>`;
+    
+    document.getElementById('modalBody').innerHTML = html;
+    $('#detailsModal').modal('show');
+}
+
+$('#saveAllBtn').click(function() {
+    if ({{ matches_count }} === 0) {
+        alert('No matches to save!');
+        return;
+    }
+    
+    if (!confirm('Are you sure you want to save all {{ matches_count }} matched records to the CRM?')) {
+        return;
+    }
+    
+    $('#loadingModal').modal('show');
+    
+    $.ajax({
+        url: '{% url "save_call_history_matches" %}',
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        },
+        success: function(response) {
+            $('#loadingModal').modal('hide');
+            if (response.success) {
+                alert(`Successfully saved ${response.saved_count} records!`);
+                window.location.href = '{% url "call_history_dashboard" %}';
+            } else {
+                alert('Error: ' + response.error);
+            }
+        },
+        error: function() {
+            $('#loadingModal').modal('hide');
+            alert('An error occurred while saving records.');
+        }
+    });
+});
+
+// Initialize DataTables for pagination
+$(document).ready(function() {
+    if ($.fn.DataTable) {
+        $('#matchesTable').DataTable({
+            "pageLength": 25,
+            "order": [[ 4, "desc" ]],
+            "responsive": true,
+            "language": {
+                "search": "Search matches:",
+                "lengthMenu": "Show _MENU_ matches per page",
+                "info": "Showing _START_ to _END_ of _TOTAL_ matches"
+            }
+        });
+        
+        $('#noMatchesTable').DataTable({
+            "pageLength": 25,
+            "order": [[ 1, "desc" ]],
+            "responsive": true,
+            "language": {
+                "search": "Search unmatched:",
+                "lengthMenu": "Show _MENU_ records per page",
+                "info": "Showing _START_ to _END_ of _TOTAL_ unmatched records"
+            }
+        });
+    }
+});
+</script>
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap4.min.js"></script>
+{% endblock %}
