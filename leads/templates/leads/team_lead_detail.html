@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+    {% load static %}
     <title>{{ lead.full_name }} - Lead Details</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -214,6 +215,7 @@
             border-left: 4px solid #dc2626;
         }
     </style>
+    <link rel="stylesheet" href="{% static 'css/global.css' %}">
 </head>
 <body>
     <div class="header">

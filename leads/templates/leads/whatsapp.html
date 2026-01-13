@@ -3,6 +3,61 @@
 {% block title %}WhatsApp Messaging - Meta Leads CRM{% endblock %}
 {% block page_title %}WhatsApp Messaging{% endblock %}
 
+{% block extra_css %}
+<style>
+/* WhatsApp Page Styles - v2.0 */
+.whatsapp-container { max-width: 1400px; margin: 0 auto; }
+.page-header { background: white; padding: 24px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 24px; }
+.header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.header-title { display: flex; align-items: center; gap: 16px; }
+.header-title h1 { margin: 0; font-size: 28px; font-weight: 700; color: #2c3e50; }
+.title-icon { width: 56px; height: 56px; background: linear-gradient(135deg, #25D366 0%, #128C7E 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 28px; box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3); }
+.selection-info { display: flex; justify-content: space-between; align-items: center; padding: 16px; background: #f8f9fa; border-radius: 8px; }
+.selection-count { font-size: 32px; font-weight: 700; color: #3498db; }
+.control-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+.panel-section { background: white; padding: 24px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+.section-title { font-size: 18px; font-weight: 600; color: #2c3e50; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; }
+.template-preview { padding: 16px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #3498db; min-height: 100px; font-size: 14px; line-height: 1.6; }
+.campaign-list { display: flex; flex-direction: column; gap: 12px; max-height: 300px; overflow-y: auto; }
+.campaign-item { padding: 12px; border: 2px solid #e8ecf1; border-radius: 8px; display: flex; align-items: center; gap: 12px; transition: all 0.3s ease; cursor: pointer; }
+.campaign-item:hover { border-color: #3498db; background: #f8f9fa; transform: translateX(4px); }
+.campaign-item input[type="radio"] { width: 20px; height: 20px; cursor: pointer; accent-color: #3498db; }
+.campaign-item label { cursor: pointer; flex: 1; margin: 0; }
+.filters-section { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 24px; }
+.filter-grid { display: grid; grid-template-columns: 1fr 1fr auto; gap: 16px; align-items: end; }
+.table-section { background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow: hidden; margin-bottom: 24px; }
+.table-header { padding: 20px; border-bottom: 2px solid #e8ecf1; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); }
+.table-header h3 { margin: 0; font-size: 18px; font-weight: 600; color: #2c3e50; }
+.leads-table { width: 100%; border-collapse: collapse; }
+.leads-table thead { background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); color: white; }
+.leads-table th { padding: 16px; text-align: left; font-weight: 600; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
+.leads-table td { padding: 14px 16px; border-bottom: 1px solid #f5f7fa; font-size: 14px; }
+.leads-table tbody tr { transition: all 0.3s ease; }
+.leads-table tbody tr:hover { background: #f8f9fa; }
+.lead-name { font-weight: 600; color: #2c3e50; }
+.lead-name a { color: #2c3e50; text-decoration: none; }
+.lead-name a:hover { color: #3498db; }
+.lead-budget { font-size: 12px; color: #95a5a6; margin-top: 4px; }
+.contact-phone { display: block; color: #3498db; text-decoration: none; font-weight: 500; margin-bottom: 4px; }
+.contact-phone:hover { color: #2980b9; }
+.contact-email { display: block; color: #95a5a6; text-decoration: none; font-size: 13px; }
+.requirement-badge { display: inline-block; padding: 4px 12px; background: #e3f2fd; color: #1976d2; border-radius: 20px; font-size: 12px; font-weight: 600; }
+.status-badge { display: inline-block; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; }
+.status-ready { background: #d4edda; color: #155724; }
+.checkbox-lg { width: 18px; height: 18px; cursor: pointer; accent-color: #3498db; }
+.flex-1 { flex: 1; }
+.pagination-section { padding: 20px; display: flex; justify-content: space-between; align-items: center; background: white; border-top: 1px solid #e8ecf1; }
+.page-btn { padding: 8px 14px; border: 2px solid #e8ecf1; border-radius: 8px; text-decoration: none; color: #2c3e50; font-weight: 600; transition: all 0.3s ease; display: inline-flex; align-items: center; justify-content: center; min-width: 40px; }
+.page-btn:hover { background: #3498db; color: white; border-color: #3498db; transform: translateY(-2px); }
+.page-btn.active { background: #3498db; color: white; border-color: #3498db; }
+@media (max-width: 768px) {
+    .control-panel { grid-template-columns: 1fr; }
+    .filter-grid { grid-template-columns: 1fr; }
+    .table-section { overflow-x: auto; }
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="whatsapp-container">
     <!-- Header -->
@@ -77,21 +132,31 @@
             </h3>
             
             <div class="form-group">
+                <label class="form-label">Create New Campaign:</label>
+                <div class="d-flex gap-2 mb-3">
+                    <button onclick="createCampaign('gaur')" class="btn btn-info flex-1">
+                        <i class="fas fa-plus"></i> Create Gaur Yamuna Campaign
+                    </button>
+                    <button onclick="createCampaign('spj')" class="btn btn-info flex-1">
+                        <i class="fas fa-plus"></i> Create SPJ 10-Day Campaign
+                    </button>
+                </div>
+            </div>
+            
+            <div class="form-group">
                 <label class="form-label">Available Drip Campaigns:</label>
                 <div class="campaign-list">
                     {% for campaign in drip_campaigns %}
                     <div class="campaign-item">
-                        <input type="radio" id="drip-{{ campaign.id }}" name="drip_campaign" value="{{ campaign.id }}" class="drip-checkbox">
+                        <input type="radio" id="drip-{{ campaign.id }}" name="drip_campaign" value="{{ campaign.id }}" class="drip-checkbox" onchange="updateButtons()">
                         <label for="drip-{{ campaign.id }}">
                             <strong>{{ campaign.name }}</strong>
                             <br><small class="text-muted">{{ campaign.messages.count }} messages over {{ campaign.duration_days }} days</small>
                         </label>
                     </div>
                     {% empty %}
-                    <div class="text-center p-3">
-                        <a href="/drip-campaigns/" class="btn btn-info">
-                            <i class="fas fa-plus"></i> Create Drip Campaign
-                        </a>
+                    <div class="text-center p-3 text-muted">
+                        <i class="fas fa-info-circle"></i> No campaigns available. Create one above.
                     </div>
                     {% endfor %}
                 </div>
@@ -268,169 +333,6 @@
 
 {% block extra_js %}
 <script>
-// Template previews
-const templates = {
-    'crm3': 'Hi [name],<br><br>Thank you for reaching out to us! 🙌<br><br>We\'ll get in touch with you shortly to assist you further.',
-    'followupcampaign': 'Hi [name], just checking in! 😊<br>If you\'re still exploring [property] in [location], we\'ve added new photos, videos, and updated offers just for you.<br><br>📲 View all details here below<br><br>Homes here are selling fast — don\'t miss your chance to own a space you\'ll love! ❤️'
-};
-
-// Update selection count
-function updateCount() {
-    const checkboxes = document.querySelectorAll('.lead-checkbox:checked');
-    const count = checkboxes.length;
-    document.getElementById('selectedCount').textContent = count;
-    updateButtons();
-}
-
-// Toggle all checkboxes
-function toggleAll() {
-    const selectAll = document.getElementById('selectAllCheckbox');
-    const checkboxes = document.querySelectorAll('.lead-checkbox');
-    checkboxes.forEach(cb => cb.checked = selectAll.checked);
-    updateCount();
-}
-
-// Update template preview
-function updateTemplatePreview() {
-    const templateSelect = document.getElementById('templateSelect');
-    const templatePreview = document.getElementById('templatePreview');
-    const selectedOption = templateSelect.options[templateSelect.selectedIndex];
-    
-    if (selectedOption && selectedOption.value) {
-        const delay = selectedOption.getAttribute('data-delay') || 0;
-        templatePreview.innerHTML = `
-            <strong>Template:</strong> ${selectedOption.text}<br>
-            <strong>Delay:</strong> ${delay} minutes after previous message<br><br>
-            <em>Template content will be loaded from database...</em>
-        `;
-    } else {
-        templatePreview.innerHTML = 'Select a template to see preview...';
-    }
-    
-    updateButtons();
-}
-
-// Load project templates
-function loadProjectTemplates() {
-    const projectId = document.getElementById('projectSelect').value;
-    const templateSelect = document.getElementById('templateSelect');
-    
-    // Show/hide templates based on project
-    const options = templateSelect.querySelectorAll('option');
-    options.forEach(option => {
-        if (option.value === '') {
-            option.style.display = 'block';
-        } else {
-            const templateProject = option.getAttribute('data-project');
-            option.style.display = (!projectId || templateProject === projectId) ? 'block' : 'none';
-        }
-    });
-    
-    templateSelect.value = '';
-    updateTemplatePreview();
-    updateButtons();
-}
-
-// Update buttons based on selections
-function updateButtons() {
-    const leadCount = document.querySelectorAll('.lead-checkbox:checked').length;
-    const templateSelected = document.getElementById('templateSelect').value;
-    const dripSelected = document.querySelector('.drip-checkbox:checked');
-    
-    document.getElementById('sendSingleBtn').disabled = leadCount === 0 || !templateSelected;
-    document.getElementById('sendDripBtn').disabled = leadCount === 0 || !dripSelected;
-}
-
-// Send single message
-function sendSingleMessage() {
-    const leadCheckboxes = document.querySelectorAll('.lead-checkbox:checked');
-    const leadIds = Array.from(leadCheckboxes).map(cb => cb.value);
-    const templateId = document.getElementById('templateSelect').value;
-    
-    if (leadIds.length === 0 || !templateId) {
-        alert('Please select leads and a template');
-        return;
-    }
-    
-    const btn = document.getElementById('sendSingleBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Sending...';
-    
-    fetch('/send-whatsapp-message/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
-        },
-        body: JSON.stringify({
-            lead_ids: leadIds,
-            template_id: templateId
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert(`Messages sent successfully!\n${data.message}`);
-            // Reset selections
-            leadCheckboxes.forEach(cb => cb.checked = false);
-            document.getElementById('selectAllCheckbox').checked = false;
-            updateCount();
-        } else {
-            alert('Error: ' + data.error);
-        }
-    })
-    .finally(() => {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fab fa-whatsapp"></i> Send Single Message';
-        updateButtons();
-    });
-}
-
-// Start drip campaign
-function startDripCampaign() {
-    const leadCheckboxes = document.querySelectorAll('.lead-checkbox:checked');
-    const leadIds = Array.from(leadCheckboxes).map(cb => cb.value);
-    const dripCampaignId = document.querySelector('.drip-checkbox:checked')?.value;
-    
-    if (leadIds.length === 0 || !dripCampaignId) {
-        alert('Please select leads and a drip campaign');
-        return;
-    }
-    
-    const btn = document.getElementById('sendDripBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Starting Campaign...';
-    
-    fetch('/drip-campaigns/bulk-subscribe/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
-        },
-        body: JSON.stringify({
-            lead_ids: leadIds,
-            campaign_id: dripCampaignId
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert(`Drip campaign started!\n${data.message}`);
-            // Reset selections
-            leadCheckboxes.forEach(cb => cb.checked = false);
-            document.getElementById('selectAllCheckbox').checked = false;
-            updateCount();
-        } else {
-            alert('Error: ' + data.error);
-        }
-    })
-    .finally(() => {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-paper-plane"></i> Start Drip Campaign';
-        updateButtons();
-    });
-}
-
 function getCookie(name) {
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {
@@ -446,11 +348,128 @@ function getCookie(name) {
     return cookieValue;
 }
 
-// Initialize
-document.addEventListener('DOMContentLoaded', function() {
+function updateCount() {
+    const count = document.querySelectorAll('.lead-checkbox:checked').length;
+    document.getElementById('selectedCount').textContent = count;
+    updateButtons();
+}
+
+function toggleAll() {
+    const selectAll = document.getElementById('selectAllCheckbox');
+    document.querySelectorAll('.lead-checkbox').forEach(cb => cb.checked = selectAll.checked);
+    updateCount();
+}
+
+function updateButtons() {
+    const selectedCount = document.querySelectorAll('.lead-checkbox:checked').length;
+    const templateSelected = document.getElementById('templateSelect').value;
+    const dripSelected = document.querySelector('.drip-checkbox:checked');
+    document.getElementById('sendSingleBtn').disabled = selectedCount === 0 || !templateSelected;
+    document.getElementById('sendDripBtn').disabled = selectedCount === 0 || !dripSelected;
+}
+
+function createCampaign(type) {
+    const url = type === 'gaur' ? '/drip-campaigns/create-gaur-yamuna/' : '/drip-campaigns/create-spj-10day/';
+    const name = type === 'gaur' ? 'Gaur Yamuna' : 'SPJ 10-Day';
+    if (!confirm(`Create ${name} campaign?`)) return;
+    fetch(url, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')}
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`${name} campaign created successfully!`);
+            location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Failed to create campaign'));
+        }
+    })
+    .catch(error => alert('Error: ' + error));
+}
+
+function loadProjectTemplates() {
+    const projectId = document.getElementById('projectSelect').value;
     const templateSelect = document.getElementById('templateSelect');
-    templateSelect.addEventListener('change', updateTemplatePreview);
+    const options = templateSelect.querySelectorAll('option');
+    options.forEach(option => {
+        if (option.value === '') {
+            option.style.display = 'block';
+        } else {
+            const optionProject = option.getAttribute('data-project');
+            option.style.display = !projectId || optionProject === projectId ? 'block' : 'none';
+        }
+    });
+    templateSelect.value = '';
     updateTemplatePreview();
+}
+
+function updateTemplatePreview() {
+    const select = document.getElementById('templateSelect');
+    const preview = document.getElementById('templatePreview');
+    const selectedOption = select.options[select.selectedIndex];
+    if (select.value) {
+        const delay = selectedOption.getAttribute('data-delay') || '0';
+        preview.innerHTML = `<strong>${selectedOption.text}</strong><br><small>Delay: ${delay} minutes</small><br><br>Select this template to send messages.`;
+    } else {
+        preview.innerHTML = 'Select a template to see preview...';
+    }
+    updateButtons();
+}
+
+function sendSingleMessage() {
+    const selectedLeads = Array.from(document.querySelectorAll('.lead-checkbox:checked')).map(cb => cb.value);
+    const templateId = document.getElementById('templateSelect').value;
+    if (selectedLeads.length === 0 || !templateId) {
+        alert('Please select leads and a template');
+        return;
+    }
+    if (!confirm(`Send message to ${selectedLeads.length} lead(s)?`)) return;
+    fetch('/whatsapp/send-single/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+        body: JSON.stringify({lead_ids: selectedLeads, template_id: templateId})
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Messages sent successfully to ${data.sent_count} leads!`);
+            location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Failed to send messages'));
+        }
+    })
+    .catch(error => alert('Error: ' + error));
+}
+
+function startDripCampaign() {
+    const selectedLeads = Array.from(document.querySelectorAll('.lead-checkbox:checked')).map(cb => cb.value);
+    const campaignId = document.querySelector('.drip-checkbox:checked')?.value;
+    if (selectedLeads.length === 0 || !campaignId) {
+        alert('Please select leads and a drip campaign');
+        return;
+    }
+    if (!confirm(`Start drip campaign for ${selectedLeads.length} lead(s)?`)) return;
+    fetch('/whatsapp/start-drip/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+        body: JSON.stringify({lead_ids: selectedLeads, campaign_id: campaignId})
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Drip campaign started for ${data.enrolled_count} leads!`);
+            location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Failed to start campaign'));
+        }
+    })
+    .catch(error => alert('Error: ' + error));
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    updateCount();
+    updateButtons();
 });
 </script>
 {% endblock %}

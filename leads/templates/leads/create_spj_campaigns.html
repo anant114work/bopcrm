@@ -1,0 +1,129 @@
+{% extends 'leads/base_crm.html' %}
+
+{% block title %}Create SPJ 10-Day Campaigns{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Create SPJ 10-Day Campaign Variants</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h5>Campaign Variant System</h5>
+                        <p>This will create 10 separate campaign variants (Day 1 through Day 10) that can be switched between.</p>
+                        <ul>
+                            <li>Each variant is independent but grouped together</li>
+                            <li>Only one variant is active at a time for new subscribers</li>
+                            <li>You can switch between variants anytime</li>
+                            <li>Existing subscribers keep their current campaign</li>
+                        </ul>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <h5>Campaign Configuration</h5>
+                        <p><strong>Destinations:</strong></p>
+                        <ul>
+                            <li>Days 1-7, 9-10: 919999929832</li>
+                            <li>Day 8: 919169739813</li>
+                        </ul>
+                    </div>
+
+                    <form method="POST" id="create-campaigns-form">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label for="confirm-checkbox">
+                                <input type="checkbox" id="confirm-checkbox" required>
+                                I understand this will create 10 campaign variants
+                            </label>
+                        </div>
+
+                        <button type="submit" class="btn btn-success btn-lg" id="create-btn" disabled>
+                            <i class="fas fa-plus"></i> Create SPJ 10-Day Campaigns
+                        </button>
+                        <a href="{% url 'drip_campaigns_dashboard' %}" class="btn btn-secondary btn-lg">
+                            <i class="fas fa-arrow-left"></i> Back to Dashboard
+                        </a>
+                    </form>
+
+                    <div id="progress-container" style="display: none;" class="mt-4">
+                        <div class="progress">
+                            <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                                 role="progressbar" style="width: 0%"></div>
+                        </div>
+                        <p id="progress-text" class="mt-2 text-center">Creating campaigns...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">How to Use Campaign Variants</h5>
+                </div>
+                <div class="card-body">
+                    <ol>
+                        <li><strong>Create Campaigns:</strong> Click the button above to create all 10 variants</li>
+                        <li><strong>Subscribe Leads:</strong> Subscribe leads to the active variant</li>
+                        <li><strong>Switch Variants:</strong> Use the Campaign Variant Switcher to change which variant is active</li>
+                        <li><strong>New Subscribers:</strong> Will automatically use the currently active variant</li>
+                        <li><strong>Existing Subscribers:</strong> Keep their current campaign and continue receiving messages</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('confirm-checkbox').addEventListener('change', function() {
+    document.getElementById('create-btn').disabled = !this.checked;
+});
+
+document.getElementById('create-campaigns-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    document.getElementById('progress-container').style.display = 'block';
+    document.getElementById('create-btn').disabled = true;
+    
+    fetch('{% url "create_spj_10day_campaigns" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => {
+        if (response.ok) {
+            document.getElementById('progress-bar').style.width = '100%';
+            document.getElementById('progress-text').textContent = '✅ Campaigns created successfully!';
+            setTimeout(() => {
+                window.location.href = '{% url "drip_campaigns_dashboard" %}';
+            }, 2000);
+        } else {
+            throw new Error('Failed to create campaigns');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        document.getElementById('progress-text').textContent = '❌ Error creating campaigns';
+        document.getElementById('create-btn').disabled = false;
+    });
+});
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

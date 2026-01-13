@@ -18,6 +18,10 @@ class DripCampaign(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
+    # Campaign variant support
+    variant_group = models.CharField(max_length=100, blank=True, help_text="Group ID for campaign variants (e.g., 'spjday')")
+    is_active_variant = models.BooleanField(default=True, help_text="Whether this variant is currently active for new subscribers")
+    
     # Analytics
     total_subscribers = models.IntegerField(default=0)
     total_messages_sent = models.IntegerField(default=0)

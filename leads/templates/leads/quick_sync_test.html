@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+    {% load static %}
     <title>Quick Sync Test</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
@@ -11,6 +12,7 @@
         .error { background: #f8d7da; border: 1px solid #f5c6cb; }
         pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; font-size: 12px; }
     </style>
+    <link rel="stylesheet" href="{% static 'css/global.css' %}">
 </head>
 <body>
     <h1>🔍 Quick Sync Test - Find Missing Gaur ACP Leads</h1>

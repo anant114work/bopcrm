@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    {% load static %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token }}">
@@ -32,6 +33,7 @@
         .refresh-btn { float: right; }
         .chart-container { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
     </style>
+    <link rel="stylesheet" href="{% static 'css/global.css' %}">
 </head>
 <body>
     <div class="container">

@@ -7,7 +7,6 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('leads', '0024_alter_callrecord_options_remove_callrecord_call_id_and_more'),
-        ('leads', '0024_clickapikey_alter_callrecord_acefone_call_id_and_more'),
     ]
 
     operations = [

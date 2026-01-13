@@ -345,14 +345,13 @@ document.addEventListener('DOMContentLoaded', function() {
         aiModal.addEventListener('show.bs.modal', function(event) {
             // Modal functionality here
         });
-    }addEventListener('show.bs.modal', function(event) {
-            // Modal functionality here
-        });
     }
 });
-</script>
-{% endblock %}
-        aiModal.addEventListener('show.bs.modal', function(event) {
+
+// AI Modal handler
+const aiModal = document.getElementById('aiModal');
+if (aiModal) {
+    aiModal.addEventListener('show.bs.modal', function(event) {
             const button = event.relatedTarget;
             const leadId = button.getAttribute('data-lead-id');
             const name = button.getAttribute('data-lead-name');
@@ -707,7 +706,7 @@ window.addEventListener('load', function() {
     }
 });
 
-</script>
+
 function initiateAcefoneCall(leadId, phone) {
     if (confirm(`Initiate Call Karo AI call to ${phone}?`)) {
         fetch('/acefone-call/', {
@@ -725,7 +724,7 @@ function initiateAcefoneCall(leadId, phone) {
         .then(data => {
             if (data.success) {
                 alert('Call initiated successfully via Call Karo AI! Call ID: ' + data.call_id);
-                location.reload(); // Refresh to show updated stage
+                location.reload();
             } else {
                 alert('Call failed: ' + (data.error || 'Unknown error'));
             }
@@ -736,11 +735,9 @@ function initiateAcefoneCall(leadId, phone) {
         });
     }
 }
-</script>
-// Call dropdown functions
+
 function toggleCallDropdown(leadId) {
     const dropdown = document.getElementById(`callDropdown${leadId}`);
-    // Close all other dropdowns
     document.querySelectorAll('.call-dropdown').forEach(d => {
         if (d.id !== `callDropdown${leadId}`) d.style.display = 'none';
     });
@@ -805,10 +802,5 @@ function viewCallLogs(leadId) {
 function viewRecordings(leadId) {
     alert(`Call recordings for Lead ${leadId}:\n\n🎵 Recording functionality coming soon!\n\nThis will show:\n• Call recordings\n• Call duration\n• Call quality metrics\n• Conversation transcripts`);
 }
-
-// Close dropdowns when clicking outside
-document.addEventListener('click', function(e) {
-    if (!e.target.closest('.dropdown')) {
-        document.querySelectorAll('.call-dropdown').forEach(d => d.style.display = 'none');
-    }
-});
+</script>
+{% endblock %}

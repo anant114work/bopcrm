@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+    {% load static %}
     <title>Date Range Lead Analysis</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
@@ -23,6 +24,7 @@
         .table th { background: #f8f9fa; }
         .loading { text-align: center; padding: 20px; color: #666; }
     </style>
+    <link rel="stylesheet" href="{% static 'css/global.css' %}">
 </head>
 <body>
     <div class="container">

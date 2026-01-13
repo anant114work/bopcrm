@@ -466,7 +466,46 @@ def google_leads(request):
     return render(request, 'leads/source_leads.html', context)
 
 def whatsapp_page(request):
-    return render(request, 'leads/whatsapp.html', {'leads': []})
+    from .project_models import Project
+    from .whatsapp_models import WhatsAppTemplate
+    from .drip_campaign_models import DripCampaign
+    from django.core.paginator import Paginator
+    from django.db.models import Q
+    
+    search = request.GET.get('search', '')
+    form_filter = request.GET.get('form', '')
+    
+    leads = Lead.objects.filter(phone_number__isnull=False).exclude(phone_number='').order_by('-created_time')
+    
+    if search:
+        leads = leads.filter(
+            Q(full_name__icontains=search) |
+            Q(phone_number__icontains=search) |
+            Q(email__icontains=search)
+        )
+    
+    if form_filter:
+        leads = leads.filter(form_name=form_filter)
+    
+    paginator = Paginator(leads, 50)
+    page = request.GET.get('page', 1)
+    leads = paginator.get_page(page)
+    
+    projects = Project.objects.all().order_by('name')
+    templates = WhatsAppTemplate.objects.all().order_by('project__name', 'order')
+    drip_campaigns = DripCampaign.objects.filter(status='active').order_by('-created_at')
+    forms = Lead.objects.filter(phone_number__isnull=False).exclude(phone_number='').values_list('form_name', flat=True).distinct()
+    
+    return render(request, 'leads/whatsapp.html', {
+        'leads': leads,
+        'projects': projects,
+        'templates': templates,
+        'drip_campaigns': drip_campaigns,
+        'forms': forms,
+        'search': search,
+        'form_filter': form_filter,
+        'total_leads': Lead.objects.filter(phone_number__isnull=False).exclude(phone_number='').count()
+    })
 
 def export_leads(request):
     return JsonResponse({'message': 'Export functionality'})

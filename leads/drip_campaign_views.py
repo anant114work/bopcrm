@@ -43,26 +43,27 @@ def bulk_subscribe_view(request):
 def create_gaur_yamuna_campaign(request):
     """Create the Gaur Yamuna drip campaign with predefined messages"""
     if request.method == 'POST':
-        # Get or create Gaur Yamuna project
-        project, created = Project.objects.get_or_create(
-            name='Gaur Yamuna',
-            defaults={
-                'code': 'gaur_yamuna',
-                'developer': 'Gaur Group',
-                'location': 'Yamuna Expressway'
-            }
-        )
-        
-        # Create the drip campaign
-        campaign = DripCampaign.objects.create(
-            name='Gaur Yamuna Follow-up Sequence',
-            project=project,
-            description='Complete 9-day WhatsApp follow-up sequence for Gaur Yamuna leads',
-            status='active'
-        )
-        
-        # Define the 9-message sequence based on your data
-        messages_data = [
+        try:
+            # Get or create Gaur Yamuna project
+            project, created = Project.objects.get_or_create(
+                name='Gaur Yamuna',
+                defaults={
+                    'code': 'gaur_yamuna',
+                    'developer': 'Gaur Group',
+                    'location': 'Yamuna Expressway'
+                }
+            )
+            
+            # Create the drip campaign
+            campaign = DripCampaign.objects.create(
+                name='Gaur Yamuna Follow-up Sequence',
+                project=project,
+                description='Complete 9-day WhatsApp follow-up sequence for Gaur Yamuna leads',
+                status='active'
+            )
+            
+            # Define the 9-message sequence based on your data
+            messages_data = [
             {
                 'day': 1,
                 'template_name': 'gauryaumanafirsthi',
@@ -127,23 +128,37 @@ def create_gaur_yamuna_campaign(request):
                 'delay_hours': 24
             }
         ]
-        
-        # Create drip messages
-        for msg_data in messages_data:
-            DripMessage.objects.create(
-                campaign=campaign,
-                day_number=msg_data['day'],
-                template_name=msg_data['template_name'],
-                campaign_name=msg_data['campaign_name'],
-                message_text=msg_data['message'],
-                api_key=AISENSY_API_KEY,
-                template_params=['$FirstName'],
-                fallback_params={'FirstName': 'user'},
-                delay_hours=msg_data['delay_hours']
-            )
-        
-        messages.success(request, f'Gaur Yamuna drip campaign created with {len(messages_data)} messages (9-day sequence)!')
-        return redirect('drip_campaigns_dashboard')
+            
+            # Create drip messages
+            for msg_data in messages_data:
+                DripMessage.objects.create(
+                    campaign=campaign,
+                    day_number=msg_data['day'],
+                    template_name=msg_data['template_name'],
+                    campaign_name=msg_data['campaign_name'],
+                    message_text=msg_data['message'],
+                    api_key=AISENSY_API_KEY,
+                    template_params=['$FirstName'],
+                    fallback_params={'FirstName': 'user'},
+                    delay_hours=msg_data['delay_hours']
+                )
+            
+            messages.success(request, f'Gaur Yamuna drip campaign created with {len(messages_data)} messages (9-day sequence)!')
+            
+            # Return JSON for AJAX requests
+            if request.headers.get('Content-Type') == 'application/json':
+                return JsonResponse({
+                    'success': True,
+                    'message': f'Gaur Yamuna campaign created with {len(messages_data)} messages',
+                    'campaign_id': campaign.id
+                })
+            
+            return redirect('drip_campaigns_dashboard')
+        except Exception as e:
+            if request.headers.get('Content-Type') == 'application/json':
+                return JsonResponse({'success': False, 'error': str(e)})
+            messages.error(request, f'Error: {str(e)}')
+            return redirect('drip_campaigns_dashboard')
     
     return render(request, 'leads/create_gaur_yamuna_campaign.html')
 
@@ -1152,3 +1167,165 @@ def send_specific_day_message(request):
             })
     
     return JsonResponse({'success': False, 'error': 'Invalid request'})
+
+
+@csrf_exempt
+def switch_campaign_variant(request):
+    """Switch between campaign variants (e.g., spjday1 to spjday10)"""
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        variant_group = data.get('variant_group')
+        active_campaign_id = data.get('active_campaign_id')
+        
+        print(f"[SWITCH VARIANT] Switching {variant_group} to campaign {active_campaign_id}")
+        
+        try:
+            # Get all campaigns in this variant group
+            campaigns = DripCampaign.objects.filter(variant_group=variant_group)
+            
+            if not campaigns.exists():
+                return JsonResponse({
+                    'success': False,
+                    'error': f'No campaigns found for variant group: {variant_group}'
+                })
+            
+            # Deactivate all variants in this group
+            campaigns.update(is_active_variant=False)
+            print(f"[SWITCH VARIANT] Deactivated all {campaigns.count()} variants")
+            
+            # Activate the selected campaign
+            active_campaign = get_object_or_404(DripCampaign, id=active_campaign_id, variant_group=variant_group)
+            active_campaign.is_active_variant = True
+            active_campaign.save()
+            
+            print(f"[SWITCH VARIANT] Activated: {active_campaign.name}")
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Switched to {active_campaign.name}',
+                'active_campaign': active_campaign.name
+            })
+            
+        except Exception as e:
+            print(f"[SWITCH VARIANT] Error: {str(e)}")
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            })
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request'})
+
+@csrf_exempt
+def get_campaign_variants(request):
+    """Get all variants for a campaign group"""
+    variant_group = request.GET.get('variant_group')
+    
+    if not variant_group:
+        return JsonResponse({'success': False, 'error': 'variant_group required'})
+    
+    try:
+        campaigns = DripCampaign.objects.filter(variant_group=variant_group).order_by('name')
+        
+        variants = []
+        for campaign in campaigns:
+            variants.append({
+                'id': campaign.id,
+                'name': campaign.name,
+                'is_active': campaign.is_active_variant,
+                'subscribers': campaign.subscribers.count(),
+                'messages_sent': sum(msg.sent_count for msg in campaign.messages.all())
+            })
+        
+        active_campaign = campaigns.filter(is_active_variant=True).first()
+        
+        return JsonResponse({
+            'success': True,
+            'variants': variants,
+            'active_campaign_id': active_campaign.id if active_campaign else None,
+            'active_campaign_name': active_campaign.name if active_campaign else None
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        })
+
+def create_spj_10day_campaigns(request):
+    """Create 10 SPJ day campaigns with variant support"""
+    if request.method == 'POST':
+        try:
+            # Get or create SPJ project
+            project, created = Project.objects.get_or_create(
+                name='SPJ',
+                defaults={
+                    'code': 'spj',
+                    'developer': 'SPJ',
+                    'location': 'SPJ Location'
+                }
+            )
+            
+            # 10-day campaign data
+            campaigns_data = [
+                {'day': 1, 'destination': '919999929832'},
+                {'day': 2, 'destination': '919999929832'},
+                {'day': 3, 'destination': '919999929832'},
+                {'day': 4, 'destination': '919999929832'},
+                {'day': 5, 'destination': '919999929832'},
+                {'day': 6, 'destination': '919999929832'},
+                {'day': 7, 'destination': '919999929832'},
+                {'day': 8, 'destination': '919169739813'},
+                {'day': 9, 'destination': '919999929832'},
+                {'day': 10, 'destination': '919999929832'},
+            ]
+            
+            created_campaigns = []
+            
+            for campaign_data in campaigns_data:
+                day = campaign_data['day']
+                destination = campaign_data['destination']
+                
+                # Create campaign
+                campaign = DripCampaign.objects.create(
+                    name=f'SPJ Day {day}',
+                    project=project,
+                    description=f'SPJ {day}-day follow-up campaign',
+                    status='active',
+                    variant_group='spjday',
+                    is_active_variant=(day == 1)  # Only Day 1 is active by default
+                )
+                
+                # Create single message for this day
+                DripMessage.objects.create(
+                    campaign=campaign,
+                    day_number=1,
+                    template_name=f'spjday{day}',
+                    campaign_name=f'spjday{day}',
+                    message_text=f'Hi {{{{1}}}}, This is Day {day} message from SPJ campaign.',
+                    api_key=AISENSY_API_KEY,
+                    template_params=['$FirstName'],
+                    fallback_params={'FirstName': 'user'},
+                    delay_hours=0
+                )
+                
+                created_campaigns.append(campaign)
+                print(f"[CREATE SPJ] Created campaign: {campaign.name}")
+            
+            messages.success(request, f'Created 10 SPJ day campaigns with variant switching support!')
+            
+            # Return JSON for AJAX requests
+            if request.headers.get('Content-Type') == 'application/json':
+                return JsonResponse({
+                    'success': True,
+                    'message': f'Created 10 SPJ day campaigns',
+                    'campaigns_count': len(created_campaigns)
+                })
+            
+            return redirect('drip_campaigns_dashboard')
+        except Exception as e:
+            if request.headers.get('Content-Type') == 'application/json':
+                return JsonResponse({'success': False, 'error': str(e)})
+            messages.error(request, f'Error: {str(e)}')
+            return redirect('drip_campaigns_dashboard')
+    
+    return render(request, 'leads/create_spj_campaigns.html')

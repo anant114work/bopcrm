@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+    {% load static %}
     <title>Daily Lead Sync Analysis</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
@@ -16,6 +17,7 @@
         .alert-warning { background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; }
         .alert-info { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
     </style>
+    <link rel="stylesheet" href="{% static 'css/global.css' %}">
 </head>
 <body>
     <div class="container">

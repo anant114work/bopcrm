@@ -316,5 +316,21 @@ urlpatterns = [
     # Booking Source Management URLs
     path('api/source-categories/', booking_source_views.get_source_categories, name='get_source_categories'),
     path('api/sources/<int:category_id>/', booking_source_views.get_sources_by_category, name='get_sources_by_category'),
-    path('api/sources/create/', booking_source_views.create_custom_source, name='create_custom_source'),
+    # path('api/sources/create/', booking_source_views.create_custom_source, name='create_custom_source'),`n    path('drip-campaigns/switch-variant/', drip_views.switch_campaign_variant, name='switch_campaign_variant'),`n    path('drip-campaigns/get-variants/', drip_views.get_campaign_variants, name='get_campaign_variants'),`n    path('drip-campaigns/create-spj-10day/', drip_views.create_spj_10day_campaigns, name='create_spj_10day_campaigns'),
+    path('drip-campaigns/switch-variant/', drip_views.switch_campaign_variant, name='switch_campaign_variant'),
+    path('drip-campaigns/get-variants/', drip_views.get_campaign_variants, name='get_campaign_variants'),
+    path('drip-campaigns/create-spj-10day/', drip_views.create_spj_10day_campaigns, name='create_spj_10day_campaigns'),
+
+    path('drip-campaigns/switch-variant/', drip_views.switch_campaign_variant, name='switch_campaign_variant'),
+    path('drip-campaigns/get-variants/', drip_views.get_campaign_variants, name='get_campaign_variants'),
+    path('drip-campaigns/create-spj-10day/', drip_views.create_spj_10day_campaigns, name='create_spj_10day_campaigns'),
+
+
+    path('drip-campaigns/switch-variant/', drip_views.switch_campaign_variant, name='switch_campaign_variant'),
+    path('drip-campaigns/get-variants/', drip_views.get_campaign_variants, name='get_campaign_variants'),
+    path('drip-campaigns/create-spj-10day/', drip_views.create_spj_10day_campaigns, name='create_spj_10day_campaigns'),
+
+    path('drip-campaigns/switch-variant/', drip_views.switch_campaign_variant, name='switch_campaign_variant'),
+    path('drip-campaigns/get-variants/', drip_views.get_campaign_variants, name='get_campaign_variants'),
+    path('drip-campaigns/create-spj-10day/', drip_views.create_spj_10day_campaigns, name='create_spj_10day_campaigns'),
 ]

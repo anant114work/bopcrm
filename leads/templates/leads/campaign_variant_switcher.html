@@ -1,0 +1,159 @@
+<div id="campaign-variant-switcher" class="card mt-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Campaign Variant Switcher</h5>
+    </div>
+    <div class="card-body">
+        <div class="form-group">
+            <label for="variant-group-select">Select Campaign Group:</label>
+            <select id="variant-group-select" class="form-control">
+                <option value="">-- Choose a campaign group --</option>
+                <option value="spjday">SPJ Day Campaigns (1-10)</option>
+                <option value="gaur_yamuna">Gaur Yamuna Campaigns</option>
+            </select>
+        </div>
+
+        <div id="variants-container" style="display: none;">
+            <div class="form-group">
+                <label>Available Variants:</label>
+                <div id="variants-list" class="list-group">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+
+            <div class="alert alert-info mt-3" id="active-variant-info" style="display: none;">
+                <strong>Currently Active:</strong> <span id="active-variant-name"></span>
+            </div>
+
+            <button id="switch-variant-btn" class="btn btn-success" style="display: none;">
+                Switch to Selected Campaign
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('variant-group-select').addEventListener('change', function() {
+    const variantGroup = this.value;
+    if (!variantGroup) {
+        document.getElementById('variants-container').style.display = 'none';
+        return;
+    }
+
+    // Fetch variants for this group
+    fetch(`/drip-campaigns/get-variants/?variant_group=${variantGroup}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayVariants(data.variants, data.active_campaign_id);
+                document.getElementById('active-variant-name').textContent = data.active_campaign_name || 'None';
+                document.getElementById('active-variant-info').style.display = 'block';
+                document.getElementById('variants-container').style.display = 'block';
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+});
+
+function displayVariants(variants, activeId) {
+    const variantsList = document.getElementById('variants-list');
+    variantsList.innerHTML = '';
+
+    variants.forEach(variant => {
+        const div = document.createElement('div');
+        div.className = 'list-group-item';
+        div.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <input type="radio" name="variant-select" value="${variant.id}" 
+                        ${variant.is_active ? 'checked' : ''} class="variant-radio">
+                    <label class="mb-0 ms-2">
+                        <strong>${variant.name}</strong>
+                        <br>
+                        <small class="text-muted">
+                            Subscribers: ${variant.subscribers} | Messages Sent: ${variant.messages_sent}
+                        </small>
+                    </label>
+                </div>
+                ${variant.is_active ? '<span class="badge bg-success">Active</span>' : ''}
+            </div>
+        `;
+        variantsList.appendChild(div);
+    });
+
+    // Show switch button
+    document.getElementById('switch-variant-btn').style.display = 'block';
+}
+
+document.getElementById('switch-variant-btn').addEventListener('click', function() {
+    const selectedRadio = document.querySelector('input[name="variant-select"]:checked');
+    if (!selectedRadio) {
+        alert('Please select a campaign variant');
+        return;
+    }
+
+    const variantGroup = document.getElementById('variant-group-select').value;
+    const campaignId = selectedRadio.value;
+
+    // Send switch request
+    fetch('/drip-campaigns/switch-variant/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            variant_group: variantGroup,
+            active_campaign_id: campaignId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ ' + data.message);
+            // Refresh the variant list
+            document.getElementById('variant-group-select').dispatchEvent(new Event('change'));
+        } else {
+            alert('❌ Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error switching campaign variant');
+    });
+});
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+
+<style>
+#variants-list .list-group-item {
+    padding: 12px;
+    border: 1px solid #dee2e6;
+    margin-bottom: 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+#variants-list .list-group-item:hover {
+    background-color: #f8f9fa;
+}
+
+#variants-list input[type="radio"] {
+    cursor: pointer;
+}
+</style>
