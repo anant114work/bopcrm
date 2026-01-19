@@ -222,13 +222,15 @@ def subscribe_lead_to_drip(request):
                 print(f"[DRIP SUBSCRIBE] Found first message: Day {first_message.day_number}")
                 # Send immediately or schedule based on delay
                 if first_message.total_delay_minutes == 0:
-                    print(f"[DRIP SUBSCRIBE] Sending immediately")
-                    # Send immediately
+                    print(f"[DRIP SUBSCRIBE] Sending immediately to THIS lead only")
+                    # Send immediately to THIS subscriber only
                     result = send_drip_message(subscriber, first_message)
                     if result['success']:
                         subscriber.current_day = 1
                         subscriber.schedule_next_message()
                         print(f"[DRIP SUBSCRIBE] First message sent, next scheduled")
+                    else:
+                        print(f"[DRIP SUBSCRIBE] Failed to send: {result.get('error')}")
                 else:
                     print(f"[DRIP SUBSCRIBE] Scheduling for {first_message.total_delay_minutes} minutes")
                     # Schedule for later
@@ -332,6 +334,8 @@ def bulk_subscribe_leads(request):
             
             # Auto-start the sender if not already running
             if subscribed_count > 0:
+                print(f"[BULK SUBSCRIBE] ⚠️ NOTE: {subscribed_count} leads scheduled. Auto-sender will process them in background.")
+                print(f"[BULK SUBSCRIBE] 🕒 Messages will be sent based on campaign delay settings (not immediately)")
                 try:
                     auto_sender.start()
                     print(f"[BULK SUBSCRIBE] Auto-started message sender")

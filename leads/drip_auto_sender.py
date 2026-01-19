@@ -11,7 +11,11 @@ AISENSY_API_URL = "https://backend.aisensy.com/campaign/t1/api/v2"
 
 def send_drip_message(subscriber, drip_message):
     """Send a single drip message via AI Sensy"""
-    print(f"[DRIP SEND] Starting send to {subscriber.phone_number} - Day {drip_message.day_number}")
+    campaign_name = subscriber.campaign.name
+    project_name = subscriber.campaign.project.name if subscriber.campaign.project else 'N/A'
+    print(f"[DRIP SEND] 📤 Campaign: {campaign_name} | Project: {project_name}")
+    print(f"[DRIP SEND] 📱 Sending Day {drip_message.day_number} to {subscriber.first_name} ({subscriber.phone_number})")
+    print(f"[DRIP SEND] 💬 Template: {drip_message.campaign_name} | Message: {drip_message.message_text[:100]}...")
     
     try:
         # Check if this exact message was already sent to this lead
@@ -73,7 +77,8 @@ def send_drip_message(subscriber, drip_message):
             message_log.sent_at = timezone.now()
             drip_message.sent_count += 1
             drip_message.save()
-            print(f"[DRIP SEND] ✅ SUCCESS: Day {drip_message.day_number} sent to {subscriber.first_name} ({subscriber.phone_number}) - Lead ID: {subscriber.lead.id if subscriber.lead else 'N/A'}")
+            print(f"[DRIP SEND] ✅ SUCCESS: Day {drip_message.day_number} sent to {subscriber.first_name} ({subscriber.phone_number})")
+            print(f"[DRIP SEND] 📊 Lead ID: {subscriber.lead.id if subscriber.lead else 'N/A'} | Campaign: {campaign_name} | Project: {project_name}")
             success = True
             error = None
         else:
@@ -146,7 +151,17 @@ class DripAutoSender:
         )
         
         if subscribers_ready.count() > 0:
-            print(f"[AUTO SENDER] Found {subscribers_ready.count()} subscribers ready for messages")
+            print(f"[AUTO SENDER] 🔍 Found {subscribers_ready.count()} subscribers ready for messages")
+            # Group by campaign for better visibility
+            campaigns = {}
+            for sub in subscribers_ready:
+                campaign_name = sub.campaign.name
+                if campaign_name not in campaigns:
+                    campaigns[campaign_name] = []
+                campaigns[campaign_name].append(sub.phone_number)
+            
+            for campaign_name, phones in campaigns.items():
+                print(f"[AUTO SENDER] 📊 Campaign '{campaign_name}': {len(phones)} subscribers ready")
         
         for subscriber in subscribers_ready:
             try:
@@ -159,7 +174,8 @@ class DripAutoSender:
                     if result['success']:
                         subscriber.current_day = next_message.day_number
                         subscriber.schedule_next_message()
-                        print(f"[AUTO SENDER] ✅ SUCCESS: {subscriber.phone_number} - Day {next_message.day_number} sent")
+                        campaign_info = f"{subscriber.campaign.name} ({subscriber.campaign.project.name if subscriber.campaign.project else 'N/A'})"
+                        print(f"[AUTO SENDER] ✅ SUCCESS: {subscriber.phone_number} - Day {next_message.day_number} sent | Campaign: {campaign_info}")
                     elif result.get('duplicate'):
                         # Skip duplicate, move to next day
                         subscriber.current_day = next_message.day_number
