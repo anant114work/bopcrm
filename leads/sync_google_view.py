@@ -13,6 +13,10 @@ def extract_sheet_id(url):
     match = re.search(r'/spreadsheets/d/([a-zA-Z0-9-_]+)', url)
     return match.group(1) if match else None
 
+def extract_gid(url):
+    match = re.search(r'[#&]gid=([0-9]+)', url)
+    return match.group(1) if match else '0'
+
 @csrf_exempt
 def sync_all_google_sheets(request):
     if request.method != 'POST':
@@ -31,10 +35,11 @@ def sync_all_google_sheets(request):
         for sheet in sheets:
             try:
                 spreadsheet_id = extract_sheet_id(sheet.sheet_url)
+                gid = extract_gid(sheet.sheet_url)
                 if not spreadsheet_id:
                     continue
                 
-                csv_url = f'https://docs.google.com/spreadsheets/d/{spreadsheet_id}/export?format=csv&gid=0'
+                csv_url = f'https://docs.google.com/spreadsheets/d/{spreadsheet_id}/export?format=csv&gid={gid}'
                 response = requests.get(csv_url, timeout=10)
                 
                 if response.status_code != 200:
