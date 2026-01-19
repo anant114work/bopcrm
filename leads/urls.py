@@ -4,7 +4,7 @@ from . import views, project_views, whatsapp_views, enhanced_views, team_views, 
 from . import drip_campaign_views as drip_views
 from .sync_campaigns_view import sync_campaigns_data
 from .bulk_whatsapp_views import project_bulk_whatsapp, send_bulk_whatsapp
-from . import form_mapping_views, auto_whatsapp_views, bulk_call_upload_views, callkaro_admin_views, google_sheets_views, call_analytics_views, call_report_views, call_history_views, booking_source_views, bulk_ai_calling_views
+from . import form_mapping_views, auto_whatsapp_views, bulk_call_upload_views, callkaro_admin_views, google_sheets_views, call_analytics_views, call_report_views, call_history_views, booking_source_views, bulk_ai_calling_views, agent_management_views, user_management_views
 from django.shortcuts import render
 
 urlpatterns = [
@@ -327,4 +327,17 @@ urlpatterns = [
     # Bulk AI Calling URLs
     path('bulk-ai-calling/', bulk_ai_calling_views.bulk_ai_calling_page, name='bulk_ai_calling'),
     path('bulk-ai-call/', bulk_ai_calling_views.bulk_ai_call, name='bulk_ai_call'),
+    
+    # Agent Management URLs
+    path('agent-management/', agent_management_views.agent_management, name='agent_management'),
+    path('add-agent/', agent_management_views.add_agent, name='add_agent'),
+    path('toggle-agent/<int:agent_id>/', agent_management_views.toggle_agent, name='toggle_agent'),
+    path('delete-agent/<int:agent_id>/', agent_management_views.delete_agent, name='delete_agent'),
+    
+    # User Management URLs (Admin only)
+    path('user-management/', user_management_views.user_management, name='user_management'),
+    path('create-user/', user_management_views.create_user, name='create_user'),
+    path('update-user/', user_management_views.update_user, name='update_user'),
+    path('toggle-user/', user_management_views.toggle_user, name='toggle_user'),
+    path('delete-user/', user_management_views.delete_user, name='delete_user'),
 ]
