@@ -15,6 +15,7 @@ from .auto_whatsapp_models import AutoWhatsAppCampaign
 from .bulk_call_models import BulkCallCampaign, BulkCallRecord
 from .call_report_models import CallReportUpload, CallReportRecord
 from .booking_source_models import BookingSourceCategory, BookingSource
+from .ai_agent_models import AIAgent, AICallLog
 
 STAGE_CHOICES = [
     ('new', 'New'),

@@ -4,7 +4,7 @@ from . import views, project_views, whatsapp_views, enhanced_views, team_views, 
 from . import drip_campaign_views as drip_views
 from .sync_campaigns_view import sync_campaigns_data
 from .bulk_whatsapp_views import project_bulk_whatsapp, send_bulk_whatsapp
-from . import form_mapping_views, auto_whatsapp_views, bulk_call_upload_views, callkaro_admin_views, google_sheets_views, call_analytics_views, call_report_views, call_history_views, booking_source_views, bulk_ai_calling_views, agent_management_views, user_management_views
+from . import form_mapping_views, auto_whatsapp_views, bulk_call_upload_views, callkaro_admin_views, google_sheets_views, call_analytics_views, call_report_views, call_history_views, booking_source_views, bulk_ai_calling_views, agent_management_views, user_management_views, auto_ai_call_views
 from django.shortcuts import render
 
 urlpatterns = [
@@ -340,4 +340,17 @@ urlpatterns = [
     path('update-user/', user_management_views.update_user, name='update_user'),
     path('toggle-user/', user_management_views.toggle_user, name='toggle_user'),
     path('delete-user/', user_management_views.delete_user, name='delete_user'),
+    
+    # Auto AI Call URLs
+    path('ai-agents/', auto_ai_call_views.ai_agent_dashboard, name='ai_agent_dashboard'),
+    path('ai-agents/create/', auto_ai_call_views.create_ai_agent, name='create_ai_agent'),
+    path('ai-agents/<int:agent_id>/update/', auto_ai_call_views.update_ai_agent, name='update_ai_agent'),
+    path('ai-agents/<int:agent_id>/delete/', auto_ai_call_views.delete_ai_agent, name='delete_ai_agent'),
+    path('form-mappings/create-mapping/', auto_ai_call_views.create_form_mapping, name='create_form_mapping_ai'),
+    path('form-mappings/<int:mapping_id>/delete-mapping/', auto_ai_call_views.delete_form_mapping, name='delete_form_mapping_ai'),
+    path('ai-call/trigger/<int:lead_id>/', auto_ai_call_views.trigger_auto_call_for_lead, name='trigger_auto_call_for_lead'),
+    path('ai-call/process-unmapped/', auto_ai_call_views.process_unmapped_leads, name='process_unmapped_leads'),
+    path('ai-call/logs/', auto_ai_call_views.call_logs_view, name='ai_call_logs'),
+    path('ai-call/analytics/', auto_ai_call_views.ai_call_analytics, name='ai_call_analytics'),
+    path('ai-call/test-mapping/', auto_ai_call_views.test_form_mapping, name='test_form_mapping'),
 ]

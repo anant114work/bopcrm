@@ -1,0 +1,325 @@
+{% extends 'leads/base.html' %}
+
+{% block title %}AI Agent Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h2 class="mb-4">🤖 AI Agent Management</h2>
+    
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5>Total Agents</h5>
+                    <h2>{{ stats.total_agents }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5>Active Agents</h5>
+                    <h2>{{ stats.active_agents }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5>Calls Today</h5>
+                    <h2>{{ stats.calls_today }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5>Success Rate</h5>
+                    <h2>{% if stats.calls_today > 0 %}{{ stats.calls_success|floatformat:0 }}%{% else %}0%{% endif %}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- AI Agents Section -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h4>AI Agents</h4>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAgentModal">
+                <i class="fas fa-plus"></i> Add Agent
+            </button>
+        </div>
+        <div class="card-body">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Agent ID</th>
+                        <th>Project</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for agent in agents %}
+                    <tr>
+                        <td>{{ agent.name }}</td>
+                        <td><code>{{ agent.agent_id }}</code></td>
+                        <td>{{ agent.project.name }}</td>
+                        <td>
+                            {% if agent.is_active %}
+                            <span class="badge bg-success">Active</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ agent.created_at|date:"Y-m-d" }}</td>
+                        <td>
+                            <button class="btn btn-sm btn-danger" onclick="deleteAgent({{ agent.id }})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center">No AI agents configured</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Form Mappings Section -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h4>Form to Project Mappings</h4>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addMappingModal">
+                <i class="fas fa-plus"></i> Add Mapping
+            </button>
+        </div>
+        <div class="card-body">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Form Name</th>
+                        <th>Project</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for mapping in mappings %}
+                    <tr>
+                        <td>{{ mapping.form_name }}</td>
+                        <td>{{ mapping.project.name }}</td>
+                        <td>
+                            {% if mapping.is_active %}
+                            <span class="badge bg-success">Active</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-danger" onclick="deleteMapping({{ mapping.id }})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center">No form mappings configured</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Recent Call Logs -->
+    <div class="card">
+        <div class="card-header">
+            <h4>Recent AI Calls</h4>
+        </div>
+        <div class="card-body">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Lead</th>
+                        <th>Phone</th>
+                        <th>Agent</th>
+                        <th>Status</th>
+                        <th>Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in recent_calls %}
+                    <tr>
+                        <td>{{ log.lead.full_name }}</td>
+                        <td>{{ log.phone_number }}</td>
+                        <td>{{ log.agent.name }}</td>
+                        <td>
+                            {% if log.status == 'connected' %}
+                            <span class="badge bg-success">{{ log.status }}</span>
+                            {% elif log.status == 'failed' %}
+                            <span class="badge bg-danger">{{ log.status }}</span>
+                            {% else %}
+                            <span class="badge bg-info">{{ log.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ log.initiated_at|timesince }} ago</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center">No recent calls</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add Agent Modal -->
+<div class="modal fade" id="addAgentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add AI Agent</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addAgentForm">
+                    <div class="mb-3">
+                        <label class="form-label">Agent Name</label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Agent ID (Call Karo AI)</label>
+                        <input type="text" class="form-control" name="agent_id" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Project</label>
+                        <select class="form-control" name="project_id" required>
+                            <option value="">Select Project</option>
+                            {% for project in projects %}
+                            <option value="{{ project.id }}">{{ project.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="createAgent()">Create Agent</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Mapping Modal -->
+<div class="modal fade" id="addMappingModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Form Mapping</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addMappingForm">
+                    <div class="mb-3">
+                        <label class="form-label">Form Name</label>
+                        <input type="text" class="form-control" name="form_name" required>
+                        <small class="text-muted">Exact form name or keyword to match</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Project</label>
+                        <select class="form-control" name="project_id" required>
+                            <option value="">Select Project</option>
+                            {% for project in projects %}
+                            <option value="{{ project.id }}">{{ project.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="createMapping()">Create Mapping</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function createAgent() {
+    const form = document.getElementById('addAgentForm');
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData);
+    
+    fetch('/ai-agents/create/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            alert('Agent created successfully!');
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+}
+
+function deleteAgent(agentId) {
+    if (confirm('Delete this agent?')) {
+        fetch(`/ai-agents/${agentId}/delete/`, {method: 'POST'})
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                alert('Agent deleted!');
+                location.reload();
+            }
+        });
+    }
+}
+
+function createMapping() {
+    const form = document.getElementById('addMappingForm');
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData);
+    
+    fetch('/form-mappings/create-mapping/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            alert('Mapping created successfully!');
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+}
+
+function deleteMapping(mappingId) {
+    if (confirm('Delete this mapping?')) {
+        fetch(`/form-mappings/${mappingId}/delete-mapping/`, {method: 'POST'})
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                alert('Mapping deleted!');
+                location.reload();
+            }
+        });
+    }
+}
+</script>
+{% endblock %}

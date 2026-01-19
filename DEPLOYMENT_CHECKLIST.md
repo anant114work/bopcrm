@@ -1,248 +1,355 @@
-# Pre-Deployment Checklist for Hostinger VPS
+# Auto AI Calling System - Deployment Checklist
 
-## ✅ Before Deployment
+## Pre-Deployment
 
-### 1. Environment Configuration
-- [ ] Copy `.env.example` to `.env`
-- [ ] Generate new SECRET_KEY (use: `python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"`)
-- [ ] Set `DEBUG=False`
-- [ ] Configure `ALLOWED_HOSTS` with your domain
-- [ ] Setup `DATABASE_URL` for PostgreSQL
-- [ ] Add all API keys (Meta, WhatsApp, OpenAI, etc.)
+- [ ] Review all created files
+- [ ] Check code for syntax errors
+- [ ] Verify imports are correct
+- [ ] Test locally if possible
 
-### 2. Database Setup
-- [ ] Install PostgreSQL on VPS
-- [ ] Create database: `crm_db`
-- [ ] Create database user with password
-- [ ] Grant privileges to user
-- [ ] Update DATABASE_URL in .env
+## Deployment Steps
 
-### 3. Static & Media Files
-- [ ] Create `staticfiles/` directory
-- [ ] Create `media/` directory
-- [ ] Set proper permissions (755)
-- [ ] Run `python manage.py collectstatic`
-
-### 4. Security Settings
-- [ ] Generate strong SECRET_KEY
-- [ ] Set DEBUG=False
-- [ ] Configure ALLOWED_HOSTS properly
-- [ ] Setup HTTPS/SSL certificate
-- [ ] Enable firewall (UFW)
-- [ ] Change default PostgreSQL password
-
-### 5. Dependencies
-- [ ] Install all packages from requirements.txt
-- [ ] Install system packages (nginx, postgresql, redis)
-- [ ] Setup virtual environment
-- [ ] Verify Python version (3.8+)
-
-## 🚀 Deployment Steps
-
-### 1. Upload to VPS
+### 1. Backup Database
 ```bash
-# Option 1: SCP
-scp -r /local/path/drip root@your-vps-ip:/var/www/
-
-# Option 2: Git
-ssh root@your-vps-ip
-cd /var/www
-git clone your-repo-url drip
+python manage.py dumpdata > backup_before_ai_calling.json
 ```
 
-### 2. Run Deployment Script
+### 2. Pull Latest Code
 ```bash
 cd /var/www/drip
-chmod +x deploy.sh
-./deploy.sh
+git pull origin main
 ```
 
-### 3. Configure Services
-- [ ] Edit Nginx config with your domain
-- [ ] Setup Gunicorn systemd service
-- [ ] Enable and start services
-- [ ] Setup SSL with Certbot
-
-### 4. Database Migration
+### 3. Activate Virtual Environment
 ```bash
 source venv/bin/activate
-python manage.py migrate
-python manage.py createsuperuser
 ```
 
-### 5. Collect Static Files
+### 4. Install Dependencies (if any new)
 ```bash
-python manage.py collectstatic --noinput
-```
-
-## 🔍 Post-Deployment Verification
-
-### 1. Service Status
-```bash
-sudo systemctl status crm
-sudo systemctl status nginx
-sudo systemctl status postgresql
-sudo systemctl status redis-server
-```
-
-### 2. Test Endpoints
-- [ ] Visit https://yourdomain.com
-- [ ] Check /admin/ login
-- [ ] Test /health/ endpoint
-- [ ] Verify static files loading
-- [ ] Test media file upload
-
-### 3. Functionality Tests
-- [ ] Login to admin panel
-- [ ] Create test lead
-- [ ] Test lead sync
-- [ ] Send test WhatsApp message
-- [ ] Test AI features
-- [ ] Verify team member access
-
-### 4. Performance Check
-- [ ] Check page load times
-- [ ] Verify database queries
-- [ ] Test with multiple users
-- [ ] Monitor memory usage
-- [ ] Check Redis connection
-
-## 🔐 Security Checklist
-
-- [ ] HTTPS enabled (SSL certificate)
-- [ ] Firewall configured (UFW)
-- [ ] SSH key authentication only
-- [ ] Strong passwords for all services
-- [ ] Database not exposed to internet
-- [ ] Regular backups configured
-- [ ] Security headers configured
-- [ ] CSRF protection enabled
-- [ ] XSS protection enabled
-
-## 📊 Monitoring Setup
-
-- [ ] Setup log rotation
-- [ ] Configure error notifications
-- [ ] Setup uptime monitoring
-- [ ] Database backup automation
-- [ ] Disk space monitoring
-- [ ] Memory usage alerts
-
-## 🔄 Backup Strategy
-
-### Database Backup
-```bash
-# Create backup script
-sudo nano /usr/local/bin/backup-crm-db.sh
-```
-
-```bash
-#!/bin/bash
-BACKUP_DIR="/var/backups/crm"
-DATE=$(date +%Y%m%d_%H%M%S)
-mkdir -p $BACKUP_DIR
-pg_dump crm_db > $BACKUP_DIR/crm_db_$DATE.sql
-# Keep only last 7 days
-find $BACKUP_DIR -name "*.sql" -mtime +7 -delete
-```
-
-```bash
-chmod +x /usr/local/bin/backup-crm-db.sh
-# Add to crontab: 0 2 * * * /usr/local/bin/backup-crm-db.sh
-```
-
-### Media Files Backup
-```bash
-# Backup media files
-tar -czf /var/backups/crm/media_$(date +%Y%m%d).tar.gz /var/www/drip/media/
-```
-
-## 🐛 Common Issues & Solutions
-
-### Static Files Not Loading
-```bash
-python manage.py collectstatic --noinput
-sudo systemctl restart nginx
-```
-
-### 502 Bad Gateway
-```bash
-sudo systemctl status crm
-sudo journalctl -u crm -f
-# Check Gunicorn socket file exists
-```
-
-### Database Connection Error
-```bash
-sudo systemctl status postgresql
-# Verify DATABASE_URL in .env
-```
-
-### Permission Denied
-```bash
-sudo chown -R $USER:www-data /var/www/drip
-sudo chmod -R 755 /var/www/drip
-```
-
-## 📝 Important URLs
-
-- Application: https://yourdomain.com
-- Admin Panel: https://yourdomain.com/admin/
-- Health Check: https://yourdomain.com/health/
-- API Docs: https://yourdomain.com/api/docs/ (if enabled)
-
-## 🔗 Useful Commands
-
-```bash
-# Restart application
-sudo systemctl restart crm
-
-# View logs
-sudo journalctl -u crm -f
-sudo tail -f /var/log/nginx/error.log
-
-# Update application
-cd /var/www/drip
-git pull
-source venv/bin/activate
 pip install -r requirements.txt
-python manage.py migrate
-python manage.py collectstatic --noinput
-sudo systemctl restart crm
-
-# Database backup
-pg_dump crm_db > backup.sql
-
-# Database restore
-psql crm_db < backup.sql
 ```
 
-## 📞 Support Contacts
+### 5. Run Migration
+```bash
+python manage.py migrate
+```
 
-- VPS Provider: Hostinger Support
-- Domain Registrar: [Your registrar]
-- SSL Certificate: Let's Encrypt (Certbot)
+Expected output:
+```
+Running migrations:
+  Applying leads.0047_ai_agent_models... OK
+```
 
-## ✅ Final Checklist
+### 6. Collect Static Files
+```bash
+python manage.py collectstatic --noinput
+```
 
-- [ ] All services running
-- [ ] HTTPS working
-- [ ] Admin panel accessible
-- [ ] Static files loading
-- [ ] Database connected
-- [ ] Backups configured
-- [ ] Monitoring setup
-- [ ] Documentation updated
-- [ ] Team members notified
-- [ ] DNS propagated
+### 7. Restart Server
+```bash
+sudo systemctl restart crm
+```
 
-## 🎉 Deployment Complete!
+### 8. Check Server Status
+```bash
+sudo systemctl status crm
+```
 
-Your Django CRM is now live at: **https://yourdomain.com**
+Should show: `active (running)`
 
-Remember to:
-1. Monitor logs regularly
-2. Keep dependencies updated
-3. Backup database daily
-4. Review security settings monthly
-5. Update SSL certificates (auto-renewed by Certbot)
+### 9. Check Logs
+```bash
+sudo journalctl -u crm -f
+```
+
+Look for:
+- No errors
+- Server started successfully
+- Signal registered
+
+## Post-Deployment Verification
+
+### 1. Check Setup Status
+```bash
+python manage.py setup_auto_ai_calling
+```
+
+Should show:
+- Projects found
+- Current agents (0 initially)
+- Current mappings (0 initially)
+- Call statistics
+
+### 2. Access Dashboard
+Open browser: `http://your-domain/ai-agents/`
+
+Should see:
+- Dashboard loads
+- Stats cards (all zeros initially)
+- Empty tables for agents and mappings
+
+### 3. Create Test AI Agent
+In dashboard:
+- Click "Add Agent"
+- Name: "Test Agent"
+- Agent ID: "6923ff797a5d5a94d5a5dfcf"
+- Project: Select any project
+- Click "Create Agent"
+
+Should see:
+- Success message
+- Agent appears in table
+
+### 4. Create Test Form Mapping
+In dashboard:
+- Click "Add Mapping"
+- Form Name: "Test Form"
+- Project: Same as agent
+- Click "Create Mapping"
+
+Should see:
+- Success message
+- Mapping appears in table
+
+### 5. Test Manual Trigger
+Create a test lead with:
+- Form name: "Test Form"
+- Valid phone number
+
+Then trigger manually:
+```bash
+curl -X POST http://your-domain/ai-call/trigger/<lead_id>/
+```
+
+Should return:
+```json
+{
+  "success": true,
+  "call_id": "...",
+  "lead_name": "...",
+  "project": "..."
+}
+```
+
+### 6. Check Call Logs
+Visit: `http://your-domain/ai-call/logs/`
+
+Should see:
+- Test call in logs
+- Status: "initiated" or "connected"
+- Correct lead and agent info
+
+### 7. Test Automatic Trigger
+Create a new lead via:
+- Meta sync
+- Google Sheets
+- Manual entry
+
+With form name matching your mapping.
+
+Check logs:
+```bash
+sudo journalctl -u crm -f
+```
+
+Should see:
+```
+✅ Auto AI call triggered for lead: [Lead Name]
+```
+
+### 8. Verify No Duplicates
+Try to trigger call again for same lead:
+```bash
+curl -X POST http://your-domain/ai-call/trigger/<lead_id>/
+```
+
+Should return:
+```json
+{
+  "skipped": true,
+  "reason": "Already called"
+}
+```
+
+## Production Setup
+
+### 1. Add Real AI Agents
+For each project:
+- Go to `/ai-agents/`
+- Click "Add Agent"
+- Enter real Call Karo AI agent ID
+- Select project
+- Activate
+
+### 2. Create Form Mappings
+For each form:
+- Identify form name from leads
+- Map to correct project
+- Verify agent exists for project
+
+### 3. Process Existing Leads (Optional)
+To call existing unmapped leads:
+```bash
+curl -X POST http://your-domain/ai-call/process-unmapped/
+```
+
+This will process up to 50 leads at a time.
+
+## Monitoring
+
+### Daily Checks
+
+1. **Call Volume**
+   - Visit `/ai-call/analytics/`
+   - Check daily call count
+   - Verify success rate
+
+2. **Failed Calls**
+   - Visit `/ai-call/logs/?status=failed`
+   - Review error messages
+   - Fix issues
+
+3. **Unmapped Leads**
+   ```bash
+   python manage.py setup_auto_ai_calling
+   ```
+   - Check "Unmapped Leads" count
+   - Create mappings if needed
+
+### Weekly Checks
+
+1. **Agent Performance**
+   - Visit `/ai-call/analytics/`
+   - Review agent stats
+   - Optimize if needed
+
+2. **Form Mappings**
+   - Check for new form names
+   - Add mappings as needed
+
+3. **Database Cleanup**
+   - Old call logs can be archived
+   - Keep last 90 days active
+
+## Troubleshooting
+
+### Issue: Migration Fails
+```bash
+# Check migration status
+python manage.py showmigrations leads
+
+# If needed, fake the migration
+python manage.py migrate leads 0047 --fake
+
+# Then run again
+python manage.py migrate
+```
+
+### Issue: Dashboard Not Loading
+```bash
+# Check URL configuration
+python manage.py show_urls | grep ai-agents
+
+# Check static files
+python manage.py collectstatic --noinput
+
+# Restart server
+sudo systemctl restart crm
+```
+
+### Issue: Signal Not Triggering
+```bash
+# Check apps.py
+cat leads/apps.py | grep auto_ai_call_signal
+
+# Check logs
+sudo journalctl -u crm -f
+
+# Restart server
+sudo systemctl restart crm
+```
+
+### Issue: Calls Not Working
+```bash
+# Test Call Karo AI directly
+curl -X POST https://api.callkaro.ai/call/outbound \
+  -H "Content-Type: application/json" \
+  -H "X-API-KEY: your-api-key" \
+  -d '{
+    "to_number": "+919876543210",
+    "agent_id": "your-agent-id",
+    "metadata": {"test": true},
+    "priority": 1
+  }'
+```
+
+## Rollback Plan
+
+If issues occur:
+
+### 1. Restore Database
+```bash
+python manage.py loaddata backup_before_ai_calling.json
+```
+
+### 2. Revert Migration
+```bash
+python manage.py migrate leads 0046
+```
+
+### 3. Remove New Files
+```bash
+rm leads/ai_agent_models.py
+rm leads/auto_ai_call_service.py
+rm leads/auto_ai_call_signal.py
+rm leads/auto_ai_call_views.py
+```
+
+### 4. Restore Modified Files
+```bash
+git checkout leads/models.py
+git checkout leads/apps.py
+git checkout leads/urls.py
+git checkout leads/admin.py
+```
+
+### 5. Restart Server
+```bash
+sudo systemctl restart crm
+```
+
+## Success Indicators
+
+✅ Migration completed successfully
+✅ Dashboard loads without errors
+✅ Can create AI agents
+✅ Can create form mappings
+✅ Manual trigger works
+✅ Automatic trigger works
+✅ Call logs are accurate
+✅ Duplicates are prevented
+✅ Analytics show data
+✅ No errors in logs
+
+## Support Contacts
+
+- System logs: `sudo journalctl -u crm -f`
+- Dashboard: `/ai-agents/`
+- Setup command: `python manage.py setup_auto_ai_calling`
+- Documentation: `AUTO_AI_CALLING.md`
+
+## Post-Deployment Tasks
+
+- [ ] Document agent IDs used
+- [ ] Document form mappings created
+- [ ] Train team on dashboard
+- [ ] Set up monitoring alerts
+- [ ] Schedule weekly reviews
+- [ ] Update runbook
+
+---
+
+**Deployment Complete! 🎉**
+
+Monitor the system for 24 hours to ensure stability.

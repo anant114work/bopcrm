@@ -198,21 +198,20 @@
                         </a>
                     </div>
                 </div>
-                {% if user.is_staff or request.session.team_member_name == 'ADMIN USER' %}
-                <div class="nav-item">
-                    <a href="/bookings/" class="nav-link {% if 'booking' in request.resolver_match.url_name %}active{% endif %}">
-                        <i class="fas fa-building"></i>
-                        United Network Bookings
-                    </a>
-                </div>
-                {% endif %}
                 <div class="nav-item">
                     <a href="/team/profile/" class="nav-link {% if 'profile' in request.resolver_match.url_name %}active{% endif %}">
                         <i class="fas fa-user-circle"></i>
                         My Profile
                     </a>
                 </div>
-                {% if user.is_staff or request.session.team_member_name == 'ADMIN USER' %}
+                {% if user.is_staff or request.session.team_member_name == 'ADMIN USER' or request.session.team_member_name == 'admin' or user.is_superuser %}
+                <div class="nav-section-title">ADMIN PANEL</div>
+                <div class="nav-item">
+                    <a href="/ai-agents/" class="nav-link {% if 'ai-agent' in request.resolver_match.url_name or 'ai_agent' in request.resolver_match.url_name %}active{% endif %}">
+                        <i class="fas fa-robot"></i>
+                        AI Agent Management
+                    </a>
+                </div>
                 <div class="nav-item">
                     <a href="/google-sheets/" class="nav-link {% if 'google_sheets' in request.resolver_match.url_name %}active{% endif %}">
                         <i class="fab fa-google"></i>
@@ -223,6 +222,12 @@
                     <a href="/integrations/" class="nav-link {% if 'integration' in request.resolver_match.url_name %}active{% endif %}">
                         <i class="fas fa-cogs"></i>
                         Integrations
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="/bookings/" class="nav-link {% if 'booking' in request.resolver_match.url_name %}active{% endif %}">
+                        <i class="fas fa-building"></i>
+                        United Network Bookings
                     </a>
                 </div>
                 <div class="nav-item">

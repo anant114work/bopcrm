@@ -11,6 +11,7 @@ class LeadsConfig(AppConfig):
     
     def ready(self):
         from . import auto_assign_signal
+        from . import auto_ai_call_signal
         # Start Google Sheets auto-sync when Django starts
         if os.environ.get('RUN_MAIN') == 'true':  # Only run in main process
             self.start_google_sheets_auto_sync()

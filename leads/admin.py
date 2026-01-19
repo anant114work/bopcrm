@@ -3,6 +3,7 @@ from .models import Lead
 from .acefone_models import AcefoneConfig, DIDNumber, CallRecord, ClickApiKey
 from .callkaro_models import CallKaroConfig, CallKaroAgent, CallKaroCampaign, CallKaroCallLog
 from .booking_models import UnitedNetworkBooking
+from .ai_agent_models import AIAgent, AICallLog
 
 @admin.register(Lead)
 class LeadAdmin(admin.ModelAdmin):
@@ -118,5 +119,32 @@ class CallKaroCallLogAdmin(admin.ModelAdmin):
         }),
         ('Timestamps', {
             'fields': ('created_at', 'started_at', 'ended_at')
+        })
+    )
+
+@admin.register(AIAgent)
+class AIAgentAdmin(admin.ModelAdmin):
+    list_display = ['name', 'agent_id', 'project', 'is_active', 'created_at']
+    list_filter = ['is_active', 'project', 'created_at']
+    search_fields = ['name', 'agent_id', 'project__name']
+    readonly_fields = ['created_at']
+
+@admin.register(AICallLog)
+class AICallLogAdmin(admin.ModelAdmin):
+    list_display = ['lead', 'phone_number', 'agent', 'status', 'initiated_at']
+    list_filter = ['status', 'agent', 'initiated_at']
+    search_fields = ['lead__full_name', 'phone_number', 'call_id']
+    readonly_fields = ['initiated_at', 'completed_at']
+    
+    fieldsets = (
+        ('Call Info', {
+            'fields': ('lead', 'phone_number', 'agent', 'status', 'call_id')
+        }),
+        ('Timestamps', {
+            'fields': ('initiated_at', 'completed_at')
+        }),
+        ('Error Details', {
+            'fields': ('error_message',),
+            'classes': ('collapse',)
         })
     )
