@@ -151,7 +151,7 @@ def leads_list(request):
     
     # Check if user is admin (superuser or admin role)
     is_admin = (request.user.is_superuser or 
-                team_member_name == 'ADMIN USER' or 
+                team_member_name == 'ADMIN USER' or team_member_name == 'admin' or 
                 (hasattr(request.user, 'team_member') and request.user.team_member.role == 'Admin'))
     
     # Admin sees all leads, team members see only assigned leads
@@ -488,7 +488,7 @@ def meta_leads(request):
     is_team_member = request.session.get('is_team_member', False)
     team_member_name = request.session.get('team_member_name', '')
     is_admin = (request.user.is_superuser or 
-                team_member_name == 'ADMIN USER' or 
+                team_member_name == 'ADMIN USER' or team_member_name == 'admin' or 
                 (hasattr(request.user, 'team_member') and request.user.team_member.role == 'Admin'))
     
     # Only filter if user is team member AND not admin
@@ -524,7 +524,7 @@ def google_leads(request):
     is_team_member = request.session.get('is_team_member', False)
     team_member_name = request.session.get('team_member_name', '')
     is_admin = (request.user.is_superuser or 
-                team_member_name == 'ADMIN USER' or 
+                team_member_name == 'ADMIN USER' or team_member_name == 'admin' or 
                 (hasattr(request.user, 'team_member') and request.user.team_member.role == 'Admin'))
     
     # Only filter if user is team member AND not admin
