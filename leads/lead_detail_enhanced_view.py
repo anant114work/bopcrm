@@ -1,23 +1,26 @@
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 from leads.models import Lead, TeamMember, CallLog
-from leads.drip_campaign_models import DripSubscription, DripMessage
 
 def lead_detail_enhanced(request, lead_id):
     lead = get_object_or_404(Lead, id=lead_id)
     
-    # Get drip campaign subscription
-    drip_subscription = DripSubscription.objects.filter(
-        lead=lead,
-        status='active'
-    ).select_related('campaign').first()
-    
-    # Get drip messages
+    # Get drip campaign subscription if exists
+    drip_subscription = None
     drip_messages = []
-    if drip_subscription:
-        drip_messages = DripMessage.objects.filter(
-            subscription=drip_subscription
-        ).order_by('day_number')
+    try:
+        from leads.drip_campaign_models import DripCampaignSubscription, DripCampaignMessage
+        drip_subscription = DripCampaignSubscription.objects.filter(
+            lead=lead,
+            is_active=True
+        ).select_related('campaign').first()
+        
+        if drip_subscription:
+            drip_messages = DripCampaignMessage.objects.filter(
+                subscription=drip_subscription
+            ).order_by('day_number')
+    except:
+        pass
     
     # Get call logs
     call_logs = CallLog.objects.filter(lead=lead).order_by('-initiated_at')[:10]
