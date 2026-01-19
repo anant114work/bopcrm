@@ -6,6 +6,7 @@ from .sync_campaigns_view import sync_campaigns_data
 from .bulk_whatsapp_views import project_bulk_whatsapp, send_bulk_whatsapp
 from . import form_mapping_views, auto_whatsapp_views, bulk_call_upload_views, callkaro_admin_views, google_sheets_views, call_analytics_views, call_report_views, call_history_views, booking_source_views, bulk_ai_calling_views, agent_management_views, user_management_views, auto_ai_call_views
 from .sync_google_view import sync_all_google_sheets
+from .lead_detail_enhanced_view import lead_detail_enhanced
 from django.shortcuts import render
 
 urlpatterns = [
@@ -17,7 +18,7 @@ urlpatterns = [
     path('leads/', views.leads_list, name='leads_list'),
     path('meta-leads/', views.meta_leads, name='meta_leads'),
     path('google-leads/', views.google_leads, name='google_leads'),
-    path('leads/<int:lead_id>/', views.lead_detail, name='lead_detail'),
+    path('leads/<int:lead_id>/', lead_detail_enhanced, name='lead_detail'),
     path('leads/<int:lead_id>/calls/', views.lead_calls, name='lead_calls'),
     path('sync/', views.sync_leads, name='sync_leads'),
     path('whatsapp/', views.whatsapp_page, name='whatsapp_page'),

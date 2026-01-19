@@ -1,0 +1,296 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}{{ lead.full_name }} - Lead Details{% endblock %}
+{% block page_title %}{{ lead.full_name|default:"Lead Details" }}{% endblock %}
+
+{% block content %}
+<style>
+.lead-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 30px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+.action-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin: 20px 0;
+}
+.action-btn {
+    padding: 15px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+.action-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+.btn-ai { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; }
+.btn-call { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; }
+.btn-whatsapp { background: linear-gradient(135deg, #25D366 0%, #128C7E 100%); color: white; }
+.info-card {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.info-card h3 {
+    margin: 0 0 20px 0;
+    color: #2d3748;
+    font-size: 18px;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 10px;
+}
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid #f7fafc;
+}
+.info-label {
+    color: #718096;
+    font-weight: 500;
+}
+.info-value {
+    color: #2d3748;
+    font-weight: 600;
+}
+.drip-timeline {
+    position: relative;
+    padding-left: 30px;
+}
+.drip-item {
+    position: relative;
+    padding: 15px;
+    margin-bottom: 15px;
+    background: #f7fafc;
+    border-radius: 8px;
+    border-left: 4px solid #25D366;
+}
+.drip-item::before {
+    content: '';
+    position: absolute;
+    left: -34px;
+    top: 20px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #25D366;
+    border: 3px solid white;
+    box-shadow: 0 0 0 2px #25D366;
+}
+.drip-item.pending::before { background: #fbbf24; box-shadow: 0 0 0 2px #fbbf24; }
+.drip-item.failed::before { background: #ef4444; box-shadow: 0 0 0 2px #ef4444; }
+.badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+.badge-success { background: #d1fae5; color: #065f46; }
+.badge-warning { background: #fef3c7; color: #92400e; }
+.badge-danger { background: #fee2e2; color: #991b1b; }
+.badge-info { background: #dbeafe; color: #1e40af; }
+</style>
+
+<div class="lead-header">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h1 style="margin: 0 0 10px 0; font-size: 32px;">{{ lead.full_name|default:"Unknown Lead" }}</h1>
+            <p style="margin: 0; opacity: 0.9;">
+                <i class="fas fa-id-badge"></i> {{ lead.lead_id }} | 
+                <i class="fas fa-calendar"></i> {{ lead.created_time|date:"M d, Y H:i" }}
+            </p>
+        </div>
+        <div>
+            <span class="badge badge-{{ lead.stage }}">{{ lead.get_stage_display }}</span>
+        </div>
+    </div>
+</div>
+
+<div class="action-grid">
+    <button onclick="callWithAI()" class="action-btn btn-ai">
+        <i class="fas fa-robot"></i> AI Call
+    </button>
+    <button onclick="callWithAcefone()" class="action-btn btn-call">
+        <i class="fas fa-phone"></i> Acefone Call
+    </button>
+    <button onclick="sendWhatsApp()" class="action-btn btn-whatsapp">
+        <i class="fab fa-whatsapp"></i> WhatsApp
+    </button>
+    <button onclick="subscribeToDrip()" class="action-btn" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white;">
+        <i class="fas fa-paper-plane"></i> Start Drip
+    </button>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+    <div class="info-card">
+        <h3><i class="fas fa-user"></i> Contact Information</h3>
+        <div class="info-row">
+            <span class="info-label">Email</span>
+            <span class="info-value">{{ lead.email|default:"Not provided" }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Phone</span>
+            <span class="info-value">{{ lead.phone_number|default:"Not provided" }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">City</span>
+            <span class="info-value">{{ lead.city|default:"Not provided" }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Budget</span>
+            <span class="info-value">{{ lead.budget|default:"Not provided" }}</span>
+        </div>
+    </div>
+
+    <div class="info-card">
+        <h3><i class="fas fa-chart-line"></i> Lead Status</h3>
+        <div class="info-row">
+            <span class="info-label">Stage</span>
+            <span class="info-value">{{ lead.get_stage_display }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Source</span>
+            <span class="info-value">{{ lead.source }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Form</span>
+            <span class="info-value">{{ lead.form_name|default:"N/A" }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Assigned To</span>
+            <span class="info-value">
+                {% if lead.assignment %}
+                    {{ lead.assignment.assigned_to.name }}
+                {% else %}
+                    Unassigned
+                {% endif %}
+            </span>
+        </div>
+    </div>
+</div>
+
+<div class="info-card">
+    <h3><i class="fab fa-whatsapp"></i> WhatsApp Drip Campaign</h3>
+    {% if drip_subscription %}
+    <div style="background: #ecfdf5; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <strong>{{ drip_subscription.campaign.name }}</strong>
+                <p style="margin: 5px 0 0 0; color: #059669;">
+                    Day {{ drip_subscription.current_day }} of {{ drip_subscription.campaign.total_days }}
+                </p>
+            </div>
+            <span class="badge badge-{{ drip_subscription.status }}">{{ drip_subscription.status }}</span>
+        </div>
+    </div>
+    
+    <div class="drip-timeline">
+        {% for message in drip_messages %}
+        <div class="drip-item {{ message.status }}">
+            <div style="display: flex; justify-content: space-between;">
+                <strong>Day {{ message.day_number }}</strong>
+                <span class="badge badge-{{ message.status }}">{{ message.status }}</span>
+            </div>
+            <p style="margin: 8px 0 0 0; color: #4b5563;">
+                {{ message.message_text|truncatewords:15 }}
+            </p>
+            {% if message.sent_at %}
+            <small style="color: #9ca3af;">
+                <i class="fas fa-clock"></i> {{ message.sent_at|date:"M d, H:i" }}
+            </small>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 40px; color: #9ca3af;">
+        <i class="fab fa-whatsapp" style="font-size: 48px; margin-bottom: 15px;"></i>
+        <p>No active drip campaign</p>
+        <button onclick="subscribeToDrip()" class="action-btn btn-whatsapp" style="margin-top: 10px;">
+            Start Drip Campaign
+        </button>
+    </div>
+    {% endif %}
+</div>
+
+<div class="info-card">
+    <h3><i class="fas fa-phone-volume"></i> Call History</h3>
+    {% if call_logs %}
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: #f7fafc;">
+                    <th style="padding: 12px; text-align: left;">Date</th>
+                    <th style="padding: 12px; text-align: left;">Type</th>
+                    <th style="padding: 12px; text-align: left;">Duration</th>
+                    <th style="padding: 12px; text-align: left;">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for call in call_logs %}
+                <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 12px;">{{ call.initiated_at|date:"M d, H:i" }}</td>
+                    <td style="padding: 12px;">{{ call.call_type }}</td>
+                    <td style="padding: 12px;">{{ call.duration|default:"N/A" }}</td>
+                    <td style="padding: 12px;">
+                        <span class="badge badge-{{ call.status }}">{{ call.status }}</span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p style="text-align: center; color: #9ca3af; padding: 20px;">No call history yet</p>
+    {% endif %}
+</div>
+
+<script>
+function callWithAI() {
+    if (!confirm('Start AI call with this lead?')) return;
+    
+    fetch('/ai-call/trigger/{{ lead.id }}/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'}
+    })
+    .then(r => r.json())
+    .then(data => {
+        alert(data.success ? 'AI call initiated!' : 'Error: ' + data.error);
+        if (data.success) location.reload();
+    });
+}
+
+function callWithAcefone() {
+    if (!confirm('Call via Acefone?')) return;
+    
+    fetch('/acefone-call/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({lead_id: {{ lead.id }}})
+    })
+    .then(r => r.json())
+    .then(data => {
+        alert(data.success ? 'Call initiated!' : 'Error: ' + data.error);
+    });
+}
+
+function sendWhatsApp() {
+    window.location.href = '/leads/{{ lead.id }}/whatsapp/';
+}
+
+function subscribeToDrip() {
+    window.location.href = '/drip-campaigns/bulk-subscribe-view/?lead_id={{ lead.id }}';
+}
+</script>
+{% endblock %}
