@@ -5,6 +5,7 @@ from . import drip_campaign_views as drip_views
 from .sync_campaigns_view import sync_campaigns_data
 from .bulk_whatsapp_views import project_bulk_whatsapp, send_bulk_whatsapp
 from . import form_mapping_views, auto_whatsapp_views, bulk_call_upload_views, callkaro_admin_views, google_sheets_views, call_analytics_views, call_report_views, call_history_views, booking_source_views, bulk_ai_calling_views, agent_management_views, user_management_views, auto_ai_call_views
+from .sync_google_view import sync_all_google_sheets
 from django.shortcuts import render
 
 urlpatterns = [
@@ -299,6 +300,7 @@ urlpatterns = [
     path('sync-individual-sheet/<int:sheet_id>/', google_sheets_views.sync_individual_sheet, name='sync_individual_sheet'),
     path('toggle-sheet-status/<int:sheet_id>/', google_sheets_views.toggle_sheet_status, name='toggle_sheet_status'),
     path('delete-google-sheet/<int:sheet_id>/', google_sheets_views.delete_google_sheet, name='delete_google_sheet'),
+    path('sync-all-google-sheets/', sync_all_google_sheets, name='sync_all_google_sheets'),
     
     # Call Report URLs
     path('call-reports/upload/', call_report_views.call_report_upload_page, name='call_report_upload'),

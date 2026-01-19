@@ -169,7 +169,8 @@
             <a href="/bookings/" class="btn btn-primary"><i class="fas fa-building"></i> United Network</a>
             <a href="/whatsapp/" class="btn btn-secondary"><i class="fab fa-whatsapp"></i> WhatsApp</a>
             <a href="/drip-campaigns/" class="btn btn-success"><i class="fas fa-paper-plane"></i> Drip Campaigns</a>
-            {% if user.is_staff or request.session.team_member_name == 'ADMIN USER' %}
+            {% if user.is_staff or request.session.team_member_name == 'ADMIN USER' or request.session.team_member_name == 'admin' %}
+            <button onclick="syncGoogleSheets()" class="btn btn-warning"><i class="fas fa-sync"></i> Sync Google Sheets</button>
             <a href="/google-sheets/" class="btn btn-info"><i class="fab fa-google"></i> Google Sheets</a>
             <a href="/call-reports/upload/" class="btn btn-info"><i class="fas fa-file-excel"></i> Upload Call Reports</a>
             {% endif %}
@@ -338,6 +339,37 @@ function saveNumberAssignment() {
         } else {
             alert('Assignment failed: ' + data.error);
         }
+    });
+}
+
+function syncGoogleSheets() {
+    if (!confirm('Sync all Google Sheets leads now?')) return;
+    
+    const btn = event.target;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
+    
+    fetch('/sync-all-google-sheets/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Sync failed: ' + data.error);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-sync"></i> Sync Google Sheets';
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error);
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-sync"></i> Sync Google Sheets';
     });
 }
 </script>
