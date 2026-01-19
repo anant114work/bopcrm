@@ -111,6 +111,8 @@ else:
 # API Configuration
 META_ACCESS_TOKEN = os.getenv('META_ACCESS_TOKEN')
 META_PAGE_ID = os.getenv('META_PAGE_ID')
+META_APP_SECRET = os.getenv('META_APP_SECRET')
+META_VERIFY_TOKEN = os.getenv('META_VERIFY_TOKEN', 'meta_webhook_verify_token_12345')
 WHATSAPP_TOKEN = os.getenv('WHATSAPP_TOKEN')
 WHATSAPP_PHONE_ID = os.getenv('WHATSAPP_PHONE_ID')
 

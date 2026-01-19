@@ -16,6 +16,7 @@
                 <div><strong>Total Leads:</strong> {{ project.lead_count }}</div>
                 <div><strong>With Phone:</strong> {{ leads_with_phone }}</div>
                 <div><strong>Available Templates:</strong> {{ templates.count }}</div>
+                <div><strong>Drip Campaigns:</strong> {{ drip_campaigns.count }}</div>
             </div>
         </div>
         
@@ -23,9 +24,20 @@
             <h4>📱 Select Campaign</h4>
             <select id="campaignSelect" class="form-control" onchange="updatePreview()">
                 <option value="">Choose a campaign...</option>
-                {% for template in templates %}
-                <option value="{{ template.id }}" data-payload="{{ template.api_key }}">{{ template.name }}</option>
-                {% endfor %}
+                {% if templates.count > 0 %}
+                <optgroup label="WhatsApp Templates">
+                    {% for template in templates %}
+                    <option value="template_{{ template.id }}" data-type="template">{{ template.name }}</option>
+                    {% endfor %}
+                </optgroup>
+                {% endif %}
+                {% if drip_campaigns.count > 0 %}
+                <optgroup label="Drip Campaigns (SPJ)">
+                    {% for campaign in drip_campaigns %}
+                    <option value="drip_{{ campaign.id }}" data-type="drip">{{ campaign.name }} ({{ campaign.messages.count }} messages)</option>
+                    {% endfor %}
+                </optgroup>
+                {% endif %}
             </select>
         </div>
     </div>
@@ -41,6 +53,9 @@
         </button>
         <button class="btn btn-primary" onclick="sendToSelected()">
             📋 Send to Selected Leads
+        </button>
+        <button class="btn btn-warning" onclick="processPendingMessages()" style="margin-left: auto;">
+            🚀 Process Pending Messages
         </button>
     </div>
     
@@ -100,34 +115,62 @@ function toggleAll() {
 }
 
 function sendBulkMessages() {
-    const templateId = document.getElementById('campaignSelect').value;
-    if (!templateId) {
+    const selectValue = document.getElementById('campaignSelect').value;
+    if (!selectValue) {
         alert('Please select a campaign');
         return;
     }
     
+    const [type, id] = selectValue.split('_');
     const resultsDiv = document.getElementById('sendResults');
-    resultsDiv.innerHTML = '<div style="background: #fef3c7; color: #92400e; padding: 1rem; border-radius: 6px;">Sending messages to all leads...</div>';
     
-    fetch('/projects/{{ project.id }}/send-bulk-whatsapp/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token }}'
-        },
-        body: JSON.stringify({
-            template_id: templateId,
-            send_to_all: true
+    if (type === 'drip') {
+        // For drip campaigns, subscribe leads
+        resultsDiv.innerHTML = '<div style="background: #fef3c7; color: #92400e; padding: 1rem; border-radius: 6px;">Subscribing all leads to drip campaign...</div>';
+        
+        fetch('/drip-campaigns/bulk-subscribe/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                campaign_id: id,
+                project_id: {{ project.id }}
+            })
         })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            resultsDiv.innerHTML = `<div style="background: #ecfdf5; color: #065f46; padding: 1rem; border-radius: 6px;">✅ ${data.message}</div>`;
-        } else {
-            resultsDiv.innerHTML = `<div style="background: #fef2f2; color: #991b1b; padding: 1rem; border-radius: 6px;">❌ ${data.error}</div>`;
-        }
-    });
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                resultsDiv.innerHTML = `<div style="background: #ecfdf5; color: #065f46; padding: 1rem; border-radius: 6px;">✅ ${data.message}<br>Subscribed: ${data.subscribed_count}, Already subscribed: ${data.already_subscribed}</div>`;
+            } else {
+                resultsDiv.innerHTML = `<div style="background: #fef2f2; color: #991b1b; padding: 1rem; border-radius: 6px;">❌ ${data.error}</div>`;
+            }
+        });
+    } else {
+        // For regular templates, send WhatsApp
+        resultsDiv.innerHTML = '<div style="background: #fef3c7; color: #92400e; padding: 1rem; border-radius: 6px;">Sending messages to all leads...</div>';
+        
+        fetch('/projects/{{ project.id }}/send-bulk-whatsapp/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                template_id: id,
+                send_to_all: true
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                resultsDiv.innerHTML = `<div style="background: #ecfdf5; color: #065f46; padding: 1rem; border-radius: 6px;">✅ ${data.message}</div>`;
+            } else {
+                resultsDiv.innerHTML = `<div style="background: #fef2f2; color: #991b1b; padding: 1rem; border-radius: 6px;">❌ ${data.error}</div>`;
+            }
+        });
+    }
 }
 
 function sendToSelected() {
@@ -172,6 +215,27 @@ function toggleMask(element) {
     const isCurrentlyMasked = element.textContent === element.dataset.masked;
     element.textContent = isCurrentlyMasked ? element.dataset.original : element.dataset.masked;
     element.style.color = isCurrentlyMasked ? '#10b981' : '#6b7280';
+}
+
+function processPendingMessages() {
+    const resultsDiv = document.getElementById('sendResults');
+    resultsDiv.innerHTML = '<div style="background: #fef3c7; color: #92400e; padding: 1rem; border-radius: 6px;">Processing pending drip messages...</div>';
+    
+    fetch('/drip-campaigns/process-pending/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            resultsDiv.innerHTML = `<div style="background: #ecfdf5; color: #065f46; padding: 1rem; border-radius: 6px;">✅ Processed ${data.processed} messages. Successful: ${data.successful}, Failed: ${data.failed || 0}</div>`;
+        } else {
+            resultsDiv.innerHTML = `<div style="background: #fef2f2; color: #991b1b; padding: 1rem; border-radius: 6px;">❌ ${data.error}</div>`;
+        }
+    });
 }
 </script>
 {% endblock %}

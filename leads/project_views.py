@@ -24,8 +24,8 @@ def project_leads(request, project_id):
     leads = project.get_leads()
     
     # Get AI agents
-    from .callkaro_models import CallKaroAgent
-    ai_agents = CallKaroAgent.objects.filter(is_active=True)
+    from .ai_calling_models import AICallingAgent
+    ai_agents = AICallingAgent.objects.filter(is_active=True)
     
     # Check if user is admin (superuser or admin role)
     is_team_member = request.session.get('is_team_member', False)

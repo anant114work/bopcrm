@@ -16,7 +16,14 @@ except ImportError:
 
 def project_bulk_whatsapp(request, project_id):
     project = get_object_or_404(Project, id=project_id)
+    
+    # Get both WhatsApp templates and Drip campaigns
     templates = WhatsAppTemplate.objects.filter(project=project)
+    
+    # Get drip campaigns for this project
+    from .drip_campaign_models import DripCampaign
+    drip_campaigns = DripCampaign.objects.filter(project=project, status='active')
+    
     leads = project.get_leads().filter(phone_number__isnull=False).exclude(phone_number='')
     
     # Check if user is admin (superuser or admin role)
@@ -44,6 +51,7 @@ def project_bulk_whatsapp(request, project_id):
     return render(request, 'leads/project_bulk_whatsapp.html', {
         'project': project,
         'templates': templates,
+        'drip_campaigns': drip_campaigns,
         'leads': leads,
         'leads_with_phone': leads_with_phone
     })
@@ -55,6 +63,52 @@ def send_bulk_whatsapp(request, project_id):
         template_id = data.get('template_id')
         send_to_all = data.get('send_to_all', False)
         lead_ids = data.get('lead_ids', [])
+        
+        # Check if it's a drip campaign or template
+        if template_id and template_id.startswith('drip_'):
+            # Handle drip campaign subscription
+            campaign_id = template_id.replace('drip_', '')
+            from .drip_campaign_models import DripCampaign, DripSubscriber
+            from django.utils import timezone
+            
+            campaign = get_object_or_404(DripCampaign, id=campaign_id)
+            project = get_object_or_404(Project, id=project_id)
+            
+            if send_to_all:
+                leads = project.get_leads().filter(phone_number__isnull=False).exclude(phone_number='')
+            else:
+                leads = Lead.objects.filter(id__in=lead_ids, phone_number__isnull=False).exclude(phone_number='')
+            
+            subscribed_count = 0
+            already_subscribed = 0
+            
+            for lead in leads:
+                # Check if already subscribed
+                if DripSubscriber.objects.filter(campaign=campaign, lead=lead).exists():
+                    already_subscribed += 1
+                    continue
+                
+                # Subscribe lead to drip campaign
+                subscriber = DripSubscriber.objects.create(
+                    campaign=campaign,
+                    lead=lead,
+                    phone_number=lead.phone_number,
+                    first_name=lead.full_name or 'User',
+                    status='active',
+                    current_day=0,
+                    next_message_at=timezone.now()
+                )
+                subscribed_count += 1
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Subscribed {subscribed_count} leads to {campaign.name}',
+                'subscribed_count': subscribed_count,
+                'already_subscribed': already_subscribed
+            })
+        
+        # Handle regular WhatsApp template
+        template_id = template_id.replace('template_', '') if template_id and template_id.startswith('template_') else template_id
         
         project = get_object_or_404(Project, id=project_id)
         template = get_object_or_404(WhatsAppTemplate, id=template_id)

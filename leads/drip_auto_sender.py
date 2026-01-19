@@ -40,7 +40,7 @@ def send_drip_message(subscriber, drip_message):
             "campaignName": drip_message.campaign_name,
             "destination": clean_phone,
             "userName": subscriber.first_name,
-            "templateParams": [subscriber.first_name] if '{{1}}' in drip_message.message_text else [],
+            "templateParams": drip_message.template_params if drip_message.template_params else [],
             "source": "new-landing-page form",
             "media": {},
             "buttons": [],

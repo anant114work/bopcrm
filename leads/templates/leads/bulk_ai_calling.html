@@ -1,0 +1,270 @@
+{% extends 'leads/base_unified.html' %}
+
+{% block title %}Bulk AI Calling - Meta Leads CRM{% endblock %}
+{% block page_title %}Bulk AI Calling{% endblock %}
+
+{% block extra_css %}
+<style>
+.bulk-call-container { max-width: 1400px; margin: 0 auto; }
+.agent-section { background: white; padding: 24px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 24px; }
+.agent-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; margin-top: 16px; }
+.agent-card { padding: 16px; border: 2px solid #e8ecf1; border-radius: 8px; cursor: pointer; transition: all 0.3s ease; }
+.agent-card:hover { border-color: #3498db; background: #f8f9fa; }
+.agent-card.selected { border-color: #3498db; background: #e3f2fd; }
+.agent-name { font-weight: 600; font-size: 16px; color: #2c3e50; margin-bottom: 8px; }
+.agent-type { font-size: 13px; color: #95a5a6; }
+.leads-section { background: white; padding: 24px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+.filter-bar { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 16px; margin-bottom: 20px; }
+.stats-bar { display: flex; justify-content: space-between; align-items: center; padding: 16px; background: #f8f9fa; border-radius: 8px; margin-bottom: 20px; }
+.stat-item { text-align: center; }
+.stat-value { font-size: 24px; font-weight: 700; color: #3498db; }
+.stat-label { font-size: 13px; color: #95a5a6; }
+.action-bar { display: flex; gap: 12px; justify-content: flex-end; padding: 20px; background: #f8f9fa; border-top: 2px solid #e8ecf1; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bulk-call-container">
+    <!-- Agent Selection -->
+    <div class="agent-section">
+        <h3 class="section-title"><i class="fas fa-robot"></i> Select AI Agent</h3>
+        <div class="agent-grid">
+            {% for agent in agents %}
+            <div class="agent-card" onclick="selectAgent({{ agent.id }})" id="agent-{{ agent.id }}">
+                <div class="agent-name">{{ agent.name }}</div>
+                <div class="agent-type">{{ agent.agent_type }}</div>
+                <div class="agent-type">Agent ID: {{ agent.agent_id|slice:":8" }}...</div>
+            </div>
+            {% empty %}
+            <div class="text-center p-4">
+                <p class="text-muted">No AI agents configured. <a href="/callkaro-agents/">Add agents</a></p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Leads Selection -->
+    <div class="leads-section">
+        <h3 class="section-title"><i class="fas fa-users"></i> Select Leads to Call</h3>
+        
+        <!-- Filters -->
+        <div class="filter-bar">
+            <div class="form-group mb-0">
+                <label class="form-label">Search</label>
+                <input type="text" id="searchInput" class="form-control" placeholder="Name, phone..." onkeyup="filterLeads()">
+            </div>
+            <div class="form-group mb-0">
+                <label class="form-label">Project</label>
+                <select id="projectFilter" class="form-control" onchange="filterLeads()">
+                    <option value="">All Projects</option>
+                    {% for project in projects %}
+                    <option value="{{ project.name }}">{{ project.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group mb-0">
+                <label class="form-label">Status</label>
+                <select id="statusFilter" class="form-control" onchange="filterLeads()">
+                    <option value="">All Status</option>
+                    <option value="new">New</option>
+                    <option value="contacted">Contacted</option>
+                    <option value="interested">Interested</option>
+                </select>
+            </div>
+            <div class="d-flex align-items-end">
+                <button class="btn btn-secondary" onclick="clearFilters()">Clear</button>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-bar">
+            <div class="stat-item">
+                <div class="stat-value" id="totalLeads">{{ leads.count }}</div>
+                <div class="stat-label">Total Leads</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="selectedCount">0</div>
+                <div class="stat-label">Selected</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="agentSelected">None</div>
+                <div class="stat-label">Agent Selected</div>
+            </div>
+        </div>
+
+        <!-- Leads Table -->
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th style="width: 40px;">
+                            <input type="checkbox" id="selectAll" onchange="toggleAll()" class="checkbox-lg">
+                        </th>
+                        <th>Name</th>
+                        <th>Phone</th>
+                        <th>Project</th>
+                        <th>Status</th>
+                        <th>Last Called</th>
+                    </tr>
+                </thead>
+                <tbody id="leadsTable">
+                    {% for lead in leads %}
+                    <tr class="lead-row" data-name="{{ lead.full_name|lower }}" data-phone="{{ lead.phone_number }}" data-project="{{ lead.form_name|lower }}" data-status="{{ lead.stage|default:'new' }}">
+                        <td>
+                            <input type="checkbox" class="lead-checkbox" value="{{ lead.id }}" data-phone="{{ lead.phone_number }}" onchange="updateCount()">
+                        </td>
+                        <td>{{ lead.full_name|default:"No Name" }}</td>
+                        <td>{{ lead.phone_number }}</td>
+                        <td>{{ lead.form_name|truncatechars:30 }}</td>
+                        <td><span class="badge badge-info">{{ lead.stage|default:"new" }}</span></td>
+                        <td class="text-muted">Never</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center p-5">No leads found</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Action Bar -->
+    <div class="action-bar">
+        <button class="btn btn-secondary" onclick="window.location.href='/leads/'">Cancel</button>
+        <button class="btn btn-success btn-lg" onclick="startBulkCalling()" id="startCallBtn" disabled>
+            <i class="fas fa-phone"></i> Start Bulk Calling
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let selectedAgent = null;
+
+function selectAgent(agentId) {
+    selectedAgent = agentId;
+    document.querySelectorAll('.agent-card').forEach(card => card.classList.remove('selected'));
+    document.getElementById(`agent-${agentId}`).classList.add('selected');
+    document.getElementById('agentSelected').textContent = 'Selected';
+    updateStartButton();
+}
+
+function toggleAll() {
+    const selectAll = document.getElementById('selectAll');
+    document.querySelectorAll('.lead-checkbox').forEach(cb => {
+        if (cb.closest('tr').style.display !== 'none') {
+            cb.checked = selectAll.checked;
+        }
+    });
+    updateCount();
+}
+
+function updateCount() {
+    const count = document.querySelectorAll('.lead-checkbox:checked').length;
+    document.getElementById('selectedCount').textContent = count;
+    updateStartButton();
+}
+
+function updateStartButton() {
+    const hasAgent = selectedAgent !== null;
+    const hasLeads = document.querySelectorAll('.lead-checkbox:checked').length > 0;
+    document.getElementById('startCallBtn').disabled = !hasAgent || !hasLeads;
+}
+
+function filterLeads() {
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    const project = document.getElementById('projectFilter').value.toLowerCase();
+    const status = document.getElementById('statusFilter').value.toLowerCase();
+    
+    document.querySelectorAll('.lead-row').forEach(row => {
+        const name = row.dataset.name || '';
+        const phone = row.dataset.phone || '';
+        const rowProject = row.dataset.project || '';
+        const rowStatus = row.dataset.status || '';
+        
+        const matchSearch = !search || name.includes(search) || phone.includes(search);
+        const matchProject = !project || rowProject.includes(project);
+        const matchStatus = !status || rowStatus === status;
+        
+        row.style.display = matchSearch && matchProject && matchStatus ? '' : 'none';
+    });
+}
+
+function clearFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('projectFilter').value = '';
+    document.getElementById('statusFilter').value = '';
+    filterLeads();
+}
+
+function startBulkCalling() {
+    if (!selectedAgent) {
+        alert('Please select an AI agent');
+        return;
+    }
+    
+    const selectedLeads = Array.from(document.querySelectorAll('.lead-checkbox:checked')).map(cb => ({
+        id: cb.value,
+        phone: cb.dataset.phone
+    }));
+    
+    if (selectedLeads.length === 0) {
+        alert('Please select at least one lead');
+        return;
+    }
+    
+    if (!confirm(`Start AI calling for ${selectedLeads.length} leads?`)) {
+        return;
+    }
+    
+    const btn = document.getElementById('startCallBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting Calls...';
+    
+    fetch('/bulk-ai-call/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            agent_id: selectedAgent,
+            leads: selectedLeads
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Success! ${data.initiated} calls initiated, ${data.failed} failed`);
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-phone"></i> Start Bulk Calling';
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error);
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-phone"></i> Start Bulk Calling';
+    });
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

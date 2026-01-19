@@ -3,7 +3,7 @@ import json
 import re
 
 # Default Google Sheets configuration
-DEFAULT_SPREADSHEET_ID = '1uVTBtof0SWsJQaaioi-7b9uo4EL7s78gtelQpp9MyNY'
+DEFAULT_SPREADSHEET_ID = '1tBO3sEET72uIJbdK2hixCCq4IicAv0eJxScWrnHzqMM'
 DEFAULT_SHEET_NAME = 'Sheet1'
 
 def extract_sheet_id(url):

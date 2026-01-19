@@ -385,13 +385,100 @@ def sync_leads(request):
         return JsonResponse({'error': 'POST required'})
     
     try:
+        if not ACCESS_TOKEN or not PAGE_ID:
+            return JsonResponse({'error': 'Meta API credentials not configured in .env'})
+        
+        # Get all forms from Meta
+        forms_url = f"https://graph.facebook.com/v21.0/{PAGE_ID}/leadgen_forms"
+        forms_response = requests.get(forms_url, params={'access_token': ACCESS_TOKEN})
+        
+        if forms_response.status_code != 200:
+            return JsonResponse({'error': f'Meta API error: {forms_response.text}'})
+        
+        forms_data = forms_response.json()
+        forms = forms_data.get('data', [])
+        
+        if not forms:
+            return JsonResponse({'error': 'No forms found in Meta account'})
+        
+        total_synced = 0
+        today_leads = 0
+        today = timezone.now().date()
+        skipped = 0
+        
+        # Sync leads from each form (with pagination for ALL historical leads)
+        for form in forms:
+            form_id = form['id']
+            form_name = form.get('name', 'Unknown Form')
+            
+            # Fetch ALL leads with pagination
+            leads_url = f"https://graph.facebook.com/v21.0/{form_id}/leads"
+            params = {
+                'access_token': ACCESS_TOKEN,
+                'fields': 'id,created_time,field_data',
+                'limit': 500  # Max per page
+            }
+            
+            while leads_url:
+                leads_response = requests.get(leads_url, params=params)
+                
+                if leads_response.status_code != 200:
+                    break
+                
+                leads_data = leads_response.json()
+                
+                for lead_data in leads_data.get('data', []):
+                    lead_id = lead_data.get('id')
+                    
+                    # Skip if already exists
+                    if Lead.objects.filter(lead_id=lead_id).exists():
+                        skipped += 1
+                        continue
+                    
+                    # Parse field data
+                    field_data = {item['name']: item['values'][0] for item in lead_data.get('field_data', [])}
+                    
+                    # Parse created_time from Meta
+                    created_time_str = lead_data.get('created_time')
+                    if created_time_str:
+                        created_time = parse_datetime(created_time_str)
+                    else:
+                        created_time = timezone.now()
+                    
+                    # Create lead
+                    lead = Lead.objects.create(
+                        lead_id=lead_id,
+                        full_name=field_data.get('full_name', ''),
+                        email=field_data.get('email', ''),
+                        phone_number=field_data.get('phone_number', ''),
+                        city=field_data.get('city', ''),
+                        budget=field_data.get('budget', '') or field_data.get('what_is_your_budget_range?', ''),
+                        source='Meta',
+                        form_name=form_name,
+                        configuration=field_data.get('configuration', ''),
+                        created_time=created_time
+                    )
+                    
+                    total_synced += 1
+                    if lead.created_time.date() == today:
+                        today_leads += 1
+                
+                # Check for next page
+                paging = leads_data.get('paging', {})
+                leads_url = paging.get('next')
+                params = {}  # Next URL already has params
+        
         return JsonResponse({
             'success': True,
-            'message': 'Sync completed',
-            'total_synced': 0
+            'message': f'Synced {total_synced} new leads (skipped {skipped} existing)',
+            'total_synced': total_synced,
+            'today_leads': today_leads,
+            'skipped': skipped
         })
+        
     except Exception as e:
-        return JsonResponse({'error': str(e)})
+        import traceback
+        return JsonResponse({'error': str(e), 'traceback': traceback.format_exc()})
 
 def meta_leads(request):
     from django.core.paginator import Paginator

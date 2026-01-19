@@ -65,8 +65,8 @@
                         <select id="autoCallAgentSelect" class="form-control" style="max-width: 300px;">
                             <option value="">Select an AI Agent...</option>
                             {% for agent in ai_agents %}
-                            <option value="{{ agent.agent_id }}" {% if agent.project_name == project.name %}selected{% endif %}>
-                                {{ agent.name }} {% if agent.project_name %}({{ agent.project_name }}){% endif %}
+                            <option value="{{ agent.agent_id }}" {% if agent.project and agent.project.name == project.name %}selected{% endif %}>
+                                {{ agent.name }} {% if agent.project %}({{ agent.project.name }}){% endif %}
                             </option>
                             {% endfor %}
                         </select>
@@ -99,8 +99,8 @@
                 <select id="agentSelect" class="form-control" style="max-width: 300px;">
                     <option value="">Select an AI Agent...</option>
                     {% for agent in ai_agents %}
-                    <option value="{{ agent.agent_id }}" {% if agent.project_name == project.name %}selected{% endif %}>
-                        {{ agent.name }} {% if agent.project_name %}({{ agent.project_name }}){% endif %}
+                    <option value="{{ agent.agent_id }}" {% if agent.project and agent.project.name == project.name %}selected{% endif %}>
+                        {{ agent.name }} {% if agent.project %}({{ agent.project.name }}){% endif %}
                     </option>
                     {% endfor %}
                 </select>
@@ -360,7 +360,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
-}
 
 function getCookie(name) {
     let cookieValue = null;

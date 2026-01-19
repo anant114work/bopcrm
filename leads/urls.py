@@ -1,13 +1,16 @@
 from django.urls import path
 from django.shortcuts import render
-from . import views, project_views, whatsapp_views, enhanced_views, team_views, reassignment_views, team_auth, analytics_views, hrms_views, activity_views, ai_views, call_views, acefone_views, simple_callkaro, auto_sync_views, auto_sync_control_view, integration_views, sync_dashboard_views, auto_call_views, views_bop, bulk_call_views, enhanced_sync_views, booking_views, api_views, project_team_views
+from . import views, project_views, whatsapp_views, enhanced_views, team_views, reassignment_views, team_auth, analytics_views, hrms_views, activity_views, ai_views, call_views, acefone_views, simple_callkaro, auto_sync_views, auto_sync_control_view, integration_views, sync_dashboard_views, auto_call_views, views_bop, bulk_call_views, enhanced_sync_views, booking_views, api_views, project_team_views, meta_webhook_views
 from . import drip_campaign_views as drip_views
 from .sync_campaigns_view import sync_campaigns_data
 from .bulk_whatsapp_views import project_bulk_whatsapp, send_bulk_whatsapp
-from . import form_mapping_views, auto_whatsapp_views, bulk_call_upload_views, callkaro_admin_views, google_sheets_views, call_analytics_views, call_report_views, call_history_views, booking_source_views
+from . import form_mapping_views, auto_whatsapp_views, bulk_call_upload_views, callkaro_admin_views, google_sheets_views, call_analytics_views, call_report_views, call_history_views, booking_source_views, bulk_ai_calling_views
 from django.shortcuts import render
 
 urlpatterns = [
+    # Meta Webhook (Real-time lead sync)
+    path('webhook/meta/', meta_webhook_views.meta_webhook, name='meta_webhook'),
+    
     path('', views.dashboard, name='dashboard'),
     path('dashboard/', views.dashboard, name='dashboard_explicit'),
     path('leads/', views.leads_list, name='leads_list'),
@@ -320,17 +323,8 @@ urlpatterns = [
     path('drip-campaigns/switch-variant/', drip_views.switch_campaign_variant, name='switch_campaign_variant'),
     path('drip-campaigns/get-variants/', drip_views.get_campaign_variants, name='get_campaign_variants'),
     path('drip-campaigns/create-spj-10day/', drip_views.create_spj_10day_campaigns, name='create_spj_10day_campaigns'),
-
-    path('drip-campaigns/switch-variant/', drip_views.switch_campaign_variant, name='switch_campaign_variant'),
-    path('drip-campaigns/get-variants/', drip_views.get_campaign_variants, name='get_campaign_variants'),
-    path('drip-campaigns/create-spj-10day/', drip_views.create_spj_10day_campaigns, name='create_spj_10day_campaigns'),
-
-
-    path('drip-campaigns/switch-variant/', drip_views.switch_campaign_variant, name='switch_campaign_variant'),
-    path('drip-campaigns/get-variants/', drip_views.get_campaign_variants, name='get_campaign_variants'),
-    path('drip-campaigns/create-spj-10day/', drip_views.create_spj_10day_campaigns, name='create_spj_10day_campaigns'),
-
-    path('drip-campaigns/switch-variant/', drip_views.switch_campaign_variant, name='switch_campaign_variant'),
-    path('drip-campaigns/get-variants/', drip_views.get_campaign_variants, name='get_campaign_variants'),
-    path('drip-campaigns/create-spj-10day/', drip_views.create_spj_10day_campaigns, name='create_spj_10day_campaigns'),
+    
+    # Bulk AI Calling URLs
+    path('bulk-ai-calling/', bulk_ai_calling_views.bulk_ai_calling_page, name='bulk_ai_calling'),
+    path('bulk-ai-call/', bulk_ai_calling_views.bulk_ai_call, name='bulk_ai_call'),
 ]
