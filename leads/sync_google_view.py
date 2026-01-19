@@ -47,12 +47,13 @@ def sync_all_google_sheets(request):
                 
                 for row in csv_data:
                     try:
-                        name = row.get('Name', '').strip()
-                        phone = row.get('Phone', '').strip()
-                        email = row.get('Email', '').strip().replace('mailto:', '')
-                        unit_size = row.get('Unit Size', '').strip()
-                        project = row.get('Project Name', '').strip()
-                        timestamp = row.get('Date & Time', '').strip()
+                        # Handle multiple column name formats
+                        name = (row.get('Name', '') or row.get('name', '')).strip()
+                        phone = (row.get('Phone', '') or row.get('phone', '')).strip()
+                        email = (row.get('Email', '') or row.get('Email ', '') or row.get('email', '')).strip().replace('mailto:', '')
+                        unit_size = (row.get('Unit Size', '') or row.get('Interest', '') or row.get('interest', '')).strip()
+                        project = (row.get('Project Name', '') or row.get('Project Nmae', '') or row.get('project', '')).strip()
+                        timestamp = (row.get('Date & Time', '') or row.get('Date &amp; Time', '') or row.get('timestamp', '')).strip()
                         
                         if not name or not phone:
                             continue
@@ -69,9 +70,16 @@ def sync_all_google_sheets(request):
                         
                         ist = pytz.timezone('Asia/Kolkata')
                         try:
+                            # Handle multiple date formats
                             if '/' in timestamp and ':' in timestamp:
-                                dt = datetime.strptime(timestamp, '%d/%m/%Y %H:%M:%S')
-                                created = ist.localize(dt)
+                                # Try DD/MM/YYYY HH:MM:SS
+                                try:
+                                    dt = datetime.strptime(timestamp, '%d/%m/%Y %H:%M:%S')
+                                    created = ist.localize(dt)
+                                except:
+                                    # Try D/M/YYYY, H:M:S
+                                    dt = datetime.strptime(timestamp, '%d/%m/%Y, %H:%M:%S')
+                                    created = ist.localize(dt)
                             elif '/' in timestamp:
                                 dt = datetime.strptime(timestamp, '%d/%m/%Y')
                                 created = ist.localize(dt)
