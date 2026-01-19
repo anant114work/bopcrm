@@ -18,9 +18,9 @@ def bulk_call_upload(request):
     
     campaigns = BulkCallCampaign.objects.all()
     callkaro_agents = CallKaroAgent.objects.filter(is_active=True)
-    ai_agents = AICallingAgent.objects.filter(is_active=True)
+    # ai_agents = AICallingAgent.objects.filter(is_active=True)
     
-    agents = list(callkaro_agents) + list(ai_agents)
+    agents = list(callkaro_agents)  # + list(ai_agents)
     
     return render(request, 'leads/bulk_call_upload.html', {
         'campaigns': campaigns,
